@@ -32,44 +32,13 @@
       --font-family-heading: 'Manrope', sans-serif;
     }
     
-    /* Utilitários para o Carrossel */
-    .carousel-track {
-        display: flex;
-        transition: transform 0.5s ease-in-out;
-        height: 100%;
-    }
-    .carousel-slide {
-        min-width: 100%;
-        height: 100%;
-        position: relative;
-    }
-    
-    /* Utilitários para o Modal e Carrinho */
-    .modal-backdrop {
-        background-color: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(4px);
-    }
-    .cart-sidebar {
-        transform: translateX(100%);
-        transition: transform 0.3s ease-in-out;
-    }
-    .cart-sidebar.open {
-        transform: translateX(0);
-    }
-    
-    /* Animação suave para expandir o formulário */
-    .expandable-fields {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
-        opacity: 0;
-    }
-    .expandable-fields.open {
-        max-height: 500px;
-        opacity: 1;
-    }
-
-    /* Controle de Visualização (SPA) */
+    .carousel-track { display: flex; transition: transform 0.5s ease-in-out; height: 100%; }
+    .carousel-slide { min-width: 100%; height: 100%; position: relative; }
+    .modal-backdrop { background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); }
+    .cart-sidebar { transform: translateX(100%); transition: transform 0.3s ease-in-out; }
+    .cart-sidebar.open { transform: translateX(0); }
+    .expandable-fields { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out; opacity: 0; }
+    .expandable-fields.open { max-height: 500px; opacity: 1; }
     .view-section { display: none; }
     .view-section.active { display: block; animation: fadeIn 0.5s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -97,7 +66,6 @@
           </button>
 
           <div class="pl-4 border-l border-gray-300 min-w-[160px] relative">
-            
             <button id="login-trigger-btn" class="flex items-center gap-3 group text-left w-full">
               <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
               <div class="flex flex-col leading-none">
@@ -113,9 +81,7 @@
                     <span class="text-[11px] text-gray-500 font-medium">Olá,</span>
                     <span id="user-name-display" class="text-sm font-bold text-[var(--accent2-color)] group-hover:underline truncate max-w-[120px]">Visitante</span>
                 </button>
-                <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">
-                    Sair
-                </button>
+                <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">Sair</button>
             </div>
             
             <div id="verify-warning" class="hidden absolute top-14 left-0 w-full bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded text-[10px] text-center shadow-md z-50">
@@ -138,7 +104,6 @@
   </header>
 
   <div id="home-view" class="view-section active">
-
       <section class="code-section py-8 bg-gradient-to-b from-white to-[var(--light-background-color)]">
         <div class="container mx-auto px-4">
           <div class="relative h-[300px] sm:h-[400px] overflow-hidden rounded-2xl shadow-2xl">
@@ -177,12 +142,8 @@
                 </div>
               </div>
             </div>
-            <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
-              <i class="fas fa-chevron-left text-xl"></i>
-            </button>
-            <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
-              <i class="fas fa-chevron-right text-xl"></i>
-            </button>
+            <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20"><i class="fas fa-chevron-left text-xl"></i></button>
+            <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20"><i class="fas fa-chevron-right text-xl"></i></button>
           </div>
         </div>
       </section>
@@ -190,21 +151,14 @@
       <section class="code-section py-16 bg-white">
         <div class="container mx-auto px-4">
           <div class="text-center mb-16">
-            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
-              Nossas Categorias
-            </h2>
-            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
-              Encontre exatamente o que você precisa para alcançar seus objetivos de saúde e bem-estar
-            </p>
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">Nossas Categorias</h2>
+            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">Encontre exatamente o que você precisa para alcançar seus objetivos de saúde e bem-estar</p>
           </div>
-          
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             <a href="/category/emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Queime gordura</p>
               </div>
@@ -212,9 +166,7 @@
             <a href="/category/saude" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                 <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Bem-estar geral</p>
               </div>
@@ -222,9 +174,7 @@
             <a href="/category/colageno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Pele e articulações</p>
               </div>
@@ -232,9 +182,7 @@
             <a href="/category/chas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Detox natural</p>
               </div>
@@ -242,9 +190,7 @@
             <a href="/category/vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Nutrição essencial</p>
               </div>
@@ -252,9 +198,7 @@
             <a href="/category/treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Performance máxima</p>
               </div>
@@ -262,9 +206,7 @@
             <a href="/category/gels-e-cintas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels e Cintas</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Modelagem corporal</p>
               </div>
@@ -272,9 +214,7 @@
             <a href="/combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
               <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-                  <i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i>
-                </div>
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
                 <p class="text-sm text-white opacity-90 font-medium">Economize mais!</p>
               </div>
@@ -286,19 +226,14 @@
       <section id="products-anchor" class="code-section py-20 bg-gradient-to-b from-[var(--light-background-color)] to-white">
         <div class="container mx-auto px-4">
           <div class="text-center mb-16">
-            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
-              Produtos em Destaque
-            </h2>
-            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
-              Os mais vendidos e bem avaliados pelos nossos clientes
-            </p>
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">Produtos em Destaque</h2>
+            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">Os mais vendidos e bem avaliados pelos nossos clientes</p>
           </div>
           
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
               <div class="relative overflow-hidden shrink-0">
-                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Whey Protein" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
                 <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-20%</span>
               </div>
               <div class="p-4 flex flex-col flex-grow">
@@ -311,7 +246,7 @@
                     <span class="text-2xl font-bold text-[var(--accent2-color)]">R$199,90</span>
                     <span class="block text-sm text-gray-500 line-through">R$249,90</span>
                   </div>
-                  <button type="button" onclick="addToCart('Whey Protein Isolado 900g', 199.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Whey Protein Isolado 900g', 199.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -320,7 +255,7 @@
 
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
               <div class="relative overflow-hidden shrink-0">
-                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" alt="Colágeno" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
                 <span class="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">Novo</span>
               </div>
               <div class="p-4 flex flex-col flex-grow">
@@ -330,7 +265,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$149,90</span>
-                  <button type="button" onclick="addToCart('Colágeno Verisol 300g', 149.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Colágeno Verisol 300g', 149.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -339,7 +274,7 @@
 
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
               <div class="relative overflow-hidden shrink-0">
-                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Termogênico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
                 <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-15%</span>
               </div>
               <div class="p-4 flex flex-col flex-grow">
@@ -349,7 +284,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$129,90</span>
-                  <button type="button" onclick="addToCart('Termogênico Fire Burn', 129.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Termogênico Fire Burn', 129.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -358,7 +293,7 @@
 
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
               <div class="relative overflow-hidden shrink-0">
-                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Creatina" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
               </div>
               <div class="p-4 flex flex-col flex-grow">
                 <div class="flex-grow">
@@ -367,7 +302,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$109,90</span>
-                  <button type="button" onclick="addToCart('Creatina Monohidratada 300g', 109.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Creatina Monohidratada 300g', 109.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -376,7 +311,7 @@
 
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
               <div class="relative overflow-hidden shrink-0">
-                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" alt="Multivitamínico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
                 <span class="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">Best Seller</span>
               </div>
               <div class="p-4 flex flex-col flex-grow">
@@ -386,7 +321,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$89,90</span>
-                  <button type="button" onclick="addToCart('Multivitamínico Daily', 89.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Multivitamínico Daily', 89.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -404,7 +339,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$59,90</span>
-                  <button type="button" onclick="addToCart('Chá Detox', 59.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Chá Detox', 59.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -423,7 +358,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$139,90</span>
-                  <button type="button" onclick="addToCart('Pré-Treino Explosive', 139.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Pré-Treino Explosive', 139.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -441,7 +376,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$99,90</span>
-                  <button type="button" onclick="addToCart('Ômega 3', 99.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Ômega 3', 99.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -459,7 +394,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$79,90</span>
-                  <button type="button" onclick="addToCart('Gel Redutor', 79.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Gel Redutor', 79.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -478,7 +413,7 @@
                 </div>
                 <div class="flex items-center justify-between mt-auto">
                   <span class="text-2xl font-bold text-[var(--accent2-color)]">R$299,90</span>
-                  <button type="button" onclick="addToCart('Combo Emagrecimento', 299.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                  <button type="button" onclick="window.safeAddToCart('Combo Emagrecimento', 299.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
                     <i class="fas fa-shopping-cart"></i>
                   </button>
                 </div>
@@ -497,48 +432,21 @@
       <section class="code-section py-20 relative overflow-hidden z-10" id="si435t7">
         <div class="absolute inset-0 bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent-color)] to-[var(--accent2-color)]"></div>
         <div class="absolute inset-0" style="background: url('https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public') center/cover no-repeat; opacity: 0.15;"></div>
-        
         <div class="container mx-auto px-4 relative z-10">
           <div class="max-w-4xl mx-auto text-center">
             <div class="inline-block mb-6">
-              <span class="bg-white text-[var(--accent2-color)] px-6 py-2 rounded-full font-bold text-sm font-[var(--font-family-body)] shadow-lg">
-                🔥 OFERTA ESPECIAL
-              </span>
+              <span class="bg-white text-[var(--accent2-color)] px-6 py-2 rounded-full font-bold text-sm font-[var(--font-family-body)] shadow-lg">🔥 OFERTA ESPECIAL</span>
             </div>
-            
-            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)] leading-tight">
-              Comece Sua Transformação Hoje!
-            </h2>
-            
-            <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95 leading-relaxed">
-              Descubra os melhores suplementos para seu estilo de vida e alcance seus objetivos de saúde com produtos de qualidade premium
-            </p>
-            
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)]">Comece Sua Transformação Hoje!</h2>
+            <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95">Descubra os melhores suplementos para seu estilo de vida.</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
-                <span>Explorar Produtos</span>
-                <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
-              </a>
-              
-              <a href="/combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
-                <span>Ver Combos</span>
-                <i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i>
-              </a>
+              <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"><span>Explorar Produtos</span><i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i></a>
+              <a href="/combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 group"><span>Ver Combos</span><i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i></a>
             </div>
-            
             <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white">
-              <div class="flex items-center gap-3">
-                <i class="fas fa-shipping-fast text-3xl"></i>
-                <span class="font-[var(--font-family-body)] font-medium">Frete Grátis Acima de R$199</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <i class="fas fa-lock text-3xl"></i>
-                <span class="font-[var(--font-family-body)] font-medium">Compra 100% Segura</span>
-              </div>
-              <div class="flex items-center gap-3">
-                <i class="fas fa-undo text-3xl"></i>
-                <span class="font-[var(--font-family-body)] font-medium">Garantia de 30 Dias</span>
-              </div>
+              <div class="flex items-center gap-3"><i class="fas fa-shipping-fast text-3xl"></i><span class="font-medium">Frete Grátis Acima de R$199</span></div>
+              <div class="flex items-center gap-3"><i class="fas fa-lock text-3xl"></i><span class="font-medium">Compra 100% Segura</span></div>
+              <div class="flex items-center gap-3"><i class="fas fa-undo text-3xl"></i><span class="font-medium">Garantia de 30 Dias</span></div>
             </div>
           </div>
         </div>
@@ -550,41 +458,21 @@
           <button onclick="switchView('home-view')" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-[var(--primary-color)]">
               <i class="fas fa-arrow-left"></i> Voltar para a Loja
           </button>
-
           <div class="bg-white rounded-2xl shadow-xl p-8">
               <div class="flex justify-between items-center mb-6">
                 <h2 class="text-3xl font-bold text-[var(--dark-text-color)] font-[var(--font-family-heading)]">Minha Conta</h2>
                 <i class="fas fa-user-circle text-4xl text-[var(--accent-color)]"></i>
               </div>
               <p class="text-gray-500 mb-8">Mantenha seus dados atualizados para agilizar suas compras.</p>
-              
               <form id="profile-form" class="space-y-6">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-500 mb-1">E-mail (Login)</label>
-                    <input type="email" id="profile-email" disabled class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                    <input type="text" id="profile-name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all">
-                  </div>
+                  <div><label class="block text-sm font-medium text-gray-500 mb-1">E-mail (Login)</label><input type="email" id="profile-email" disabled class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
+                  <div><label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label><input type="text" id="profile-name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all"></div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
-                        <input type="tel" id="profile-phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none">
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
-                        <input type="text" id="profile-cep" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none">
-                      </div>
+                      <div><label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="tel" id="profile-phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"></div>
+                      <div><label class="block text-sm font-medium text-gray-700 mb-1">CEP</label><input type="text" id="profile-cep" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"></div>
                   </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
-                    <textarea id="profile-address" rows="3" placeholder="Rua, Número, Bairro, Cidade" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"></textarea>
-                  </div>
-                  <div class="flex items-center justify-between pt-4">
-                      <p id="profile-status" class="text-sm font-bold"></p>
-                      <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button>
-                  </div>
+                  <div><label class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label><textarea id="profile-address" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"></textarea></div>
+                  <div class="flex items-center justify-between pt-4"><p id="profile-status" class="text-sm font-bold"></p><button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button></div>
               </form>
           </div>
       </div>
@@ -594,67 +482,43 @@
     <div class="container mx-auto px-4 py-16">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
         <div>
-          <a href="/" class="inline-block mb-6">
-            <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-20 object-contain brightness-0 invert">
-          </a>
-          <p class="text-gray-300 text-sm leading-relaxed mb-6">
-            Sua loja de confiança para suplementos de qualidade premium. Transforme sua vida com nossos produtos selecionados.
-          </p>
+          <a href="#" class="inline-block mb-6"><img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-20 object-contain brightness-0 invert"></a>
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">Sua loja de confiança para suplementos de qualidade premium.</p>
           <div class="flex gap-4">
-            <a href="https://instagram.com/Dynamix.2025" target="_blank" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
-              <i class="fab fa-instagram text-[var(--dark-text-color)] text-lg"></i>
-            </a>
-            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
-              <i class="fab fa-facebook-f text-[var(--dark-text-color)] text-lg"></i>
-            </a>
-            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
-              <i class="fab fa-whatsapp text-[var(--dark-text-color)] text-lg"></i>
-            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform"><i class="fab fa-instagram text-[var(--dark-text-color)] text-lg"></i></a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform"><i class="fab fa-facebook-f text-[var(--dark-text-color)] text-lg"></i></a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform"><i class="fab fa-whatsapp text-[var(--dark-text-color)] text-lg"></i></a>
           </div>
         </div>
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
           <ul class="space-y-3">
-            <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
-            <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
-            <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
-            <li><a href="/my-account" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
-            <li><a href="/about-us" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Sobre Nós</span></a></li>
+            <li><a href="#" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li><a href="#" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
+            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
+            <li><a href="#" onclick="switchView('profile-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
           </ul>
         </div>
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
           <ul class="space-y-3">
-            <li><a href="/category/emagrecimento" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
-            <li><a href="/category/saude" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
-            <li><a href="/category/treino" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
+            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
+            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
+            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
           </ul>
         </div>
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Contato</h3>
           <ul class="space-y-4 mb-6">
-            <li class="flex items-start gap-3">
-              <i class="fas fa-envelope text-[var(--primary-color)] mt-1"></i>
-              <a href="mailto:contato@dynamix.com.br" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors text-sm">contato@dynamix.com.br</a>
-            </li>
-            <li class="flex items-start gap-3">
-              <i class="fas fa-phone text-[var(--primary-color)] mt-1"></i>
-              <span class="text-gray-300 text-sm">(11) 99999-9999</span>
-            </li>
+            <li class="flex items-start gap-3"><i class="fas fa-envelope text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">contato@dynamix.com.br</span></li>
+            <li class="flex items-start gap-3"><i class="fas fa-phone text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">(11) 99999-9999</span></li>
           </ul>
           <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
-          <form class="flex gap-2">
-            <input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
-            <button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all duration-300">
-              <i class="fas fa-paper-plane"></i>
-            </button>
-          </form>
+          <form class="flex gap-2"><input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm"><button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all"><i class="fas fa-paper-plane"></i></button></form>
         </div>
       </div>
       <div class="border-t border-white border-opacity-10 pt-8 mb-8">
-        <h3 class="text-lg font-bold mb-6 text-center font-[var(--font-family-heading)] text-[var(--primary-color)]">
-          Formas de Pagamento
-        </h3>
+        <h3 class="text-lg font-bold mb-6 text-center font-[var(--font-family-heading)] text-[var(--primary-color)]">Formas de Pagamento</h3>
         <div class="flex flex-wrap justify-center items-center gap-6">
           <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-visa text-3xl text-blue-600"></i></div>
           <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-mastercard text-3xl text-red-600"></i></div>
@@ -665,12 +529,7 @@
       <div class="border-t border-white border-opacity-10 pt-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-6">
           <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
-          <div class="flex items-center gap-3">
-            <span class="text-gray-400 text-sm">Desenvolvido por</span>
-            <a href="#" target="_blank" class="transform hover:scale-110 transition-transform duration-300">
-              <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain">
-            </a>
-          </div>
+          <div class="flex items-center gap-3"><span class="text-gray-400 text-sm">Desenvolvido por</span><a href="#" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain"></a></div>
         </div>
       </div>
     </div>
@@ -686,21 +545,15 @@
         <form id="auth-form" class="space-y-4">
             <div id="register-fields" class="expandable-fields space-y-4">
                 <input type="text" id="name-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Nome Completo">
-                <input type="tel" id="phone-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="WhatsApp (DDD + Número)">
+                <input type="tel" id="phone-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="WhatsApp">
             </div>
             <input type="email" id="email-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="E-mail">
             <input type="password" id="password-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Senha">
             <div id="error-message" class="text-red-500 text-sm text-center hidden font-bold bg-red-50 p-2 rounded"></div>
             <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-transform">Entrar</button>
         </form>
-        <div class="mt-6">
-             <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou continue com</span></div></div>
-             <button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"><i class="fab fa-google text-red-500"></i> Google</button>
-        </div>
-        <p class="text-center mt-6 text-sm text-gray-600">
-            <span id="toggle-text">Não tem conta?</span>
-            <button id="toggle-auth-mode" class="text-[var(--accent2-color)] font-bold hover:underline ml-1">Criar conta</button>
-        </p>
+        <div class="mt-6"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou continue com</span></div></div><button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"><i class="fab fa-google text-red-500"></i> Google</button></div>
+        <p class="text-center mt-6 text-sm text-gray-600"><span id="toggle-text">Não tem conta?</span><button id="toggle-auth-mode" class="text-[var(--accent2-color)] font-bold hover:underline ml-1">Criar conta</button></p>
     </div>
   </div>
 
@@ -710,124 +563,37 @@
           <h2 class="text-xl font-bold flex items-center gap-2 font-[var(--font-family-heading)]"><i class="fas fa-shopping-cart text-[var(--accent-color)]"></i> Seu Carrinho</h2>
           <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button>
       </div>
-      <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4">
-          </div>
+      <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4"></div>
       <div class="p-6 border-t bg-gray-50">
-          <div class="flex justify-between items-center mb-4">
-              <span class="text-gray-600 font-bold">Total:</span>
-              <span id="cart-total" class="text-2xl font-bold text-[var(--accent2-color)]">R$ 0,00</span>
-          </div>
-          <button onclick="checkout()" class="w-full bg-green-500 text-white py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg flex items-center justify-center gap-2">
-              <i class="fab fa-whatsapp text-xl"></i> Finalizar Compra
-          </button>
+          <div class="flex justify-between items-center mb-4"><span class="text-gray-600 font-bold">Total:</span><span id="cart-total" class="text-2xl font-bold text-[var(--accent2-color)]">R$ 0,00</span></div>
+          <button onclick="checkout()" class="w-full bg-green-500 text-white py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg flex items-center justify-center gap-2"><i class="fab fa-whatsapp text-xl"></i> Finalizar Compra</button>
       </div>
   </div>
 
   <script>
-    // --- Controle de Telas (Home vs Perfil) ---
     function switchView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
         window.scrollTo(0,0);
     }
-
-    // --- Carrinho UI ---
     function toggleCart() {
         const sidebar = document.getElementById('cart-sidebar');
         const overlay = document.getElementById('cart-overlay');
         if (sidebar.classList.contains('open')) {
-            sidebar.classList.remove('open');
-            overlay.classList.add('hidden');
+            sidebar.classList.remove('open'); overlay.classList.add('hidden');
         } else {
-            sidebar.classList.add('open');
-            overlay.classList.remove('hidden');
+            sidebar.classList.add('open'); overlay.classList.remove('hidden');
         }
     }
-
-    // --- Carrossel Original ---
-    const bannerTrack = document.getElementById('banner-track');
-    const bannerSlides = bannerTrack ? Array.from(bannerTrack.children) : [];
-    const bannerNext = document.getElementById('banner-next');
-    const bannerPrev = document.getElementById('banner-prev');
-    let bannerIndex = 0;
-    
-    function updateBannerCarousel() {
-        if (bannerTrack) bannerTrack.style.transform = `translateX(-${bannerIndex * 100}%)`;
+    let bannerIdx = 0; const bannerTrack = document.getElementById('banner-track');
+    if(bannerTrack) {
+        setInterval(() => { bannerIdx = (bannerIdx + 1) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; }, 6000);
+        const next = document.getElementById('banner-next'); const prev = document.getElementById('banner-prev');
+        if(next) next.onclick = () => { bannerIdx = (bannerIdx + 1) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; };
+        if(prev) prev.onclick = () => { bannerIdx = (bannerIdx + 2) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; };
     }
-    
-    if (bannerNext && bannerPrev && bannerTrack) {
-        bannerNext.addEventListener('click', () => {
-            bannerIndex = (bannerIndex + 1) % bannerSlides.length;
-            updateBannerCarousel();
-        });
-        bannerPrev.addEventListener('click', () => {
-            bannerIndex = (bannerIndex - 1 + bannerSlides.length) % bannerSlides.length;
-            updateBannerCarousel();
-        });
-        setInterval(() => {
-            bannerIndex = (bannerIndex + 1) % bannerSlides.length;
-            updateBannerCarousel();
-        }, 6000);
-    }
-    
-    // Mobile Menu Toggle
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-    }
-  </script>
-
-  <script>
-      let cart = JSON.parse(localStorage.getItem('dynamixCart')) || [];
-      
-      function updateCartUI() {
-          const container = document.getElementById('cart-items');
-          const totalEl = document.getElementById('cart-total');
-          const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
-          
-          localStorage.setItem('dynamixCart', JSON.stringify(cart));
-          
-          countEls.forEach(el => {
-              if(el) {
-                  el.innerText = cart.length;
-                  el.classList.toggle('hidden', cart.length === 0);
-              }
-          });
-
-          const total = cart.reduce((sum, item) => sum + item.price, 0);
-          totalEl.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-          if (cart.length === 0) {
-              container.innerHTML = `<div class="text-center text-gray-500 mt-10"><i class="fas fa-shopping-basket text-4xl mb-3 opacity-30"></i><p>Carrinho vazio.</p></div>`;
-              return;
-          }
-
-          container.innerHTML = cart.map((item, index) => `
-              <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                  <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                  <div class="flex-grow">
-                      <h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
-                      <p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
-                  </div>
-                  <button onclick="removeFromCart(${index})" class="text-red-400 hover:text-red-600 p-2 transition"><i class="fas fa-trash"></i></button>
-              </div>
-          `).join('');
-      }
-
-      function addToCart(name, price, image) {
-          cart.push({ name, price, image });
-          updateCartUI();
-          toggleCart(); 
-      }
-
-      function removeFromCart(index) {
-          cart.splice(index, 1);
-          updateCartUI();
-      }
-      updateCartUI();
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn'); const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuBtn && mobileMenu) mobileMenuBtn.onclick = () => mobileMenu.classList.toggle('hidden');
   </script>
 
   <script type="module">
@@ -851,48 +617,37 @@
     const provider = new GoogleAuthProvider();
 
     let currentUserData = null; 
+    let cart = []; // Carrinho na Memória (Sync com DB)
 
-    // Referências DOM
+    // DOM Refs
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
     const loginBtn = document.getElementById('login-trigger-btn');
     const mobileLoginBtn = document.getElementById('mobile-login-btn');
-    const logoutBtn = document.getElementById('logout-btn');
     const closeBtn = document.getElementById('close-modal');
     const toggleBtn = document.getElementById('toggle-auth-mode');
     const submitBtn = document.getElementById('submit-btn');
     const errorMsg = document.getElementById('error-message');
     const regFields = document.getElementById('register-fields');
-    const googleBtn = document.getElementById('google-btn');
     let isLogin = true;
 
-    // Login/Cadastro Toggle
+    // --- Lógica de Auth UI ---
     const openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
-    loginBtn.onclick = openModal;
+    if(loginBtn) loginBtn.onclick = openModal;
     if(mobileLoginBtn) mobileLoginBtn.onclick = openModal;
-
     closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
     
     toggleBtn.onclick = (e) => {
-        e.preventDefault();
-        isLogin = !isLogin;
+        e.preventDefault(); isLogin = !isLogin;
         document.getElementById('modal-title').innerText = isLogin ? "Bem-vindo" : "Criar Conta";
         submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
         document.getElementById('toggle-text').innerText = isLogin ? "Não tem conta?" : "Já tem conta?";
         toggleBtn.innerText = isLogin ? "Criar conta" : "Fazer Login";
-        
-        if(isLogin) {
-            regFields.style.maxHeight = '0px'; 
-            regFields.style.opacity = '0';
-            document.getElementById('name-input').required = false;
-        } else {
-            regFields.style.maxHeight = '200px'; 
-            regFields.style.opacity = '1';
-            document.getElementById('name-input').required = true;
-        }
+        if(isLogin) { regFields.style.maxHeight = '0px'; regFields.style.opacity = '0'; document.getElementById('name-input').required = false; }
+        else { regFields.style.maxHeight = '200px'; regFields.style.opacity = '1'; document.getElementById('name-input').required = true; }
     };
 
-    // Submit Auth
+    // --- Submit Auth ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
@@ -900,9 +655,7 @@
         const name = document.getElementById('name-input').value;
         const phone = document.getElementById('phone-input').value;
 
-        submitBtn.disabled = true;
-        submitBtn.innerText = "Processando...";
-        errorMsg.classList.add('hidden');
+        submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
 
         try {
             if(isLogin) {
@@ -910,41 +663,66 @@
             } else {
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
                 await updateProfile(cred.user, { displayName: name });
-                // Salva no banco
+                // Cria User no DB com carrinho vazio
                 await setDoc(doc(db, "users", cred.user.uid), {
-                    fullName: name,
-                    phone: phone,
-                    email: email,
-                    address: "",
-                    cep: ""
+                    fullName: name, phone: phone, email: email, address: "", cep: "", cart: []
                 });
             }
             modal.classList.replace('flex','hidden');
         } catch(err) {
-            console.error(err);
-            errorMsg.innerText = "Erro: " + err.code;
-            errorMsg.classList.remove('hidden');
+            console.error(err); errorMsg.innerText = "Erro: " + err.code; errorMsg.classList.remove('hidden');
         } finally {
-            submitBtn.disabled = false;
-            submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
+            submitBtn.disabled = false; submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
         }
     };
 
-    // Google Auth
-    if(googleBtn) {
-        googleBtn.onclick = async () => {
-            try {
-                await signInWithPopup(auth, provider);
-                modal.classList.replace('flex','hidden');
-            } catch (error) {
-                console.error(error);
-                errorMsg.innerText = "Erro no Google Login.";
-                errorMsg.classList.remove('hidden');
-            }
-        };
+    document.getElementById('google-btn').onclick = async () => {
+        try { await signInWithPopup(auth, provider); modal.classList.replace('flex','hidden'); } 
+        catch (err) { errorMsg.innerText = "Erro Google Login"; errorMsg.classList.remove('hidden'); }
+    };
+
+    // --- Gerenciamento do Carrinho (DB Based) ---
+    function updateCartUI() {
+        const container = document.getElementById('cart-items');
+        const totalEl = document.getElementById('cart-total');
+        const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
+        
+        countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
+
+        const total = cart.reduce((sum, item) => sum + item.price, 0);
+        totalEl.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        if (cart.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-500 mt-10"><i class="fas fa-shopping-basket text-4xl mb-3 opacity-30"></i><p>Carrinho vazio.</p></div>`;
+            return;
+        }
+        container.innerHTML = cart.map((item, index) => `
+            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
+                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
+                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600 p-2 transition"><i class="fas fa-trash"></i></button>
+            </div>`).join('');
     }
 
-    // Monitoramento
+    // Funções Globais de Carrinho
+    window.safeAddToCart = async (name, price, image) => {
+        if(!auth.currentUser) { openModal(); return; }
+        // Adiciona local (Optimistic)
+        cart.push({name, price, image});
+        updateCartUI();
+        toggleCart();
+        // Salva DB
+        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
+    };
+
+    window.removeFromCart = async (index) => {
+        if(!auth.currentUser) return;
+        cart.splice(index, 1);
+        updateCartUI();
+        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
+    };
+
+    // --- Monitoramento Auth (Estado) ---
     onAuthStateChanged(auth, async (user) => {
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
@@ -956,13 +734,14 @@
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
             
-            // Tenta pegar dados extras
+            // Busca Dados + Carrinho do DB
             const docSnap = await getDoc(doc(db, "users", user.uid));
             if (docSnap.exists()) {
                 currentUserData = docSnap.data();
                 nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
+                cart = currentUserData.cart || []; // Carrega carrinho do banco
                 
-                // Popula Formulário de Perfil
+                // Popula Perfil
                 document.getElementById('profile-email').value = user.email;
                 document.getElementById('profile-name').value = currentUserData.fullName || "";
                 document.getElementById('profile-phone').value = currentUserData.phone || "";
@@ -971,88 +750,66 @@
             } else {
                 const displayName = user.displayName || "Cliente";
                 nameDisplay.innerText = displayName;
-                // Fallback objeto
-                currentUserData = { fullName: displayName, phone: "", address: "" };
+                currentUserData = { fullName: displayName, phone: "", address: "", cart: [] };
+                cart = [];
             }
+            updateCartUI();
             
             if(mobileText) mobileText.innerText = "Olá, " + nameDisplay.innerText;
             if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
 
         } else {
+            // Deslogado
             currentUserData = null;
+            cart = []; // Zera carrinho local
+            updateCartUI();
+            
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
             if(mobileText) mobileText.innerText = "Entre ou Cadastre-se";
-            if(document.getElementById('profile-view').classList.contains('active')) {
-                switchView('home-view');
-            }
+            if(document.getElementById('profile-view').classList.contains('active')) switchView('home-view');
             if (verifyWarning) verifyWarning.classList.add('hidden');
         }
     });
 
-    logoutBtn.onclick = () => signOut(auth);
+    document.getElementById('logout-btn').onclick = () => signOut(auth);
 
     // Salvar Perfil
-    const profileForm = document.getElementById('profile-form');
-    profileForm.onsubmit = async (e) => {
+    document.getElementById('profile-form').onsubmit = async (e) => {
         e.preventDefault();
         const statusMsg = document.getElementById('profile-status');
         if (!auth.currentUser) return;
-
-        statusMsg.innerText = "Salvando...";
-        statusMsg.className = "text-sm font-bold text-gray-500";
-
+        statusMsg.innerText = "Salvando..."; statusMsg.className = "text-sm font-bold text-gray-500";
         try {
-            await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            const newData = {
                 fullName: document.getElementById('profile-name').value,
                 phone: document.getElementById('profile-phone').value,
                 address: document.getElementById('profile-address').value,
                 cep: document.getElementById('profile-cep').value
-            });
-            
-            document.getElementById('user-name-display').innerText = document.getElementById('profile-name').value.split(' ')[0];
-            
-            statusMsg.innerText = "Dados atualizados!";
-            statusMsg.className = "text-sm font-bold text-green-600";
-            
-            currentUserData.fullName = document.getElementById('profile-name').value;
-            currentUserData.phone = document.getElementById('profile-phone').value;
-            currentUserData.address = document.getElementById('profile-address').value;
-        } catch (error) {
-            console.error(error);
-            statusMsg.innerText = "Erro ao salvar.";
-            statusMsg.className = "text-sm font-bold text-red-600";
-        }
+            };
+            await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+            document.getElementById('user-name-display').innerText = newData.fullName.split(' ')[0];
+            statusMsg.innerText = "Dados atualizados!"; statusMsg.className = "text-sm font-bold text-green-600";
+            Object.assign(currentUserData, newData); // Atualiza local
+        } catch (error) { console.error(error); statusMsg.innerText = "Erro ao salvar."; statusMsg.className = "text-sm font-bold text-red-600"; }
     };
     
-    // Checkout Global
+    // Checkout
     window.checkout = function() {
-        if (!auth.currentUser) {
-            alert("Faça login para finalizar a compra!");
-            modal.classList.replace('hidden','flex');
-            return;
-        }
-        if (cart.length === 0) {
-            alert("Seu carrinho está vazio!");
-            return;
-        }
+        if (!auth.currentUser) { openModal(); return; }
+        if (cart.length === 0) { alert("Seu carrinho está vazio!"); return; }
 
         let msg = `*NOVO PEDIDO - DYNAMIX*\n\n`;
         msg += `*Cliente:* ${currentUserData ? currentUserData.fullName : auth.currentUser.displayName}\n`;
         msg += `*Telefone:* ${currentUserData ? currentUserData.phone : "Não informado"}\n`;
         msg += `*Endereço:* ${currentUserData ? currentUserData.address : "Não informado"}\n\n`;
         msg += `*ITENS:*\n`;
-        
         let total = 0;
-        cart.forEach(item => {
-            msg += `- ${item.name}: R$ ${item.price.toFixed(2)}\n`;
-            total += item.price;
-        });
-        
+        cart.forEach(item => { msg += `- ${item.name}: R$ ${item.price.toFixed(2)}\n`; total += item.price; });
         msg += `\n*TOTAL: R$ ${total.toFixed(2)}*`;
         msg += `\n\nPagamento via PIX/Cartão.`;
 
-        // ADICIONE SEU NÚMERO AQUI
+        // SEU NUMERO AQUI
         const phoneStore = "5511999999999"; 
         const url = `https://wa.me/${phoneStore}?text=${encodeURIComponent(msg)}`;
         window.open(url, '_blank');
