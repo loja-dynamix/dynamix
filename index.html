@@ -44,10 +44,17 @@
         position: relative;
     }
     
-    /* Utilitários para o Modal */
+    /* Utilitários para o Modal e Carrinho */
     .modal-backdrop {
         background-color: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(4px);
+    }
+    .cart-sidebar {
+        transform: translateX(100%);
+        transition: transform 0.3s ease-in-out;
+    }
+    .cart-sidebar.open {
+        transform: translateX(0);
     }
     
     /* Animação suave para expandir o formulário */
@@ -61,24 +68,34 @@
         max-height: 500px;
         opacity: 1;
     }
+
+    /* Controle de Visualização (SPA) */
+    .view-section { display: none; }
+    .view-section.active { display: block; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
   </style>
 </head>
-<body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col">
+<body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
   
   <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-28">
-        <a href="/" class="flex items-center">
+        <a href="#" onclick="switchView('home-view')" class="flex items-center">
           <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-28 py-2 object-contain">
         </a>
         
         <nav class="hidden lg:flex items-center space-x-8">
-          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
-          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          <a href="#" onclick="switchView('home-view')" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          <a href="#" onclick="switchView('home-view'); setTimeout(()=>document.getElementById('products-anchor').scrollIntoView({behavior:'smooth'}), 100);" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
           <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
           <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
           <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
           
+          <button onclick="toggleCart()" class="relative text-[var(--dark-text-color)] hover:text-[var(--accent-color)] transition-colors mr-2">
+            <i class="fas fa-shopping-cart text-2xl"></i>
+            <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+          </button>
+
           <div class="pl-4 border-l border-gray-300 min-w-[160px] relative">
             
             <button id="login-trigger-btn" class="flex items-center gap-3 group text-left w-full">
@@ -92,10 +109,10 @@
             </button>
 
             <div id="user-logged-menu" class="hidden flex items-center gap-3">
-                <div class="flex flex-col leading-none">
+                <button onclick="switchView('profile-view')" class="flex flex-col leading-none text-left group">
                     <span class="text-[11px] text-gray-500 font-medium">Olá,</span>
-                    <span id="user-name-display" class="text-sm font-bold text-[var(--accent2-color)] truncate max-w-[140px]">Visitante</span>
-                </div>
+                    <span id="user-name-display" class="text-sm font-bold text-[var(--accent2-color)] group-hover:underline truncate max-w-[120px]">Visitante</span>
+                </button>
                 <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">
                     Sair
                 </button>
@@ -107,445 +124,475 @@
           </div>
         </nav>
 
-        <button id="mobile-menu-btn" class="lg:hidden text-[var(--dark-text-color)] focus:outline-none">
-          <i class="fas fa-bars text-2xl"></i>
-        </button>
-      </div>
-
-      <nav id="mobile-menu" class="hidden lg:hidden pb-4">
-        <div class="flex flex-col space-y-3">
-          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Início</a>
-          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Produtos</a>
-          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Combos</a>
-          
-          <button id="mobile-login-btn" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] w-full text-left">
-             <i class="fas fa-user text-black text-lg"></i>
-             <span id="mobile-login-text">Entre ou Cadastre-se</span>
-          </button>
-          
-          <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Contato</a>
+        <div class="flex items-center gap-4 lg:hidden">
+            <button onclick="toggleCart()" class="relative text-[var(--dark-text-color)]">
+                <i class="fas fa-shopping-cart text-2xl"></i>
+                <span id="mobile-cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button id="mobile-menu-btn" class="text-[var(--dark-text-color)] focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
         </div>
-      </nav>
+      </div>
     </div>
   </header>
 
-  <section class="code-section py-8 bg-gradient-to-b from-white to-[var(--light-background-color)]">
-    <div class="container mx-auto px-4">
-      <div class="relative h-[300px] sm:h-[400px] overflow-hidden rounded-2xl shadow-2xl">
-        <div id="banner-track" class="carousel-track h-full">
-          <div class="carousel-slide">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Promoção Emagrecimento" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-60"></div>
-            <div class="absolute inset-0 flex items-center">
-              <div class="container mx-auto px-4 text-white">
-                <h3 class="text-3xl sm:text-5xl font-bold">Até 30% OFF em Emagrecimento</h3>
-                <p class="text-xl mt-4">Queime gordura com os melhores termogênicos</p>
-                <a href="/category/emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Comprar Agora</a>
+  <div id="home-view" class="view-section active">
+
+      <section class="code-section py-8 bg-gradient-to-b from-white to-[var(--light-background-color)]">
+        <div class="container mx-auto px-4">
+          <div class="relative h-[300px] sm:h-[400px] overflow-hidden rounded-2xl shadow-2xl">
+            <div id="banner-track" class="carousel-track h-full">
+              <div class="carousel-slide">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Promoção Emagrecimento" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-60"></div>
+                <div class="absolute inset-0 flex items-center">
+                  <div class="container mx-auto px-4 text-white">
+                    <h3 class="text-3xl sm:text-5xl font-bold">Até 30% OFF em Emagrecimento</h3>
+                    <p class="text-xl mt-4">Queime gordura com os melhores termogênicos</p>
+                    <a href="/category/emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Comprar Agora</a>
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-slide">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Linha Treino" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-r from-[var(--accent3-color)] to-transparent opacity-70"></div>
+                <div class="absolute inset-0 flex items-center justify-end">
+                  <div class="container mx-auto px-4 text-white text-right">
+                    <h3 class="text-3xl sm:text-5xl font-bold">Potencialize Seu Treino</h3>
+                    <p class="text-xl mt-4">Whey, creatina e pré-treino com desconto</p>
+                    <a href="/category/treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold">Ver Ofertas</a>
+                  </div>
+                </div>
+              </div>
+              <div class="carousel-slide">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combos Especiais" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-l from-black to-transparent opacity-60"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="text-center text-white">
+                    <h3 class="text-3xl sm:text-5xl font-bold">Combos com até 40% OFF</h3>
+                    <p class="text-xl mt-4">Monte seu kit perfeito e economize mais</p>
+                    <a href="/combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Aproveitar</a>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          <div class="carousel-slide">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Linha Treino" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-r from-[var(--accent3-color)] to-transparent opacity-70"></div>
-            <div class="absolute inset-0 flex items-center justify-end">
-              <div class="container mx-auto px-4 text-white text-right">
-                <h3 class="text-3xl sm:text-5xl font-bold">Potencialize Seu Treino</h3>
-                <p class="text-xl mt-4">Whey, creatina e pré-treino com desconto</p>
-                <a href="/category/treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold">Ver Ofertas</a>
-              </div>
-            </div>
-          </div>
-          <div class="carousel-slide">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combos Especiais" class="w-full h-full object-cover">
-            <div class="absolute inset-0 bg-gradient-to-l from-black to-transparent opacity-60"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="text-center text-white">
-                <h3 class="text-3xl sm:text-5xl font-bold">Combos com até 40% OFF</h3>
-                <p class="text-xl mt-4">Monte seu kit perfeito e economize mais</p>
-                <a href="/combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Aproveitar</a>
-              </div>
-            </div>
+            <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
+              <i class="fas fa-chevron-left text-xl"></i>
+            </button>
+            <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
+              <i class="fas fa-chevron-right text-xl"></i>
+            </button>
           </div>
         </div>
-        <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
-          <i class="fas fa-chevron-left text-xl"></i>
-        </button>
-        <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
-          <i class="fas fa-chevron-right text-xl"></i>
-        </button>
-      </div>
-    </div>
-  </section>
+      </section>
 
-  <section class="code-section py-16 bg-white">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
-          Nossas Categorias
-        </h2>
-        <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
-          Encontre exatamente o que você precisa para alcançar seus objetivos de saúde e bem-estar
-        </p>
-      </div>
-      
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-        
-        <a href="/category/emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Queime gordura</p>
+      <section class="code-section py-16 bg-white">
+        <div class="container mx-auto px-4">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
+              Nossas Categorias
+            </h2>
+            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
+              Encontre exatamente o que você precisa para alcançar seus objetivos de saúde e bem-estar
+            </p>
           </div>
-        </a>
-
-        <a href="/category/saude" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-           <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-           <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Bem-estar geral</p>
-          </div>
-        </a>
-
-        <a href="/category/colageno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Pele e articulações</p>
-          </div>
-        </a>
-
-        <a href="/category/chas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Detox natural</p>
-          </div>
-        </a>
-
-        <a href="/category/vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Nutrição essencial</p>
-          </div>
-        </a>
-
-        <a href="/category/treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Performance máxima</p>
-          </div>
-        </a>
-
-        <a href="/category/gels-e-cintas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels e Cintas</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Modelagem corporal</p>
-          </div>
-        </a>
-
-        <a href="/combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
-          <div class="p-6 text-center">
-            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
-              <i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i>
-            </div>
-            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
-            <p class="text-sm text-white opacity-90 font-medium">Economize mais!</p>
-          </div>
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="code-section py-20 bg-gradient-to-b from-[var(--light-background-color)] to-white">
-    <div class="container mx-auto px-4">
-      <div class="text-center mb-16">
-        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
-          Produtos em Destaque
-        </h2>
-        <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
-          Os mais vendidos e bem avaliados pelos nossos clientes
-        </p>
-      </div>
-      
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Whey Protein" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-20%</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Whey Protein Isolado 900g</h3>
-                <p class="text-sm text-gray-600 mb-3">Sabor Chocolate</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <div>
-                <span class="text-2xl font-bold text-[var(--accent2-color)]">R$199,90</span>
-                <span class="block text-sm text-gray-500 line-through">R$249,90</span>
-              </div>
-              <a href="/product/whey" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" alt="Colágeno" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">Novo</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Colágeno Verisol 300g</h3>
-                <p class="text-sm text-gray-600 mb-3">Pele, cabelo e unhas</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$149,90</span>
-              <a href="/product/colageno" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Termogênico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-15%</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Termogênico Fire Burn 60 caps</h3>
-                <p class="text-sm text-gray-600 mb-3">Acelere o metabolismo</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$129,90</span>
-              <a href="/product/termogenico" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Creatina" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Creatina Monohidratada 300g</h3>
-                <p class="text-sm text-gray-600 mb-3">Força e resistência</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$109,90</span>
-              <a href="/product/creatina" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" alt="Multivitamínico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">Best Seller</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Multivitamínico Daily 120 caps</h3>
-                <p class="text-sm text-gray-600 mb-3">Imunidade e energia</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$89,90</span>
-              <a href="/product/multivitaminico" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public" alt="Chá Detox" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Chá Detox 30 sachês</h3>
-                <p class="text-sm text-gray-600 mb-3">Limpeza natural</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$59,90</span>
-              <a href="/product/cha-detox" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public" alt="Pré-treino" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">-25%</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Pré-Treino Explosive 300g</h3>
-                <p class="text-sm text-gray-600 mb-3">Energia máxima</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$139,90</span>
-              <a href="/product/pre-treino" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public" alt="Ômega 3" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Ômega 3 1000mg 120 caps</h3>
-                <p class="text-sm text-gray-600 mb-3">Saúde cardiovascular</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$99,90</span>
-              <a href="/product/omega3" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public" alt="Gel Redutor" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Gel Redutor Corporal 200g</h3>
-                <p class="text-sm text-gray-600 mb-3">Modelagem intensiva</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$79,90</span>
-              <a href="/product/gel-redutor" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
-          <div class="relative overflow-hidden shrink-0">
-            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combo Emagrecimento" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
-            <span class="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">-35%</span>
-          </div>
-          <div class="p-4 flex flex-col flex-grow">
-            <div class="flex-grow">
-                <h3 class="font-semibold text-lg mb-2">Combo Emagrecimento Completo</h3>
-                <p class="text-sm text-gray-600 mb-3">Termogênico + Chá + Gel</p>
-            </div>
-            <div class="flex items-center justify-between mt-auto">
-              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$299,90</span>
-              <a href="/combo/emagrecimento" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
-                <i class="fas fa-shopping-cart"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <div class="text-center mt-12">
-        <a href="/products" class="inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
-          Ver Todos os Produtos
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <section class="code-section py-20 relative overflow-hidden z-10" id="si435t7">
-    <div class="absolute inset-0 bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent-color)] to-[var(--accent2-color)]"></div>
-    <div class="absolute inset-0" style="background: url('https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public') center/cover no-repeat; opacity: 0.15;"></div>
-    
-    <div class="container mx-auto px-4 relative z-10">
-      <div class="max-w-4xl mx-auto text-center">
-        <div class="inline-block mb-6">
-          <span class="bg-white text-[var(--accent2-color)] px-6 py-2 rounded-full font-bold text-sm font-[var(--font-family-body)] shadow-lg">
-            🔥 OFERTA ESPECIAL
-          </span>
-        </div>
-        
-        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)] leading-tight">
-          Comece Sua Transformação Hoje!
-        </h2>
-        
-        <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95 leading-relaxed">
-          Descubra os melhores suplementos para seu estilo de vida e alcance seus objetivos de saúde com produtos de qualidade premium
-        </p>
-        
-        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
-            <span>Explorar Produtos</span>
-            <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
-          </a>
           
-          <a href="/combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
-            <span>Ver Combos</span>
-            <i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i>
-          </a>
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            <a href="/category/emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Queime gordura</p>
+              </div>
+            </a>
+            <a href="/category/saude" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+                <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Bem-estar geral</p>
+              </div>
+            </a>
+            <a href="/category/colageno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Pele e articulações</p>
+              </div>
+            </a>
+            <a href="/category/chas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Detox natural</p>
+              </div>
+            </a>
+            <a href="/category/vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Nutrição essencial</p>
+              </div>
+            </a>
+            <a href="/category/treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Performance máxima</p>
+              </div>
+            </a>
+            <a href="/category/gels-e-cintas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels e Cintas</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Modelagem corporal</p>
+              </div>
+            </a>
+            <a href="/combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+              <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+                  <i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
+                <p class="text-sm text-white opacity-90 font-medium">Economize mais!</p>
+              </div>
+            </a>
+          </div>
         </div>
+      </section>
+
+      <section id="products-anchor" class="code-section py-20 bg-gradient-to-b from-[var(--light-background-color)] to-white">
+        <div class="container mx-auto px-4">
+          <div class="text-center mb-16">
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
+              Produtos em Destaque
+            </h2>
+            <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
+              Os mais vendidos e bem avaliados pelos nossos clientes
+            </p>
+          </div>
+          
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Whey Protein" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-20%</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Whey Protein Isolado 900g</h3>
+                    <p class="text-sm text-gray-600 mb-3">Sabor Chocolate</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <div>
+                    <span class="text-2xl font-bold text-[var(--accent2-color)]">R$199,90</span>
+                    <span class="block text-sm text-gray-500 line-through">R$249,90</span>
+                  </div>
+                  <button type="button" onclick="addToCart('Whey Protein Isolado 900g', 199.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" alt="Colágeno" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">Novo</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Colágeno Verisol 300g</h3>
+                    <p class="text-sm text-gray-600 mb-3">Pele, cabelo e unhas</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$149,90</span>
+                  <button type="button" onclick="addToCart('Colágeno Verisol 300g', 149.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Termogênico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-15%</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Termogênico Fire Burn 60 caps</h3>
+                    <p class="text-sm text-gray-600 mb-3">Acelere o metabolismo</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$129,90</span>
+                  <button type="button" onclick="addToCart('Termogênico Fire Burn', 129.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Creatina" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Creatina Monohidratada 300g</h3>
+                    <p class="text-sm text-gray-600 mb-3">Força e resistência</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$109,90</span>
+                  <button type="button" onclick="addToCart('Creatina Monohidratada 300g', 109.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" alt="Multivitamínico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">Best Seller</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Multivitamínico Daily 120 caps</h3>
+                    <p class="text-sm text-gray-600 mb-3">Imunidade e energia</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$89,90</span>
+                  <button type="button" onclick="addToCart('Multivitamínico Daily', 89.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public" alt="Chá Detox" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Chá Detox 30 sachês</h3>
+                    <p class="text-sm text-gray-600 mb-3">Limpeza natural</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$59,90</span>
+                  <button type="button" onclick="addToCart('Chá Detox', 59.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public" alt="Pré-treino" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">-25%</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Pré-Treino Explosive 300g</h3>
+                    <p class="text-sm text-gray-600 mb-3">Energia máxima</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$139,90</span>
+                  <button type="button" onclick="addToCart('Pré-Treino Explosive', 139.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public" alt="Ômega 3" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Ômega 3 1000mg 120 caps</h3>
+                    <p class="text-sm text-gray-600 mb-3">Saúde cardiovascular</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$99,90</span>
+                  <button type="button" onclick="addToCart('Ômega 3', 99.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public" alt="Gel Redutor" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Gel Redutor Corporal 200g</h3>
+                    <p class="text-sm text-gray-600 mb-3">Modelagem intensiva</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$79,90</span>
+                  <button type="button" onclick="addToCart('Gel Redutor', 79.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combo Emagrecimento" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">-35%</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <h3 class="font-semibold text-lg mb-2">Combo Emagrecimento Completo</h3>
+                    <p class="text-sm text-gray-600 mb-3">Termogênico + Chá + Gel</p>
+                </div>
+                <div class="flex items-center justify-between mt-auto">
+                  <span class="text-2xl font-bold text-[var(--accent2-color)]">R$299,90</span>
+                  <button type="button" onclick="addToCart('Combo Emagrecimento', 299.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform cursor-pointer">
+                    <i class="fas fa-shopping-cart"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="text-center mt-12">
+            <a href="/products" class="inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+              Ver Todos os Produtos
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="code-section py-20 relative overflow-hidden z-10" id="si435t7">
+        <div class="absolute inset-0 bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent-color)] to-[var(--accent2-color)]"></div>
+        <div class="absolute inset-0" style="background: url('https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public') center/cover no-repeat; opacity: 0.15;"></div>
         
-        <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white">
-          <div class="flex items-center gap-3">
-            <i class="fas fa-shipping-fast text-3xl"></i>
-            <span class="font-[var(--font-family-body)] font-medium">Frete Grátis Acima de R$199</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <i class="fas fa-lock text-3xl"></i>
-            <span class="font-[var(--font-family-body)] font-medium">Compra 100% Segura</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <i class="fas fa-undo text-3xl"></i>
-            <span class="font-[var(--font-family-body)] font-medium">Garantia de 30 Dias</span>
+        <div class="container mx-auto px-4 relative z-10">
+          <div class="max-w-4xl mx-auto text-center">
+            <div class="inline-block mb-6">
+              <span class="bg-white text-[var(--accent2-color)] px-6 py-2 rounded-full font-bold text-sm font-[var(--font-family-body)] shadow-lg">
+                🔥 OFERTA ESPECIAL
+              </span>
+            </div>
+            
+            <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)] leading-tight">
+              Comece Sua Transformação Hoje!
+            </h2>
+            
+            <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95 leading-relaxed">
+              Descubra os melhores suplementos para seu estilo de vida e alcance seus objetivos de saúde com produtos de qualidade premium
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
+                <span>Explorar Produtos</span>
+                <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+              </a>
+              
+              <a href="/combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
+                <span>Ver Combos</span>
+                <i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i>
+              </a>
+            </div>
+            
+            <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white">
+              <div class="flex items-center gap-3">
+                <i class="fas fa-shipping-fast text-3xl"></i>
+                <span class="font-[var(--font-family-body)] font-medium">Frete Grátis Acima de R$199</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <i class="fas fa-lock text-3xl"></i>
+                <span class="font-[var(--font-family-body)] font-medium">Compra 100% Segura</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <i class="fas fa-undo text-3xl"></i>
+                <span class="font-[var(--font-family-body)] font-medium">Garantia de 30 Dias</span>
+              </div>
+            </div>
           </div>
         </div>
+      </section>
+  </div>
+
+  <div id="profile-view" class="view-section min-h-[60vh] bg-gray-50 py-10">
+      <div class="container mx-auto px-4 max-w-2xl">
+          <button onclick="switchView('home-view')" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-[var(--primary-color)]">
+              <i class="fas fa-arrow-left"></i> Voltar para a Loja
+          </button>
+
+          <div class="bg-white rounded-2xl shadow-xl p-8">
+              <div class="flex justify-between items-center mb-6">
+                <h2 class="text-3xl font-bold text-[var(--dark-text-color)] font-[var(--font-family-heading)]">Minha Conta</h2>
+                <i class="fas fa-user-circle text-4xl text-[var(--accent-color)]"></i>
+              </div>
+              <p class="text-gray-500 mb-8">Mantenha seus dados atualizados para agilizar suas compras.</p>
+              
+              <form id="profile-form" class="space-y-6">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-500 mb-1">E-mail (Login)</label>
+                    <input type="email" id="profile-email" disabled class="w-full px-4 py-3 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                    <input type="text" id="profile-name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all">
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
+                        <input type="tel" id="profile-phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none">
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">CEP</label>
+                        <input type="text" id="profile-cep" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none">
+                      </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Endereço Completo</label>
+                    <textarea id="profile-address" rows="3" placeholder="Rua, Número, Bairro, Cidade" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none"></textarea>
+                  </div>
+                  <div class="flex items-center justify-between pt-4">
+                      <p id="profile-status" class="text-sm font-bold"></p>
+                      <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button>
+                  </div>
+              </form>
+          </div>
       </div>
-    </div>
-  </section>
+  </div>
 
   <footer id="global-footer" class="code-section bg-gradient-to-b from-[var(--dark-text-color)] to-[var(--accent4-color)] text-white mt-auto relative z-20">
     <div class="container mx-auto px-4 py-16">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-        
         <div>
           <a href="/" class="inline-block mb-6">
             <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-20 object-contain brightness-0 invert">
@@ -575,7 +622,6 @@
             <li><a href="/about-us" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Sobre Nós</span></a></li>
           </ul>
         </div>
-        
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
           <ul class="space-y-3">
@@ -630,100 +676,75 @@
     </div>
   </footer>
 
-  <div id="auth-modal" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop">
+  <div id="auth-modal" class="fixed inset-0 z-[60] hidden items-center justify-center modal-backdrop">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative m-4 max-h-[90vh] overflow-y-auto animate-[fadeIn_0.3s_ease-out]">
-        
-        <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-xl"></i>
-        </button>
-
+        <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
         <div class="text-center mb-6">
             <h2 id="modal-title" class="text-3xl font-bold text-[var(--dark-text-color)] mb-2 font-[var(--font-family-heading)]">Bem-vindo</h2>
             <p id="modal-subtitle" class="text-gray-500">Acesse sua conta para continuar</p>
         </div>
-
         <form id="auth-form" class="space-y-4">
-            
             <div id="register-fields" class="expandable-fields space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                    <div class="relative">
-                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="name-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Ex: João da Silva">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
-                    <div class="relative">
-                        <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="tel" id="phone-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="(11) 99999-9999">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Endereço de Entrega</label>
-                    <div class="relative">
-                        <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" id="address-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Rua, Número, Bairro, CEP">
-                    </div>
-                </div>
+                <input type="text" id="name-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Nome Completo">
+                <input type="tel" id="phone-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="WhatsApp (DDD + Número)">
             </div>
-
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-                <div class="relative">
-                    <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="email" id="email-input" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all" placeholder="seu@email.com">
-                </div>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                <div class="relative">
-                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" id="password-input" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all" placeholder="******">
-                </div>
-            </div>
-
+            <input type="email" id="email-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="E-mail">
+            <input type="password" id="password-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Senha">
             <div id="error-message" class="text-red-500 text-sm text-center hidden font-bold bg-red-50 p-2 rounded"></div>
-            <div id="success-message" class="text-green-600 text-sm text-center hidden font-bold bg-green-50 p-2 rounded"></div>
-
-            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
-                Entrar
-            </button>
+            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-transform">Entrar</button>
         </form>
-
-        <div class="mt-6 login-only-elements">
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
-                <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou continue com</span></div>
-            </div>
-            <button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                <i class="fab fa-google text-red-500"></i> Google
-            </button>
+        <div class="mt-6">
+             <div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou continue com</span></div></div>
+             <button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"><i class="fab fa-google text-red-500"></i> Google</button>
         </div>
-
         <p class="text-center mt-6 text-sm text-gray-600">
-            <span id="toggle-text">Ainda não tem conta?</span>
-            <button id="toggle-auth-mode" class="text-[var(--accent2-color)] font-bold hover:underline ml-1">
-                Criar conta
-            </button>
+            <span id="toggle-text">Não tem conta?</span>
+            <button id="toggle-auth-mode" class="text-[var(--accent2-color)] font-bold hover:underline ml-1">Criar conta</button>
         </p>
     </div>
   </div>
 
+  <div id="cart-overlay" onclick="toggleCart()" class="fixed inset-0 bg-black bg-opacity-50 z-[70] hidden transition-opacity"></div>
+  <div id="cart-sidebar" class="fixed top-0 right-0 h-full w-full max-w-md bg-white z-[80] shadow-2xl cart-sidebar flex flex-col">
+      <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+          <h2 class="text-xl font-bold flex items-center gap-2 font-[var(--font-family-heading)]"><i class="fas fa-shopping-cart text-[var(--accent-color)]"></i> Seu Carrinho</h2>
+          <button onclick="toggleCart()" class="text-gray-500 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button>
+      </div>
+      <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4">
+          </div>
+      <div class="p-6 border-t bg-gray-50">
+          <div class="flex justify-between items-center mb-4">
+              <span class="text-gray-600 font-bold">Total:</span>
+              <span id="cart-total" class="text-2xl font-bold text-[var(--accent2-color)]">R$ 0,00</span>
+          </div>
+          <button onclick="checkout()" class="w-full bg-green-500 text-white py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg flex items-center justify-center gap-2">
+              <i class="fab fa-whatsapp text-xl"></i> Finalizar Compra
+          </button>
+      </div>
+  </div>
+
   <script>
-    // Menu Mobile
-    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
-    const mobileMenu = document.getElementById('mobile-menu');
-    if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
+    // --- Controle de Telas (Home vs Perfil) ---
+    function switchView(viewId) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        window.scrollTo(0,0);
     }
 
-    // Carrossel
+    // --- Carrinho UI ---
+    function toggleCart() {
+        const sidebar = document.getElementById('cart-sidebar');
+        const overlay = document.getElementById('cart-overlay');
+        if (sidebar.classList.contains('open')) {
+            sidebar.classList.remove('open');
+            overlay.classList.add('hidden');
+        } else {
+            sidebar.classList.add('open');
+            overlay.classList.remove('hidden');
+        }
+    }
+
+    // --- Carrossel Original ---
     const bannerTrack = document.getElementById('banner-track');
     const bannerSlides = bannerTrack ? Array.from(bannerTrack.children) : [];
     const bannerNext = document.getElementById('banner-next');
@@ -748,25 +769,72 @@
             updateBannerCarousel();
         }, 6000);
     }
+    
+    // Mobile Menu Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+  </script>
+
+  <script>
+      let cart = JSON.parse(localStorage.getItem('dynamixCart')) || [];
+      
+      function updateCartUI() {
+          const container = document.getElementById('cart-items');
+          const totalEl = document.getElementById('cart-total');
+          const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
+          
+          localStorage.setItem('dynamixCart', JSON.stringify(cart));
+          
+          countEls.forEach(el => {
+              if(el) {
+                  el.innerText = cart.length;
+                  el.classList.toggle('hidden', cart.length === 0);
+              }
+          });
+
+          const total = cart.reduce((sum, item) => sum + item.price, 0);
+          totalEl.innerText = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+          if (cart.length === 0) {
+              container.innerHTML = `<div class="text-center text-gray-500 mt-10"><i class="fas fa-shopping-basket text-4xl mb-3 opacity-30"></i><p>Carrinho vazio.</p></div>`;
+              return;
+          }
+
+          container.innerHTML = cart.map((item, index) => `
+              <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                  <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
+                  <div class="flex-grow">
+                      <h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
+                      <p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                  </div>
+                  <button onclick="removeFromCart(${index})" class="text-red-400 hover:text-red-600 p-2 transition"><i class="fas fa-trash"></i></button>
+              </div>
+          `).join('');
+      }
+
+      function addToCart(name, price, image) {
+          cart.push({ name, price, image });
+          updateCartUI();
+          toggleCart(); 
+      }
+
+      function removeFromCart(index) {
+          cart.splice(index, 1);
+          updateCartUI();
+      }
+      updateCartUI();
   </script>
 
   <script type="module">
-    // Importações
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { 
-        getAuth, 
-        createUserWithEmailAndPassword, 
-        signInWithEmailAndPassword, 
-        onAuthStateChanged, 
-        signOut,
-        GoogleAuthProvider,
-        signInWithPopup,
-        updateProfile,
-        sendEmailVerification
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // Configuração
     const firebaseConfig = {
       apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
       authDomain: "dynamix-3cb48.firebaseapp.com",
@@ -782,194 +850,213 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
-    // Elementos
+    let currentUserData = null; 
+
+    // Referências DOM
     const modal = document.getElementById('auth-modal');
-    const loginTriggerBtn = document.getElementById('login-trigger-btn');
-    const mobileLoginBtn = document.getElementById('mobile-login-btn');
-    const closeModalBtn = document.getElementById('close-modal');
     const authForm = document.getElementById('auth-form');
-    const toggleAuthModeBtn = document.getElementById('toggle-auth-mode');
-    const submitBtn = document.getElementById('submit-btn');
-    const modalTitle = document.getElementById('modal-title');
-    const modalSubtitle = document.getElementById('modal-subtitle');
-    const toggleText = document.getElementById('toggle-text');
-    const errorMessage = document.getElementById('error-message');
-    const successMessage = document.getElementById('success-message');
-    const googleBtn = document.getElementById('google-btn');
-    const registerFields = document.getElementById('register-fields');
-    
-    // Elementos Logado
-    const userLoggedMenu = document.getElementById('user-logged-menu');
+    const loginBtn = document.getElementById('login-trigger-btn');
+    const mobileLoginBtn = document.getElementById('mobile-login-btn');
     const logoutBtn = document.getElementById('logout-btn');
-    const userNameDisplay = document.getElementById('user-name-display');
-    const mobileLoginText = document.getElementById('mobile-login-text');
-    const verifyWarning = document.getElementById('verify-warning');
+    const closeBtn = document.getElementById('close-modal');
+    const toggleBtn = document.getElementById('toggle-auth-mode');
+    const submitBtn = document.getElementById('submit-btn');
+    const errorMsg = document.getElementById('error-message');
+    const regFields = document.getElementById('register-fields');
+    const googleBtn = document.getElementById('google-btn');
+    let isLogin = true;
 
-    let isLoginMode = true;
+    // Login/Cadastro Toggle
+    const openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
+    loginBtn.onclick = openModal;
+    if(mobileLoginBtn) mobileLoginBtn.onclick = openModal;
 
-    // Funções UI Modal
-    function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
-    function closeModal() { 
-        modal.classList.add('hidden'); modal.classList.remove('flex'); 
-        errorMessage.classList.add('hidden'); successMessage.classList.add('hidden');
-        authForm.reset();
-    }
+    closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
     
-    loginTriggerBtn.addEventListener('click', () => { if(!auth.currentUser) openModal(); });
-    mobileLoginBtn.addEventListener('click', () => { if(!auth.currentUser) openModal(); });
-    closeModalBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-
-    // Alternar Login/Cadastro
-    toggleAuthModeBtn.addEventListener('click', (e) => {
+    toggleBtn.onclick = (e) => {
         e.preventDefault();
-        isLoginMode = !isLoginMode;
-        errorMessage.classList.add('hidden');
-        successMessage.classList.add('hidden');
-
-        if (isLoginMode) {
-            // LOGIN
-            modalTitle.innerText = "Bem-vindo";
-            modalSubtitle.innerText = "Acesse sua conta para continuar";
-            submitBtn.innerText = "Entrar";
-            toggleText.innerText = "Ainda não tem conta?";
-            toggleAuthModeBtn.innerText = "Criar conta";
-            registerFields.classList.remove('open');
+        isLogin = !isLogin;
+        document.getElementById('modal-title').innerText = isLogin ? "Bem-vindo" : "Criar Conta";
+        submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
+        document.getElementById('toggle-text').innerText = isLogin ? "Não tem conta?" : "Já tem conta?";
+        toggleBtn.innerText = isLogin ? "Criar conta" : "Fazer Login";
+        
+        if(isLogin) {
+            regFields.style.maxHeight = '0px'; 
+            regFields.style.opacity = '0';
             document.getElementById('name-input').required = false;
-            document.getElementById('phone-input').required = false;
-            document.getElementById('address-input').required = false;
         } else {
-            // CADASTRO
-            modalTitle.innerText = "Criar Conta";
-            modalSubtitle.innerText = "Preencha seus dados completos";
-            submitBtn.innerText = "Finalizar Cadastro";
-            toggleText.innerText = "Já tem uma conta?";
-            toggleAuthModeBtn.innerText = "Fazer Login";
-            registerFields.classList.add('open');
+            regFields.style.maxHeight = '200px'; 
+            regFields.style.opacity = '1';
             document.getElementById('name-input').required = true;
-            document.getElementById('phone-input').required = true;
-            document.getElementById('address-input').required = true;
         }
-    });
+    };
 
-    // Submit
-    authForm.addEventListener('submit', async (e) => {
+    // Submit Auth
+    authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
         const password = document.getElementById('password-input').value;
-        
-        // Dados extras
         const name = document.getElementById('name-input').value;
         const phone = document.getElementById('phone-input').value;
-        const address = document.getElementById('address-input').value;
 
-        errorMessage.classList.add('hidden');
-        successMessage.classList.add('hidden');
         submitBtn.disabled = true;
         submitBtn.innerText = "Processando...";
+        errorMsg.classList.add('hidden');
 
         try {
-            if (isLoginMode) {
+            if(isLogin) {
                 await signInWithEmailAndPassword(auth, email, password);
-                closeModal();
             } else {
-                // Cadastro
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                // Salva Nome no Perfil Auth (Rápido)
-                await updateProfile(user, { displayName: name });
-
-                // Salva Tudo no Firestore (Banco)
-                await setDoc(doc(db, "users", user.uid), {
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                await updateProfile(cred.user, { displayName: name });
+                // Salva no banco
+                await setDoc(doc(db, "users", cred.user.uid), {
                     fullName: name,
-                    email: email,
                     phone: phone,
-                    address: address,
-                    createdAt: new Date()
+                    email: email,
+                    address: "",
+                    cep: ""
                 });
-
-                // Envia E-mail de Verificação
-                await sendEmailVerification(user);
-
-                successMessage.innerText = "Conta criada! Verifique seu e-mail.";
-                successMessage.classList.remove('hidden');
-                setTimeout(() => closeModal(), 3000);
             }
-        } catch (error) {
-            console.error(error);
-            errorMessage.innerText = getFriendlyErrorMessage(error.code);
-            errorMessage.classList.remove('hidden');
+            modal.classList.replace('flex','hidden');
+        } catch(err) {
+            console.error(err);
+            errorMsg.innerText = "Erro: " + err.code;
+            errorMsg.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;
-            submitBtn.innerText = isLoginMode ? "Entrar" : "Finalizar Cadastro";
+            submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
         }
-    });
+    };
 
-    // Google
-    googleBtn.addEventListener('click', async () => {
-        try {
-            await signInWithPopup(auth, provider);
-            closeModal();
-        } catch (error) {
-            errorMessage.innerText = "Erro no Google Login.";
-            errorMessage.classList.remove('hidden');
-        }
-    });
+    // Google Auth
+    if(googleBtn) {
+        googleBtn.onclick = async () => {
+            try {
+                await signInWithPopup(auth, provider);
+                modal.classList.replace('flex','hidden');
+            } catch (error) {
+                console.error(error);
+                errorMsg.innerText = "Erro no Google Login.";
+                errorMsg.classList.remove('hidden');
+            }
+        };
+    }
 
-    // Monitoramento de Estado
+    // Monitoramento
     onAuthStateChanged(auth, async (user) => {
+        const userMenu = document.getElementById('user-logged-menu');
+        const loginTrigger = document.getElementById('login-trigger-btn');
+        const nameDisplay = document.getElementById('user-name-display');
+        const mobileText = document.getElementById('mobile-login-text');
+        const verifyWarning = document.getElementById('verify-warning');
+
         if (user) {
-            // Logado
-            loginTriggerBtn.classList.add('hidden');
-            userLoggedMenu.classList.remove('hidden');
-            userLoggedMenu.classList.add('flex');
-
-            // Tenta pegar nome do Auth ou do Banco
-            let displayName = user.displayName;
-            if (!displayName) {
-                try {
-                    const docRef = doc(db, "users", user.uid);
-                    const docSnap = await getDoc(docRef);
-                    if (docSnap.exists()) {
-                        displayName = docSnap.data().fullName;
-                    }
-                } catch(e) { console.log("Erro ao buscar nome no DB", e); }
-            }
-
-            const firstName = displayName ? displayName.split(' ')[0] : "Visitante";
-            userNameDisplay.innerText = firstName;
-            if(mobileLoginText) mobileLoginText.innerText = "Olá, " + firstName;
-
-            // Verifica se validou e-mail
-            if (!user.emailVerified) {
-                verifyWarning.classList.remove('hidden');
+            loginTrigger.classList.add('hidden');
+            userMenu.classList.replace('hidden', 'flex');
+            
+            // Tenta pegar dados extras
+            const docSnap = await getDoc(doc(db, "users", user.uid));
+            if (docSnap.exists()) {
+                currentUserData = docSnap.data();
+                nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
+                
+                // Popula Formulário de Perfil
+                document.getElementById('profile-email').value = user.email;
+                document.getElementById('profile-name').value = currentUserData.fullName || "";
+                document.getElementById('profile-phone').value = currentUserData.phone || "";
+                document.getElementById('profile-address').value = currentUserData.address || "";
+                document.getElementById('profile-cep').value = currentUserData.cep || "";
             } else {
-                verifyWarning.classList.add('hidden');
+                const displayName = user.displayName || "Cliente";
+                nameDisplay.innerText = displayName;
+                // Fallback objeto
+                currentUserData = { fullName: displayName, phone: "", address: "" };
             }
+            
+            if(mobileText) mobileText.innerText = "Olá, " + nameDisplay.innerText;
+            if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
 
         } else {
-            // Deslogado
-            loginTriggerBtn.classList.remove('hidden');
-            userLoggedMenu.classList.add('hidden');
-            userLoggedMenu.classList.remove('flex');
-            verifyWarning.classList.add('hidden');
-            if(mobileLoginText) mobileLoginText.innerText = "Entre ou Cadastre-se";
+            currentUserData = null;
+            loginTrigger.classList.remove('hidden');
+            userMenu.classList.replace('flex', 'hidden');
+            if(mobileText) mobileText.innerText = "Entre ou Cadastre-se";
+            if(document.getElementById('profile-view').classList.contains('active')) {
+                switchView('home-view');
+            }
+            if (verifyWarning) verifyWarning.classList.add('hidden');
         }
     });
 
-    logoutBtn.addEventListener('click', () => signOut(auth));
+    logoutBtn.onclick = () => signOut(auth);
 
-    function getFriendlyErrorMessage(errorCode) {
-        switch (errorCode) {
-            case 'auth/email-already-in-use': return 'Este e-mail já possui conta.';
-            case 'auth/invalid-email': return 'E-mail inválido.';
-            case 'auth/weak-password': return 'Senha muito fraca (mínimo 6 dígitos).';
-            case 'auth/wrong-password': return 'Senha incorreta.';
-            case 'auth/invalid-credential': return 'Dados incorretos.';
-            default: return 'Erro: ' + errorCode;
+    // Salvar Perfil
+    const profileForm = document.getElementById('profile-form');
+    profileForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const statusMsg = document.getElementById('profile-status');
+        if (!auth.currentUser) return;
+
+        statusMsg.innerText = "Salvando...";
+        statusMsg.className = "text-sm font-bold text-gray-500";
+
+        try {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), {
+                fullName: document.getElementById('profile-name').value,
+                phone: document.getElementById('profile-phone').value,
+                address: document.getElementById('profile-address').value,
+                cep: document.getElementById('profile-cep').value
+            });
+            
+            document.getElementById('user-name-display').innerText = document.getElementById('profile-name').value.split(' ')[0];
+            
+            statusMsg.innerText = "Dados atualizados!";
+            statusMsg.className = "text-sm font-bold text-green-600";
+            
+            currentUserData.fullName = document.getElementById('profile-name').value;
+            currentUserData.phone = document.getElementById('profile-phone').value;
+            currentUserData.address = document.getElementById('profile-address').value;
+        } catch (error) {
+            console.error(error);
+            statusMsg.innerText = "Erro ao salvar.";
+            statusMsg.className = "text-sm font-bold text-red-600";
         }
-    }
+    };
+    
+    // Checkout Global
+    window.checkout = function() {
+        if (!auth.currentUser) {
+            alert("Faça login para finalizar a compra!");
+            modal.classList.replace('hidden','flex');
+            return;
+        }
+        if (cart.length === 0) {
+            alert("Seu carrinho está vazio!");
+            return;
+        }
+
+        let msg = `*NOVO PEDIDO - DYNAMIX*\n\n`;
+        msg += `*Cliente:* ${currentUserData ? currentUserData.fullName : auth.currentUser.displayName}\n`;
+        msg += `*Telefone:* ${currentUserData ? currentUserData.phone : "Não informado"}\n`;
+        msg += `*Endereço:* ${currentUserData ? currentUserData.address : "Não informado"}\n\n`;
+        msg += `*ITENS:*\n`;
+        
+        let total = 0;
+        cart.forEach(item => {
+            msg += `- ${item.name}: R$ ${item.price.toFixed(2)}\n`;
+            total += item.price;
+        });
+        
+        msg += `\n*TOTAL: R$ ${total.toFixed(2)}*`;
+        msg += `\n\nPagamento via PIX/Cartão.`;
+
+        // ADICIONE SEU NÚMERO AQUI
+        const phoneStore = "5511999999999"; 
+        const url = `https://wa.me/${phoneStore}?text=${encodeURIComponent(msg)}`;
+        window.open(url, '_blank');
+    };
   </script>
 </body>
 </html>
