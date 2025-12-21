@@ -43,6 +43,24 @@
         height: 100%;
         position: relative;
     }
+    
+    /* Utilitários para o Modal */
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+    }
+    
+    /* Animação suave para expandir o formulário */
+    .expandable-fields {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+        opacity: 0;
+    }
+    .expandable-fields.open {
+        max-height: 500px;
+        opacity: 1;
+    }
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col">
@@ -61,15 +79,32 @@
           <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
           <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
           
-          <a href="/my-account" class="flex items-center gap-3 group pl-4 border-l border-gray-300">
-            <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
-            <div class="flex flex-col leading-none">
-              <span class="text-[11px] text-gray-500 font-medium">Bem-vindo</span>
-              <span class="text-sm font-bold text-black group-hover:text-[var(--accent-color)] transition-colors duration-300">
-                Entre ou <br>Cadastre-se
-              </span>
+          <div class="pl-4 border-l border-gray-300 min-w-[160px] relative">
+            
+            <button id="login-trigger-btn" class="flex items-center gap-3 group text-left w-full">
+              <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
+              <div class="flex flex-col leading-none">
+                <span class="text-[11px] text-gray-500 font-medium">Bem-vindo</span>
+                <span class="text-sm font-bold text-black group-hover:text-[var(--accent-color)] transition-colors duration-300">
+                  Entre ou <br>Cadastre-se
+                </span>
+              </div>
+            </button>
+
+            <div id="user-logged-menu" class="hidden flex items-center gap-3">
+                <div class="flex flex-col leading-none">
+                    <span class="text-[11px] text-gray-500 font-medium">Olá,</span>
+                    <span id="user-name-display" class="text-sm font-bold text-[var(--accent2-color)] truncate max-w-[140px]">Visitante</span>
+                </div>
+                <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">
+                    Sair
+                </button>
             </div>
-          </a>
+            
+            <div id="verify-warning" class="hidden absolute top-14 left-0 w-full bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded text-[10px] text-center shadow-md z-50">
+                Verifique seu e-mail!
+            </div>
+          </div>
         </nav>
 
         <button id="mobile-menu-btn" class="lg:hidden text-[var(--dark-text-color)] focus:outline-none">
@@ -82,10 +117,12 @@
           <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Início</a>
           <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Produtos</a>
           <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Combos</a>
-          <a href="/my-account" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">
+          
+          <button id="mobile-login-btn" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] w-full text-left">
              <i class="fas fa-user text-black text-lg"></i>
-             <span>Entre ou Cadastre-se</span>
-          </a>
+             <span id="mobile-login-text">Entre ou Cadastre-se</span>
+          </button>
+          
           <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Contato</a>
         </div>
       </nav>
@@ -592,6 +629,90 @@
       </div>
     </div>
   </footer>
+
+  <div id="auth-modal" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 relative m-4 max-h-[90vh] overflow-y-auto animate-[fadeIn_0.3s_ease-out]">
+        
+        <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <div class="text-center mb-6">
+            <h2 id="modal-title" class="text-3xl font-bold text-[var(--dark-text-color)] mb-2 font-[var(--font-family-heading)]">Bem-vindo</h2>
+            <p id="modal-subtitle" class="text-gray-500">Acesse sua conta para continuar</p>
+        </div>
+
+        <form id="auth-form" class="space-y-4">
+            
+            <div id="register-fields" class="expandable-fields space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                    <div class="relative">
+                        <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="name-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Ex: João da Silva">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Telefone / WhatsApp</label>
+                    <div class="relative">
+                        <i class="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="tel" id="phone-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="(11) 99999-9999">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Endereço de Entrega</label>
+                    <div class="relative">
+                        <i class="fas fa-map-marker-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="address-input" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Rua, Número, Bairro, CEP">
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                <div class="relative">
+                    <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="email" id="email-input" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all" placeholder="seu@email.com">
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" id="password-input" required class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none transition-all" placeholder="******">
+                </div>
+            </div>
+
+            <div id="error-message" class="text-red-500 text-sm text-center hidden font-bold bg-red-50 p-2 rounded"></div>
+            <div id="success-message" class="text-green-600 text-sm text-center hidden font-bold bg-green-50 p-2 rounded"></div>
+
+            <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]">
+                Entrar
+            </button>
+        </form>
+
+        <div class="mt-6 login-only-elements">
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div>
+                <div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou continue com</span></div>
+            </div>
+            <button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                <i class="fab fa-google text-red-500"></i> Google
+            </button>
+        </div>
+
+        <p class="text-center mt-6 text-sm text-gray-600">
+            <span id="toggle-text">Ainda não tem conta?</span>
+            <button id="toggle-auth-mode" class="text-[var(--accent2-color)] font-bold hover:underline ml-1">
+                Criar conta
+            </button>
+        </p>
+    </div>
+  </div>
+
   <script>
     // Menu Mobile
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -602,7 +723,7 @@
         });
     }
 
-    // Carrossel de Banners
+    // Carrossel
     const bannerTrack = document.getElementById('banner-track');
     const bannerSlides = bannerTrack ? Array.from(bannerTrack.children) : [];
     const bannerNext = document.getElementById('banner-next');
@@ -622,11 +743,232 @@
             bannerIndex = (bannerIndex - 1 + bannerSlides.length) % bannerSlides.length;
             updateBannerCarousel();
         });
-        // Auto-play
         setInterval(() => {
             bannerIndex = (bannerIndex + 1) % bannerSlides.length;
             updateBannerCarousel();
         }, 6000);
+    }
+  </script>
+
+  <script type="module">
+    // Importações
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        onAuthStateChanged, 
+        signOut,
+        GoogleAuthProvider,
+        signInWithPopup,
+        updateProfile,
+        sendEmailVerification
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // Configuração
+    const firebaseConfig = {
+      apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
+      authDomain: "dynamix-3cb48.firebaseapp.com",
+      projectId: "dynamix-3cb48",
+      storageBucket: "dynamix-3cb48.firebasestorage.app",
+      messagingSenderId: "752736250186",
+      appId: "1:752736250186:web:3787663031d273e9bd79b3",
+      measurementId: "G-J06LSQSYYB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    // Elementos
+    const modal = document.getElementById('auth-modal');
+    const loginTriggerBtn = document.getElementById('login-trigger-btn');
+    const mobileLoginBtn = document.getElementById('mobile-login-btn');
+    const closeModalBtn = document.getElementById('close-modal');
+    const authForm = document.getElementById('auth-form');
+    const toggleAuthModeBtn = document.getElementById('toggle-auth-mode');
+    const submitBtn = document.getElementById('submit-btn');
+    const modalTitle = document.getElementById('modal-title');
+    const modalSubtitle = document.getElementById('modal-subtitle');
+    const toggleText = document.getElementById('toggle-text');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    const googleBtn = document.getElementById('google-btn');
+    const registerFields = document.getElementById('register-fields');
+    
+    // Elementos Logado
+    const userLoggedMenu = document.getElementById('user-logged-menu');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userNameDisplay = document.getElementById('user-name-display');
+    const mobileLoginText = document.getElementById('mobile-login-text');
+    const verifyWarning = document.getElementById('verify-warning');
+
+    let isLoginMode = true;
+
+    // Funções UI Modal
+    function openModal() { modal.classList.remove('hidden'); modal.classList.add('flex'); }
+    function closeModal() { 
+        modal.classList.add('hidden'); modal.classList.remove('flex'); 
+        errorMessage.classList.add('hidden'); successMessage.classList.add('hidden');
+        authForm.reset();
+    }
+    
+    loginTriggerBtn.addEventListener('click', () => { if(!auth.currentUser) openModal(); });
+    mobileLoginBtn.addEventListener('click', () => { if(!auth.currentUser) openModal(); });
+    closeModalBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    // Alternar Login/Cadastro
+    toggleAuthModeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        isLoginMode = !isLoginMode;
+        errorMessage.classList.add('hidden');
+        successMessage.classList.add('hidden');
+
+        if (isLoginMode) {
+            // LOGIN
+            modalTitle.innerText = "Bem-vindo";
+            modalSubtitle.innerText = "Acesse sua conta para continuar";
+            submitBtn.innerText = "Entrar";
+            toggleText.innerText = "Ainda não tem conta?";
+            toggleAuthModeBtn.innerText = "Criar conta";
+            registerFields.classList.remove('open');
+            document.getElementById('name-input').required = false;
+            document.getElementById('phone-input').required = false;
+            document.getElementById('address-input').required = false;
+        } else {
+            // CADASTRO
+            modalTitle.innerText = "Criar Conta";
+            modalSubtitle.innerText = "Preencha seus dados completos";
+            submitBtn.innerText = "Finalizar Cadastro";
+            toggleText.innerText = "Já tem uma conta?";
+            toggleAuthModeBtn.innerText = "Fazer Login";
+            registerFields.classList.add('open');
+            document.getElementById('name-input').required = true;
+            document.getElementById('phone-input').required = true;
+            document.getElementById('address-input').required = true;
+        }
+    });
+
+    // Submit
+    authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('email-input').value;
+        const password = document.getElementById('password-input').value;
+        
+        // Dados extras
+        const name = document.getElementById('name-input').value;
+        const phone = document.getElementById('phone-input').value;
+        const address = document.getElementById('address-input').value;
+
+        errorMessage.classList.add('hidden');
+        successMessage.classList.add('hidden');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Processando...";
+
+        try {
+            if (isLoginMode) {
+                await signInWithEmailAndPassword(auth, email, password);
+                closeModal();
+            } else {
+                // Cadastro
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Salva Nome no Perfil Auth (Rápido)
+                await updateProfile(user, { displayName: name });
+
+                // Salva Tudo no Firestore (Banco)
+                await setDoc(doc(db, "users", user.uid), {
+                    fullName: name,
+                    email: email,
+                    phone: phone,
+                    address: address,
+                    createdAt: new Date()
+                });
+
+                // Envia E-mail de Verificação
+                await sendEmailVerification(user);
+
+                successMessage.innerText = "Conta criada! Verifique seu e-mail.";
+                successMessage.classList.remove('hidden');
+                setTimeout(() => closeModal(), 3000);
+            }
+        } catch (error) {
+            console.error(error);
+            errorMessage.innerText = getFriendlyErrorMessage(error.code);
+            errorMessage.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = isLoginMode ? "Entrar" : "Finalizar Cadastro";
+        }
+    });
+
+    // Google
+    googleBtn.addEventListener('click', async () => {
+        try {
+            await signInWithPopup(auth, provider);
+            closeModal();
+        } catch (error) {
+            errorMessage.innerText = "Erro no Google Login.";
+            errorMessage.classList.remove('hidden');
+        }
+    });
+
+    // Monitoramento de Estado
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Logado
+            loginTriggerBtn.classList.add('hidden');
+            userLoggedMenu.classList.remove('hidden');
+            userLoggedMenu.classList.add('flex');
+
+            // Tenta pegar nome do Auth ou do Banco
+            let displayName = user.displayName;
+            if (!displayName) {
+                try {
+                    const docRef = doc(db, "users", user.uid);
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        displayName = docSnap.data().fullName;
+                    }
+                } catch(e) { console.log("Erro ao buscar nome no DB", e); }
+            }
+
+            const firstName = displayName ? displayName.split(' ')[0] : "Visitante";
+            userNameDisplay.innerText = firstName;
+            if(mobileLoginText) mobileLoginText.innerText = "Olá, " + firstName;
+
+            // Verifica se validou e-mail
+            if (!user.emailVerified) {
+                verifyWarning.classList.remove('hidden');
+            } else {
+                verifyWarning.classList.add('hidden');
+            }
+
+        } else {
+            // Deslogado
+            loginTriggerBtn.classList.remove('hidden');
+            userLoggedMenu.classList.add('hidden');
+            userLoggedMenu.classList.remove('flex');
+            verifyWarning.classList.add('hidden');
+            if(mobileLoginText) mobileLoginText.innerText = "Entre ou Cadastre-se";
+        }
+    });
+
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    function getFriendlyErrorMessage(errorCode) {
+        switch (errorCode) {
+            case 'auth/email-already-in-use': return 'Este e-mail já possui conta.';
+            case 'auth/invalid-email': return 'E-mail inválido.';
+            case 'auth/weak-password': return 'Senha muito fraca (mínimo 6 dígitos).';
+            case 'auth/wrong-password': return 'Senha incorreta.';
+            case 'auth/invalid-credential': return 'Dados incorretos.';
+            default: return 'Erro: ' + errorCode;
+        }
     }
   </script>
 </body>
