@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamix - Sua Loja de Suplementos e Produtos Naturais</title>
+  
+  <meta name="description" content="Explore a Dynamix para uma ampla gama de suplementos e produtos de saúde.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link id="google-fonts-link" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/8e98006f77.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --accent-color: #f3a712;
+      --accent2-color: #ff8600;
+      --accent3-color: #155d9a;
+      --accent4-color: #125186;
+      --primary-color: #ffc30d;
+      --dark-text-color: #000000;
+      --gray-text-color: #6c757d;
+      --light-text-color: #ffffff;
+      --dark-border-color: #777777;
+      --light-border-color: #e6e6e6;
+      --button-rounded-radius: 8px;
+      --dark-background-color: #1768ac;
+      --light-background-color: #ffeda3;
+      --medium-background-color: #ffc94e;
+      --primary-button-text-color: #ffffff;
+      --font-family-body: 'DM Sans', sans-serif;
+      --font-family-heading: 'Manrope', sans-serif;
+    }
+    
+    /* Utilitários para o Carrossel */
+    .carousel-track {
+        display: flex;
+        transition: transform 0.5s ease-in-out;
+        height: 100%;
+    }
+    .carousel-slide {
+        min-width: 100%;
+        height: 100%;
+        position: relative;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col">
+  
+  <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
+    <div class="container mx-auto px-4">
+      <div class="flex items-center justify-between h-28">
+        <a href="/" class="flex items-center">
+          <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-28 py-2 object-contain">
+        </a>
+        
+        <nav class="hidden lg:flex items-center space-x-8">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
+          
+          <a href="/my-account" class="flex items-center gap-3 group pl-4 border-l border-gray-300">
+            <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
+            <div class="flex flex-col leading-none">
+              <span class="text-[11px] text-gray-500 font-medium">Bem-vindo</span>
+              <span class="text-sm font-bold text-black group-hover:text-[var(--accent-color)] transition-colors duration-300">
+                Entre ou <br>Cadastre-se
+              </span>
+            </div>
+          </a>
+        </nav>
+
+        <button id="mobile-menu-btn" class="lg:hidden text-[var(--dark-text-color)] focus:outline-none">
+          <i class="fas fa-bars text-2xl"></i>
+        </button>
+      </div>
+
+      <nav id="mobile-menu" class="hidden lg:hidden pb-4">
+        <div class="flex flex-col space-y-3">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Combos</a>
+          <a href="/my-account" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">
+             <i class="fas fa-user text-black text-lg"></i>
+             <span>Entre ou Cadastre-se</span>
+          </a>
+          <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Contato</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="code-section py-8 bg-gradient-to-b from-white to-[var(--light-background-color)]">
+    <div class="container mx-auto px-4">
+      <div class="relative h-[300px] sm:h-[400px] overflow-hidden rounded-2xl shadow-2xl">
+        <div id="banner-track" class="carousel-track h-full">
+          <div class="carousel-slide">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Promoção Emagrecimento" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-60"></div>
+            <div class="absolute inset-0 flex items-center">
+              <div class="container mx-auto px-4 text-white">
+                <h3 class="text-3xl sm:text-5xl font-bold">Até 30% OFF em Emagrecimento</h3>
+                <p class="text-xl mt-4">Queime gordura com os melhores termogênicos</p>
+                <a href="/category/emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Comprar Agora</a>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Linha Treino" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-r from-[var(--accent3-color)] to-transparent opacity-70"></div>
+            <div class="absolute inset-0 flex items-center justify-end">
+              <div class="container mx-auto px-4 text-white text-right">
+                <h3 class="text-3xl sm:text-5xl font-bold">Potencialize Seu Treino</h3>
+                <p class="text-xl mt-4">Whey, creatina e pré-treino com desconto</p>
+                <a href="/category/treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold">Ver Ofertas</a>
+              </div>
+            </div>
+          </div>
+          <div class="carousel-slide">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combos Especiais" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-gradient-to-l from-black to-transparent opacity-60"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center text-white">
+                <h3 class="text-3xl sm:text-5xl font-bold">Combos com até 40% OFF</h3>
+                <p class="text-xl mt-4">Monte seu kit perfeito e economize mais</p>
+                <a href="/combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Aproveitar</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
+          <i class="fas fa-chevron-left text-xl"></i>
+        </button>
+        <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20">
+          <i class="fas fa-chevron-right text-xl"></i>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="code-section py-16 bg-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
+          Nossas Categorias
+        </h2>
+        <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
+          Encontre exatamente o que você precisa para alcançar seus objetivos de saúde e bem-estar
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+        
+        <a href="/category/emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Queime gordura</p>
+          </div>
+        </a>
+
+        <a href="/category/saude" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+           <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+           <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Bem-estar geral</p>
+          </div>
+        </a>
+
+        <a href="/category/colageno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Pele e articulações</p>
+          </div>
+        </a>
+
+        <a href="/category/chas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Detox natural</p>
+          </div>
+        </a>
+
+        <a href="/category/vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Nutrição essencial</p>
+          </div>
+        </a>
+
+        <a href="/category/treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Performance máxima</p>
+          </div>
+        </a>
+
+        <a href="/category/gels-e-cintas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels e Cintas</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Modelagem corporal</p>
+          </div>
+        </a>
+
+        <a href="/combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+          <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+          <div class="p-6 text-center">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300">
+              <i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
+            <p class="text-sm text-white opacity-90 font-medium">Economize mais!</p>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="code-section py-20 bg-gradient-to-b from-[var(--light-background-color)] to-white">
+    <div class="container mx-auto px-4">
+      <div class="text-center mb-16">
+        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--dark-text-color)] mb-4 font-[var(--font-family-heading)]">
+          Produtos em Destaque
+        </h2>
+        <p class="text-lg sm:text-xl text-[var(--gray-text-color)] max-w-3xl mx-auto">
+          Os mais vendidos e bem avaliados pelos nossos clientes
+        </p>
+      </div>
+      
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Whey Protein" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-20%</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Whey Protein Isolado 900g</h3>
+                <p class="text-sm text-gray-600 mb-3">Sabor Chocolate</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <div>
+                <span class="text-2xl font-bold text-[var(--accent2-color)]">R$199,90</span>
+                <span class="block text-sm text-gray-500 line-through">R$249,90</span>
+              </div>
+              <a href="/product/whey" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" alt="Colágeno" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">Novo</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Colágeno Verisol 300g</h3>
+                <p class="text-sm text-gray-600 mb-3">Pele, cabelo e unhas</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$149,90</span>
+              <a href="/product/colageno" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" alt="Termogênico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">-15%</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Termogênico Fire Burn 60 caps</h3>
+                <p class="text-sm text-gray-600 mb-3">Acelere o metabolismo</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$129,90</span>
+              <a href="/product/termogenico" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" alt="Creatina" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Creatina Monohidratada 300g</h3>
+                <p class="text-sm text-gray-600 mb-3">Força e resistência</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$109,90</span>
+              <a href="/product/creatina" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" alt="Multivitamínico" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold">Best Seller</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Multivitamínico Daily 120 caps</h3>
+                <p class="text-sm text-gray-600 mb-3">Imunidade e energia</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$89,90</span>
+              <a href="/product/multivitaminico" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public" alt="Chá Detox" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Chá Detox 30 sachês</h3>
+                <p class="text-sm text-gray-600 mb-3">Limpeza natural</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$59,90</span>
+              <a href="/product/cha-detox" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public" alt="Pré-treino" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">-25%</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Pré-Treino Explosive 300g</h3>
+                <p class="text-sm text-gray-600 mb-3">Energia máxima</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$139,90</span>
+              <a href="/product/pre-treino" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public" alt="Ômega 3" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Ômega 3 1000mg 120 caps</h3>
+                <p class="text-sm text-gray-600 mb-3">Saúde cardiovascular</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$99,90</span>
+              <a href="/product/omega3" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/65558f3a-8f9d-4863-e363-943557855700/public" alt="Gel Redutor" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Gel Redutor Corporal 200g</h3>
+                <p class="text-sm text-gray-600 mb-3">Modelagem intensiva</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$79,90</span>
+              <a href="/product/gel-redutor" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden group hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+          <div class="relative overflow-hidden shrink-0">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Combo Emagrecimento" class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500">
+            <span class="absolute top-3 left-3 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">-35%</span>
+          </div>
+          <div class="p-4 flex flex-col flex-grow">
+            <div class="flex-grow">
+                <h3 class="font-semibold text-lg mb-2">Combo Emagrecimento Completo</h3>
+                <p class="text-sm text-gray-600 mb-3">Termogênico + Chá + Gel</p>
+            </div>
+            <div class="flex items-center justify-between mt-auto">
+              <span class="text-2xl font-bold text-[var(--accent2-color)]">R$299,90</span>
+              <a href="/combo/emagrecimento" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black p-3 rounded-lg hover:scale-110 transition-transform">
+                <i class="fas fa-shopping-cart"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="text-center mt-12">
+        <a href="/products" class="inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+          Ver Todos os Produtos
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="code-section py-20 relative overflow-hidden z-10" id="si435t7">
+    <div class="absolute inset-0 bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent-color)] to-[var(--accent2-color)]"></div>
+    <div class="absolute inset-0" style="background: url('https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public') center/cover no-repeat; opacity: 0.15;"></div>
+    
+    <div class="container mx-auto px-4 relative z-10">
+      <div class="max-w-4xl mx-auto text-center">
+        <div class="inline-block mb-6">
+          <span class="bg-white text-[var(--accent2-color)] px-6 py-2 rounded-full font-bold text-sm font-[var(--font-family-body)] shadow-lg">
+            🔥 OFERTA ESPECIAL
+          </span>
+        </div>
+        
+        <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)] leading-tight">
+          Comece Sua Transformação Hoje!
+        </h2>
+        
+        <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95 leading-relaxed">
+          Descubra os melhores suplementos para seu estilo de vida e alcance seus objetivos de saúde com produtos de qualidade premium
+        </p>
+        
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
+            <span>Explorar Produtos</span>
+            <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i>
+          </a>
+          
+          <a href="/combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 font-[var(--font-family-body)] group">
+            <span>Ver Combos</span>
+            <i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i>
+          </a>
+        </div>
+        
+        <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white">
+          <div class="flex items-center gap-3">
+            <i class="fas fa-shipping-fast text-3xl"></i>
+            <span class="font-[var(--font-family-body)] font-medium">Frete Grátis Acima de R$199</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <i class="fas fa-lock text-3xl"></i>
+            <span class="font-[var(--font-family-body)] font-medium">Compra 100% Segura</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <i class="fas fa-undo text-3xl"></i>
+            <span class="font-[var(--font-family-body)] font-medium">Garantia de 30 Dias</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="global-footer" class="code-section bg-gradient-to-b from-[var(--dark-text-color)] to-[var(--accent4-color)] text-white mt-auto relative z-20">
+    <div class="container mx-auto px-4 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        
+        <div>
+          <a href="/" class="inline-block mb-6">
+            <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-20 object-contain brightness-0 invert">
+          </a>
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            Sua loja de confiança para suplementos de qualidade premium. Transforme sua vida com nossos produtos selecionados.
+          </p>
+          <div class="flex gap-4">
+            <a href="https://instagram.com/Dynamix.2025" target="_blank" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-instagram text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-facebook-f text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-whatsapp text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
+          <ul class="space-y-3">
+            <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
+            <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
+            <li><a href="/my-account" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
+            <li><a href="/about-us" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Sobre Nós</span></a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
+          <ul class="space-y-3">
+            <li><a href="/category/emagrecimento" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
+            <li><a href="/category/saude" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
+            <li><a href="/category/treino" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Contato</h3>
+          <ul class="space-y-4 mb-6">
+            <li class="flex items-start gap-3">
+              <i class="fas fa-envelope text-[var(--primary-color)] mt-1"></i>
+              <a href="mailto:contato@dynamix.com.br" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors text-sm">contato@dynamix.com.br</a>
+            </li>
+            <li class="flex items-start gap-3">
+              <i class="fas fa-phone text-[var(--primary-color)] mt-1"></i>
+              <span class="text-gray-300 text-sm">(11) 99999-9999</span>
+            </li>
+          </ul>
+          <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
+          <form class="flex gap-2">
+            <input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+            <button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all duration-300">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8 mb-8">
+        <h3 class="text-lg font-bold mb-6 text-center font-[var(--font-family-heading)] text-[var(--primary-color)]">
+          Formas de Pagamento
+        </h3>
+        <div class="flex flex-wrap justify-center items-center gap-6">
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-visa text-3xl text-blue-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-mastercard text-3xl text-red-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-amex text-3xl text-blue-500"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-pix text-3xl text-teal-500"></i></div>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+          <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
+          <div class="flex items-center gap-3">
+            <span class="text-gray-400 text-sm">Desenvolvido por</span>
+            <a href="#" target="_blank" class="transform hover:scale-110 transition-transform duration-300">
+              <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain">
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <script>
+    // Menu Mobile
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Carrossel de Banners
+    const bannerTrack = document.getElementById('banner-track');
+    const bannerSlides = bannerTrack ? Array.from(bannerTrack.children) : [];
+    const bannerNext = document.getElementById('banner-next');
+    const bannerPrev = document.getElementById('banner-prev');
+    let bannerIndex = 0;
+    
+    function updateBannerCarousel() {
+        if (bannerTrack) bannerTrack.style.transform = `translateX(-${bannerIndex * 100}%)`;
+    }
+    
+    if (bannerNext && bannerPrev && bannerTrack) {
+        bannerNext.addEventListener('click', () => {
+            bannerIndex = (bannerIndex + 1) % bannerSlides.length;
+            updateBannerCarousel();
+        });
+        bannerPrev.addEventListener('click', () => {
+            bannerIndex = (bannerIndex - 1 + bannerSlides.length) % bannerSlides.length;
+            updateBannerCarousel();
+        });
+        // Auto-play
+        setInterval(() => {
+            bannerIndex = (bannerIndex + 1) % bannerSlides.length;
+            updateBannerCarousel();
+        }, 6000);
+    }
+  </script>
+</body>
+</html>
