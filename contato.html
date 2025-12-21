@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fale Conosco - Dynamix</title>
+  
+  <meta name="description" content="Entre em contato com a Dynamix via WhatsApp, E-mail ou Redes Sociais.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link id="google-fonts-link" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/8e98006f77.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --accent-color: #f3a712;
+      --accent2-color: #ff8600;
+      --accent3-color: #155d9a;
+      --accent4-color: #125186;
+      --primary-color: #ffc30d;
+      --dark-text-color: #000000;
+      --gray-text-color: #6c757d;
+      --light-text-color: #ffffff;
+      --dark-border-color: #777777;
+      --light-border-color: #e6e6e6;
+      --button-rounded-radius: 8px;
+      --dark-background-color: #1768ac;
+      --light-background-color: #ffeda3;
+      --medium-background-color: #ffc94e;
+      --primary-button-text-color: #ffffff;
+      --font-family-body: 'DM Sans', sans-serif;
+      --font-family-heading: 'Manrope', sans-serif;
+    }
+    
+    /* Animação suave para o Modal */
+    .modal-enter {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    .modal-enter-active {
+        opacity: 1;
+        transform: scale(1);
+        transition: opacity 300ms, transform 300ms;
+    }
+    .modal-exit {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .modal-exit-active {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: opacity 200ms, transform 200ms;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col">
+  
+  <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
+    <div class="container mx-auto px-4">
+      <div class="flex items-center justify-between h-28">
+        <a href="/" class="flex items-center">
+          <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-28 py-2 object-contain">
+        </a>
+        
+        <nav class="hidden lg:flex items-center space-x-8">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          <a href="/contact" class="text-[var(--accent-color)] font-bold transition-colors duration-300">Contato</a>
+          
+          <a href="/my-account" class="flex items-center gap-3 group pl-4 border-l border-gray-300">
+            <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
+            <div class="flex flex-col leading-none">
+              <span class="text-[11px] text-gray-500 font-medium">Bem-vindo</span>
+              <span class="text-sm font-bold text-black group-hover:text-[var(--accent-color)] transition-colors duration-300">
+                Entre ou <br>Cadastre-se
+              </span>
+            </div>
+          </a>
+        </nav>
+
+        <button id="mobile-menu-btn" class="lg:hidden text-[var(--dark-text-color)] focus:outline-none">
+          <i class="fas fa-bars text-2xl"></i>
+        </button>
+      </div>
+
+      <nav id="mobile-menu" class="hidden lg:hidden pb-4">
+        <div class="flex flex-col space-y-3">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Combos</a>
+          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Sobre Nós</a>
+          <a href="/contact" class="text-[var(--accent-color)] font-bold py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Contato</a>
+          <a href="/my-account" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">
+             <i class="fas fa-user text-black text-lg"></i>
+             <span>Entre ou Cadastre-se</span>
+          </a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="relative bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] pt-20 pb-32 text-white overflow-hidden">
+    <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+    <div class="container mx-auto px-4 text-center relative z-10">
+      <h1 class="text-4xl md:text-6xl font-bold font-[var(--font-family-heading)] mb-6 drop-shadow-md">
+        Vamos Conversar?
+      </h1>
+      <p class="text-xl text-white text-opacity-90 max-w-2xl mx-auto leading-relaxed">
+        Estamos prontos para tirar suas dúvidas, ouvir sugestões ou ajudar você a escolher o suplemento ideal.
+      </p>
+    </div>
+  </section>
+
+  <section class="relative z-20 -mt-20 mb-20">
+    <div class="container mx-auto px-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <div class="bg-white rounded-3xl shadow-xl p-8 text-center border-t-8 border-green-500 hover:-translate-y-2 transition-transform duration-300 group">
+            <div class="w-20 h-20 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <i class="fab fa-whatsapp text-green-600 text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 font-[var(--font-family-heading)]">WhatsApp</h3>
+            <p class="text-gray-500 mb-6">Atendimento rápido e personalizado.</p>
+            <a href="https://wa.me/5511916658264?text=Ol%C3%A1%20Dany,%20pode%20me%20ajudar?" target="_blank" class="inline-block w-full bg-green-500 text-white font-bold py-4 rounded-xl hover:bg-green-600 hover:shadow-lg transition-all">
+                Chamar a Dany
+            </a>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl p-8 text-center border-t-8 border-[var(--accent2-color)] hover:-translate-y-2 transition-transform duration-300 group">
+            <div class="w-20 h-20 mx-auto bg-orange-100 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <i class="far fa-envelope text-[var(--accent2-color)] text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 font-[var(--font-family-heading)]">E-mail</h3>
+            <p class="text-gray-500 mb-6">Tem uma dúvida mais detalhada?</p>
+            <button id="open-modal-btn" class="inline-block w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-4 rounded-xl hover:shadow-lg transition-all">
+                Enviar E-mail
+            </button>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl p-8 text-center border-t-8 border-[var(--accent4-color)] hover:-translate-y-2 transition-transform duration-300 group">
+            <div class="w-20 h-20 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <i class="fas fa-share-alt text-[var(--accent4-color)] text-4xl"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 font-[var(--font-family-heading)]">Redes Sociais</h3>
+            <p class="text-gray-500 mb-6">Siga-nos para dicas e novidades.</p>
+            <div class="flex gap-4 justify-center">
+                <a href="https://www.instagram.com/Dynamix.2025/" target="_blank" class="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 text-white flex items-center justify-center hover:scale-110 transition-transform">
+                    <i class="fab fa-instagram text-xl"></i>
+                </a>
+                <a href="https://www.facebook.com/profile.php?id=61581101741154&mibextid=wwXIfr&rdid=yOr2IBjn03zKGbbb&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1BiSYcDMMB%2F%3Fmibextid%3DwwXIfr#" target="_blank" class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center hover:scale-110 transition-transform">
+                    <i class="fab fa-facebook-f text-xl"></i>
+                </a>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="pb-20">
+    <div class="container mx-auto px-4 max-w-3xl">
+      <h2 class="text-3xl font-bold text-center mb-10 font-[var(--font-family-heading)]">Perguntas Frequentes</h2>
+      <div class="space-y-4">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h4 class="font-bold text-lg mb-2 text-[var(--accent4-color)]">Qual o prazo de entrega?</h4>
+            <p class="text-gray-600">O prazo varia de acordo com seu CEP, mas geralmente enviamos em até 24h úteis após a confirmação do pagamento.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h4 class="font-bold text-lg mb-2 text-[var(--accent4-color)]">Os produtos são originais?</h4>
+            <p class="text-gray-600">Sim, 100% originais. Trabalhamos diretamente com os fabricantes e importadores oficiais.</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h4 class="font-bold text-lg mb-2 text-[var(--accent4-color)]">Como posso rastrear meu pedido?</h4>
+            <p class="text-gray-600">Assim que seu pedido for enviado, você receberá o código de rastreio por e-mail e WhatsApp.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="contact-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity backdrop-blur-sm" id="modal-backdrop"></div>
+
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+      <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+        
+        <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-lg border-t-8 border-[var(--primary-color)]">
+          
+          <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+            <i class="fas fa-times text-2xl"></i>
+          </button>
+
+          <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
+            <div class="sm:flex sm:items-start">
+              <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                <h3 class="text-2xl font-bold leading-6 text-gray-900 mb-2 font-[var(--font-family-heading)]" id="modal-title">Envie sua Mensagem</h3>
+                <p class="text-sm text-gray-500 mb-6">Preencha os dados abaixo e retornaremos em breve.</p>
+                
+                <form action="https://formspree.io/f/dinadiassantana@gmail.com" method="POST" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Seu E-mail</label>
+                        <input type="email" name="email" id="email" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent outline-none transition-all" placeholder="exemplo@email.com">
+                    </div>
+                    
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Seu Nome</label>
+                        <input type="text" name="name" id="name" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent outline-none transition-all" placeholder="Como podemos te chamar?">
+                    </div>
+
+                    <div>
+                        <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+                        <textarea name="message" id="message" rows="4" required class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[var(--accent-color)] focus:border-transparent outline-none transition-all" placeholder="Digite sua dúvida ou sugestão..."></textarea>
+                    </div>
+
+                    <div class="mt-5 sm:mt-6">
+                        <button type="submit" class="inline-flex w-full justify-center rounded-xl bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] px-3 py-4 text-sm font-bold text-black shadow-sm hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent-color)] transition-all transform hover:scale-[1.02]">
+                            Enviar Agora
+                        </button>
+                    </div>
+                </form>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer id="global-footer" class="code-section bg-gradient-to-b from-[var(--dark-text-color)] to-[var(--accent4-color)] text-white mt-auto relative z-20">
+    <div class="container mx-auto px-4 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        
+        <div>
+          <a href="/" class="inline-block mb-6">
+            <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-20 object-contain brightness-0 invert">
+          </a>
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            Sua loja de confiança para suplementos de qualidade premium. Transforme sua vida com nossos produtos selecionados.
+          </p>
+          <div class="flex gap-4">
+            <a href="https://instagram.com/Dynamix.2025" target="_blank" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-instagram text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-facebook-f text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-whatsapp text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
+          <ul class="space-y-3">
+            <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
+            <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
+            <li><a href="/my-account" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
+            <li><a href="/about-us" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Sobre Nós</span></a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
+          <ul class="space-y-3">
+            <li><a href="/category/emagrecimento" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
+            <li><a href="/category/saude" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
+            <li><a href="/category/treino" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Contato</h3>
+          <ul class="space-y-4 mb-6">
+            <li class="flex items-start gap-3">
+              <i class="fas fa-envelope text-[var(--primary-color)] mt-1"></i>
+              <a href="mailto:contato@dynamix.com.br" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors text-sm">contato@dynamix.com.br</a>
+            </li>
+            <li class="flex items-start gap-3">
+              <i class="fas fa-phone text-[var(--primary-color)] mt-1"></i>
+              <span class="text-gray-300 text-sm">(11) 99999-9999</span>
+            </li>
+          </ul>
+          <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
+          <form class="flex gap-2">
+            <input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+            <button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all duration-300">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8 mb-8">
+        <h3 class="text-lg font-bold mb-6 text-center font-[var(--font-family-heading)] text-[var(--primary-color)]">
+          Formas de Pagamento
+        </h3>
+        <div class="flex flex-wrap justify-center items-center gap-6">
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-visa text-3xl text-blue-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-mastercard text-3xl text-red-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-amex text-3xl text-blue-500"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-pix text-3xl text-teal-500"></i></div>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+          <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
+          <div class="flex items-center gap-3">
+            <span class="text-gray-400 text-sm">Desenvolvido por</span>
+            <a href="#" target="_blank" class="transform hover:scale-110 transition-transform duration-300">
+              <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain">
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Menu Mobile
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Modal Logic
+    const openModalBtn = document.getElementById('open-modal-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+    const modal = document.getElementById('contact-modal');
+    const backdrop = document.getElementById('modal-backdrop');
+
+    function toggleModal() {
+        modal.classList.toggle('hidden');
+    }
+
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', toggleModal);
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', toggleModal);
+    }
+
+    // Fechar ao clicar fora
+    if (backdrop) {
+        backdrop.addEventListener('click', toggleModal);
+    }
+  </script>
+</body>
+</html>
