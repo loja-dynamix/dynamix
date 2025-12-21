@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todos os Produtos - Dynamix</title>
+  
+  <meta name="description" content="Confira nossa linha completa de suplementos.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link id="google-fonts-link" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://kit.fontawesome.com/8e98006f77.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --accent-color: #f3a712;
+      --accent2-color: #ff8600;
+      --accent3-color: #155d9a;
+      --accent4-color: #125186;
+      --primary-color: #ffc30d;
+      --dark-text-color: #000000;
+      --gray-text-color: #6c757d;
+      --light-text-color: #ffffff;
+      --dark-border-color: #777777;
+      --light-border-color: #e6e6e6;
+      --button-rounded-radius: 8px;
+      --dark-background-color: #1768ac;
+      --light-background-color: #ffeda3;
+      --medium-background-color: #ffc94e;
+      --primary-button-text-color: #ffffff;
+      --font-family-body: 'DM Sans', sans-serif;
+      --font-family-heading: 'Manrope', sans-serif;
+    }
+    
+    /* Custom Scrollbar para os filtros se ficarem muito longos */
+    .custom-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1; 
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background: var(--accent2-color); 
+        border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col">
+  
+  <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
+    <div class="container mx-auto px-4">
+      <div class="flex items-center justify-between h-28">
+        <a href="/" class="flex items-center">
+          <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-28 py-2 object-contain">
+        </a>
+        
+        <nav class="hidden lg:flex items-center space-x-8">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--accent-color)] font-bold transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
+          
+          <a href="/my-account" class="flex items-center gap-3 group pl-4 border-l border-gray-300">
+            <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
+            <div class="flex flex-col leading-none">
+              <span class="text-[11px] text-gray-500 font-medium">Bem-vindo</span>
+              <span class="text-sm font-bold text-black group-hover:text-[var(--accent-color)] transition-colors duration-300">
+                Entre ou <br>Cadastre-se
+              </span>
+            </div>
+          </a>
+        </nav>
+
+        <button id="mobile-menu-btn" class="lg:hidden text-[var(--dark-text-color)] focus:outline-none">
+          <i class="fas fa-bars text-2xl"></i>
+        </button>
+      </div>
+
+      <nav id="mobile-menu" class="hidden lg:hidden pb-4">
+        <div class="flex flex-col space-y-3">
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Início</a>
+          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Produtos</a>
+          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Combos</a>
+          <a href="/my-account" class="flex items-center gap-2 text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">
+             <i class="fas fa-user text-black text-lg"></i>
+             <span>Entre ou Cadastre-se</span>
+          </a>
+          <a href="/contact" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium py-2 border-b border-[var(--light-border-color)] transition-colors duration-300">Contato</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <section class="bg-white py-8 border-b border-gray-100">
+    <div class="container mx-auto px-4">
+      <nav class="text-sm text-gray-500 mb-4">
+        <a href="/" class="hover:text-[var(--accent2-color)]">Início</a>
+        <span class="mx-2">/</span>
+        <span class="text-black font-medium">Produtos</span>
+      </nav>
+      <div class="flex flex-col md:flex-row justify-between items-end">
+        <div>
+           <h1 class="text-3xl md:text-4xl font-bold font-[var(--font-family-heading)] text-black">Nossos Produtos</h1>
+           <p class="text-gray-500 mt-2">Explore a melhor seleção para sua performance</p>
+        </div>
+        <button id="filter-toggle" class="lg:hidden mt-4 md:mt-0 flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-lg font-bold text-sm">
+            <i class="fas fa-filter"></i> Filtrar e Buscar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <div class="container mx-auto px-4 py-12 flex-grow">
+    <div class="flex flex-col lg:flex-row gap-8">
+      
+      <aside id="filters-sidebar" class="hidden lg:block w-full lg:w-1/4 space-y-8">
+        
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Buscar</h3>
+            <div class="relative">
+                <input type="text" placeholder="O que você procura?" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] transition-all">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Categorias</h3>
+            <ul class="space-y-3 text-sm text-gray-600">
+                <li class="flex items-center gap-2">
+                    <input type="checkbox" id="cat-all" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]" checked>
+                    <label for="cat-all" class="cursor-pointer hover:text-[var(--accent2-color)]">Todos os Produtos</label>
+                </li>
+                <li class="flex items-center gap-2">
+                    <input type="checkbox" id="cat-emagrecimento" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                    <label for="cat-emagrecimento" class="cursor-pointer hover:text-[var(--accent2-color)]">Emagrecimento</label>
+                </li>
+                <li class="flex items-center gap-2">
+                    <input type="checkbox" id="cat-massa" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                    <label for="cat-massa" class="cursor-pointer hover:text-[var(--accent2-color)]">Ganho de Massa</label>
+                </li>
+                <li class="flex items-center gap-2">
+                    <input type="checkbox" id="cat-vitaminas" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                    <label for="cat-vitaminas" class="cursor-pointer hover:text-[var(--accent2-color)]">Vitaminas</label>
+                </li>
+                <li class="flex items-center gap-2">
+                    <input type="checkbox" id="cat-acessorios" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                    <label for="cat-acessorios" class="cursor-pointer hover:text-[var(--accent2-color)]">Acessórios</label>
+                </li>
+            </ul>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Preço</h3>
+            <div class="flex items-center gap-2">
+                <input type="number" placeholder="Min" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
+                <span class="text-gray-400">-</span>
+                <input type="number" placeholder="Max" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
+            </div>
+            <button class="w-full mt-3 bg-black text-white py-2 rounded text-sm font-bold hover:bg-[var(--accent2-color)] transition-colors">Filtrar</button>
+        </div>
+
+        <div class="rounded-2xl overflow-hidden relative h-64 shadow-md">
+            <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 text-center">
+                <div>
+                    <span class="text-yellow-400 font-bold text-sm">OFERTA</span>
+                    <h4 class="text-white text-xl font-bold mt-1">Combos Especiais</h4>
+                    <a href="/combos" class="inline-block mt-3 bg-white text-black px-4 py-2 rounded-full text-xs font-bold hover:scale-105 transition-transform">Ver Agora</a>
+                </div>
+            </div>
+        </div>
+
+      </aside>
+
+      <main class="w-full lg:w-3/4">
+        
+        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            <p class="text-sm text-gray-500">Mostrando <span class="font-bold text-black">12</span> de <span class="font-bold text-black">48</span> produtos</p>
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500 hidden sm:inline">Ordenar por:</span>
+                <select class="border-none bg-gray-50 text-sm font-bold text-black focus:ring-0 rounded-lg cursor-pointer py-2 pl-3 pr-8">
+                    <option>Mais Populares</option>
+                    <option>Menor Preço</option>
+                    <option>Maior Preço</option>
+                    <option>Mais Recentes</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" alt="Whey Protein" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">-20%</span>
+                <button class="absolute top-3 right-3 bg-white w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                    <i class="fas fa-heart"></i>
+                </button>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <p class="text-xs text-gray-500 mb-1">Massa Muscular</p>
+                    <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Whey Protein Isolado 900g</h3>
+                    <div class="flex text-yellow-400 text-xs mb-3">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                        <span class="text-gray-400 ml-1">(42)</span>
+                    </div>
+                </div>
+                <div class="mt-auto pt-3 border-t border-gray-50">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="block text-xs text-gray-400 line-through">R$ 249,90</span>
+                      <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 199,90</span>
+                    </div>
+                    <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <p class="text-xs text-gray-500 mb-1">Força</p>
+                    <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Creatina Monohidratada 300g</h3>
+                    <div class="flex text-yellow-400 text-xs mb-3">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                </div>
+                <div class="mt-auto pt-3 border-t border-gray-50">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 109,90</span>
+                    </div>
+                    <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+              <div class="relative overflow-hidden shrink-0">
+                <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                <span class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">Vegano</span>
+              </div>
+              <div class="p-4 flex flex-col flex-grow">
+                <div class="flex-grow">
+                    <p class="text-xs text-gray-500 mb-1">Beleza</p>
+                    <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Colágeno Verisol Premium</h3>
+                    <div class="flex text-yellow-400 text-xs mb-3">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
+                    </div>
+                </div>
+                <div class="mt-auto pt-3 border-t border-gray-50">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 149,90</span>
+                    </div>
+                    <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                        <i class="fas fa-shopping-cart"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+             <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                <div class="relative overflow-hidden shrink-0">
+                  <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                  <span class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">Oferta</span>
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                  <div class="flex-grow">
+                      <p class="text-xs text-gray-500 mb-1">Emagrecimento</p>
+                      <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Termogênico Fire Burn</h3>
+                      <div class="flex text-yellow-400 text-xs mb-3">
+                          <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                      </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="block text-xs text-gray-400 line-through">R$ 159,90</span>
+                        <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 129,90</span>
+                      </div>
+                      <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                          <i class="fas fa-shopping-cart"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                <div class="relative overflow-hidden shrink-0">
+                  <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                  <div class="flex-grow">
+                      <p class="text-xs text-gray-500 mb-1">Saúde</p>
+                      <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Multivitamínico Daily</h3>
+                      <div class="flex text-yellow-400 text-xs mb-3">
+                          <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i>
+                      </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 89,90</span>
+                      </div>
+                      <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                          <i class="fas fa-shopping-cart"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                <div class="relative overflow-hidden shrink-0">
+                  <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                  <span class="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">Lançamento</span>
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                  <div class="flex-grow">
+                      <p class="text-xs text-gray-500 mb-1">Pré-Treino</p>
+                      <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Explosive Energy 300g</h3>
+                      <div class="flex text-yellow-400 text-xs mb-3">
+                          <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                      </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 139,90</span>
+                      </div>
+                      <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                          <i class="fas fa-shopping-cart"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+               <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                <div class="relative overflow-hidden shrink-0">
+                  <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/e9297a4f-a230-45c7-6f0d-22c2afbb2f00/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                  <div class="flex-grow">
+                      <p class="text-xs text-gray-500 mb-1">Saúde</p>
+                      <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Ômega 3 Concentrado</h3>
+                      <div class="flex text-yellow-400 text-xs mb-3">
+                          <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i>
+                      </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 99,90</span>
+                      </div>
+                      <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                          <i class="fas fa-shopping-cart"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+               <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+                <div class="relative overflow-hidden shrink-0">
+                  <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/0fb8f22c-5ed6-4ea8-f180-380dfe9f6100/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                  <div class="flex-grow">
+                      <p class="text-xs text-gray-500 mb-1">Detox</p>
+                      <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Chá Diurético 30 Sachês</h3>
+                      <div class="flex text-yellow-400 text-xs mb-3">
+                          <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                      </div>
+                  </div>
+                  <div class="mt-auto pt-3 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-xl font-bold text-[var(--accent2-color)]">R$ 59,90</span>
+                      </div>
+                      <button class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center">
+                          <i class="fas fa-shopping-cart"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+        </div>
+
+        <div class="mt-12 flex justify-center">
+            <nav class="flex items-center gap-2">
+                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><i class="fas fa-chevron-left"></i></a>
+                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--accent2-color)] text-white font-bold shadow-md">1</a>
+                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium">2</a>
+                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium">3</a>
+                <span class="px-2 text-gray-400">...</span>
+                <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><i class="fas fa-chevron-right"></i></a>
+            </nav>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <footer id="global-footer" class="code-section bg-gradient-to-b from-[var(--dark-text-color)] to-[var(--accent4-color)] text-white mt-auto relative z-20">
+    <div class="container mx-auto px-4 py-16">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+        
+        <div>
+          <a href="/" class="inline-block mb-6">
+            <img src="https://dcdn-us.mitiendanube.com/stores/006/841/772/themes/common/logo-530192879-1760983056-b7632d061a91dd244ce6e9446228d7df1760983056-480-0.webp" alt="Dynamix" class="h-20 object-contain brightness-0 invert">
+          </a>
+          <p class="text-gray-300 text-sm leading-relaxed mb-6">
+            Sua loja de confiança para suplementos de qualidade premium. Transforme sua vida com nossos produtos selecionados.
+          </p>
+          <div class="flex gap-4">
+            <a href="https://instagram.com/Dynamix.2025" target="_blank" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-instagram text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-facebook-f text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+            <a href="#" class="w-10 h-10 rounded-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] flex items-center justify-center hover:scale-110 transition-transform duration-300">
+              <i class="fab fa-whatsapp text-[var(--dark-text-color)] text-lg"></i>
+            </a>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
+          <ul class="space-y-3">
+            <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
+            <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
+            <li><a href="/my-account" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
+            <li><a href="/about-us" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Sobre Nós</span></a></li>
+          </ul>
+        </div>
+        
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
+          <ul class="space-y-3">
+            <li><a href="/category/emagrecimento" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
+            <li><a href="/category/saude" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
+            <li><a href="/category/treino" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors duration-300 flex items-center gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
+          </ul>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Contato</h3>
+          <ul class="space-y-4 mb-6">
+            <li class="flex items-start gap-3">
+              <i class="fas fa-envelope text-[var(--primary-color)] mt-1"></i>
+              <a href="mailto:contato@dynamix.com.br" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors text-sm">contato@dynamix.com.br</a>
+            </li>
+            <li class="flex items-start gap-3">
+              <i class="fas fa-phone text-[var(--primary-color)] mt-1"></i>
+              <span class="text-gray-300 text-sm">(11) 99999-9999</span>
+            </li>
+          </ul>
+          <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
+          <form class="flex gap-2">
+            <input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+            <button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all duration-300">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8 mb-8">
+        <h3 class="text-lg font-bold mb-6 text-center font-[var(--font-family-heading)] text-[var(--primary-color)]">
+          Formas de Pagamento
+        </h3>
+        <div class="flex flex-wrap justify-center items-center gap-6">
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-visa text-3xl text-blue-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-mastercard text-3xl text-red-600"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-cc-amex text-3xl text-blue-500"></i></div>
+          <div class="bg-white rounded-lg px-4 py-2 shadow-md"><i class="fab fa-pix text-3xl text-teal-500"></i></div>
+        </div>
+      </div>
+      <div class="border-t border-white border-opacity-10 pt-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-6">
+          <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
+          <div class="flex items-center gap-3">
+            <span class="text-gray-400 text-sm">Desenvolvido por</span>
+            <a href="#" target="_blank" class="transform hover:scale-110 transition-transform duration-300">
+              <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain">
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Menu Mobile Toggle
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    }
+
+    // Toggle Filtros no Mobile
+    const filterToggle = document.getElementById('filter-toggle');
+    const filtersSidebar = document.getElementById('filters-sidebar');
+    if (filterToggle && filtersSidebar) {
+        filterToggle.addEventListener('click', () => {
+            filtersSidebar.classList.toggle('hidden');
+            // Animação simples de scroll se abrir
+            if(!filtersSidebar.classList.contains('hidden')){
+                filtersSidebar.scrollIntoView({behavior: 'smooth'});
+            }
+        });
+    }
+  </script>
+</body>
+</html>
