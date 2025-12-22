@@ -953,50 +953,65 @@ const forgotBtn = document.getElementById('forgot-btn');
             const result = await signInWithPopup(auth, provider); 
             const user = result.user;
 
+            // Busca dados do usuário no banco
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // Se NÃO tem dados ou NÃO tem CPF preenchido
+            // Verifica se é um usuário NOVO ou INCOMPLETO (Sem CPF)
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 // MODO: COMPLETAR CADASTRO
                 isGoogleCompletion = true;
                 isLogin = false; 
                 
-                // Prepara o Modal
+                // 1. Muda os textos do Modal
                 document.getElementById('modal-title').innerText = "Complete seu Cadastro";
-                document.getElementById('modal-subtitle').innerText = "Falta pouco! Preencha os dados abaixo.";
+                document.getElementById('modal-subtitle').innerText = "Falta pouco! Preencha os campos obrigatórios abaixo.";
                 
-                // Configura campos
+                // 2. Preenche o que já temos
                 document.getElementById('email-input').value = user.email;
-                document.getElementById('email-input').disabled = true;
-                document.getElementById('reg-name').value = user.displayName;
+                document.getElementById('email-input').disabled = true; // Trava o e-mail
+                document.getElementById('reg-name').value = user.displayName || ""; // Preenche nome se houver
                 
-                // Esconde Senha e Botão Google
-                document.getElementById('password-input').parentElement?.classList.add('hidden'); // Oculta container da senha se houver
-                document.getElementById('password-input').classList.add('hidden'); // Oculta input senha
-                document.getElementById('google-btn').parentElement.classList.add('hidden');
-                document.getElementById('toggle-text').parentElement.classList.add('hidden');
+                // 3. Esconde o que não precisa (Senha, Botão Google, Link de Login)
+                // Usamos 'style.display = none' para garantir que suma
+                document.getElementById('password-input').style.display = 'none';
+                document.getElementById('google-btn').parentElement.style.display = 'none';
+                document.getElementById('toggle-text').parentElement.style.display = 'none';
                 
-                // --- A CORREÇÃO MÁGICA AQUI ---
+                // 4. FORÇA A EXIBIÇÃO DOS CAMPOS DE CADASTRO
                 const regDiv = document.getElementById('register-fields');
-                regDiv.classList.remove('hidden');
-                // Força o navegador a reconhecer a mudança para abrir a animação
-                setTimeout(() => {
-                    regDiv.style.maxHeight = "1000px"; // Força altura
-                    regDiv.style.opacity = "1";        // Força opacidade
-                    regDiv.classList.add('open');      // Adiciona classe CSS
-                }, 10);
                 
-                // Obriga o preenchimento
+                // Remove classes que podem esconder
+                regDiv.classList.remove('hidden');
+                regDiv.classList.remove('expandable-fields'); // Remove a animação que pode estar travando
+                
+                // Aplica estilos diretos para garantir visibilidade
+                regDiv.style.display = 'block';
+                regDiv.style.maxHeight = 'none';
+                regDiv.style.opacity = '1';
+                regDiv.style.visibility = 'visible';
+                
+                // 5. Torna os campos OBRIGATÓRIOS (Isso impede de pular)
+                document.getElementById('reg-name').required = true;
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
                 document.getElementById('reg-cep').required = true;
                 document.getElementById('reg-street').required = true;
                 document.getElementById('reg-number').required = true;
+                document.getElementById('reg-neighborhood').required = true;
+                document.getElementById('reg-city').required = true;
+                document.getElementById('reg-state').required = true;
                 
-                submitBtn.innerText = "Finalizar Cadastro";
+                // 6. Atualiza o botão de envio
+                submitBtn.innerText = "Salvar e Continuar";
+                
+                // Nota: O modal NÃO fecha aqui. O usuário fica preso na tela 
+                // até preencher tudo e clicar em "Salvar e Continuar".
                 
             } else {
+                // Se já tem cadastro completo, fecha e entra
                 modal.classList.replace('flex','hidden');
+                // Opcional: Recarregar para atualizar o menu superior
+                window.location.reload();
             }
         } 
         catch (err) { 
