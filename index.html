@@ -675,7 +675,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -948,50 +948,54 @@ const forgotBtn = document.getElementById('forgot-btn');
 
     document.getElementById('google-btn').onclick = async () => {
         const errorMsg = document.getElementById('error-message');
-        const googleBtn = document.getElementById('google-btn');
         
         try { 
             const result = await signInWithPopup(auth, provider); 
             const user = result.user;
 
-            // Verifica se o usuário já tem o cadastro completo (CPF é a chave)
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
             // Se NÃO tem dados ou NÃO tem CPF preenchido
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 // MODO: COMPLETAR CADASTRO
                 isGoogleCompletion = true;
-                isLogin = false; // Comporta-se como cadastro
+                isLogin = false; 
                 
                 // Prepara o Modal
                 document.getElementById('modal-title').innerText = "Complete seu Cadastro";
-                document.getElementById('modal-subtitle').innerText = "Falta pouco! Precisamos de alguns dados obrigatórios.";
+                document.getElementById('modal-subtitle').innerText = "Falta pouco! Preencha os dados abaixo.";
+                
+                // Configura campos
                 document.getElementById('email-input').value = user.email;
-                document.getElementById('email-input').disabled = true; // E-mail fixo
+                document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName;
                 
                 // Esconde Senha e Botão Google
-                document.getElementById('password-input').parentElement?.classList.add('hidden'); // Se estiver num div
-                document.getElementById('password-input').classList.add('hidden');
+                document.getElementById('password-input').parentElement?.classList.add('hidden'); // Oculta container da senha se houver
+                document.getElementById('password-input').classList.add('hidden'); // Oculta input senha
                 document.getElementById('google-btn').parentElement.classList.add('hidden');
-                document.getElementById('toggle-text').parentElement.classList.add('hidden'); // Esconde "Já tem conta?"
+                document.getElementById('toggle-text').parentElement.classList.add('hidden');
                 
-                // Mostra campos de registro
-                document.getElementById('register-fields').classList.remove('hidden');
+                // --- A CORREÇÃO MÁGICA AQUI ---
+                const regDiv = document.getElementById('register-fields');
+                regDiv.classList.remove('hidden');
+                // Força o navegador a reconhecer a mudança para abrir a animação
+                setTimeout(() => {
+                    regDiv.style.maxHeight = "1000px"; // Força altura
+                    regDiv.style.opacity = "1";        // Força opacidade
+                    regDiv.classList.add('open');      // Adiciona classe CSS
+                }, 10);
                 
-                // Torna campos obrigatórios
+                // Obriga o preenchimento
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
                 document.getElementById('reg-cep').required = true;
                 document.getElementById('reg-street').required = true;
                 document.getElementById('reg-number').required = true;
                 
-                // Muda botão principal
                 submitBtn.innerText = "Finalizar Cadastro";
                 
-                // O MODAL NÃO FECHA AQUI. O usuário é obrigado a preencher.
             } else {
-                // Cadastro já estava completo, pode entrar
                 modal.classList.replace('flex','hidden');
             }
         } 
@@ -1143,33 +1147,54 @@ const forgotBtn = document.getElementById('forgot-btn');
     const deleteBtn = document.getElementById('delete-account-btn');
     if(deleteBtn) {
         deleteBtn.onclick = async () => {
-            const confirmacao = confirm("TEM CERTEZA? Essa ação não pode ser desfeita.\n\nPara sua segurança, se você fez login há muito tempo, será necessário sair e entrar novamente antes de excluir.");
+            const user = auth.currentUser;
+            if(!user) return;
+
+            // 1. Pergunta inicial
+            const confirmacao = confirm("ATENÇÃO: Você solicitou a exclusão da sua conta.\n\nPara sua segurança, será necessário CONFIRMAR SUAS CREDENCIAIS (Senha ou Google) agora.\n\nDeseja continuar?");
             
             if(confirmacao) {
-                deleteBtn.innerText = "Excluindo...";
-                deleteBtn.disabled = true;
-                
+                // Descobre se o usuário usa Google ou Senha
+                const providerId = user.providerData[0].providerId;
+
                 try {
-                    const user = auth.currentUser;
-                    if(!user) return;
+                    // CASO 1: Usuário do GOOGLE
+                    if (providerId === 'google.com') {
+                        alert("Por favor, faça login com o Google novamente na janela a seguir para confirmar a exclusão.");
+                        await reauthenticateWithPopup(user, new GoogleAuthProvider());
+                    } 
+                    // CASO 2: Usuário de E-MAIL/SENHA
+                    else if (providerId === 'password') {
+                        const password = prompt("SEGURANÇA: Para excluir permanentemente, digite sua SENHA atual:");
+                        if (!password) return alert("Exclusão cancelada (senha não informada).");
+                        
+                        const credential = EmailAuthProvider.credential(user.email, password);
+                        await reauthenticateWithCredential(user, credential);
+                    }
 
-                    // 1. Deleta dados do Firestore primeiro
+                    // Se chegou aqui, a senha/google estava CERTA. Agora podemos excluir.
+                    deleteBtn.innerText = "Apagando dados...";
+                    deleteBtn.disabled = true;
+
+                    // Apaga do Banco de Dados
                     await deleteDoc(doc(db, "users", user.uid));
-
-                    // 2. Deleta Usuário da Autenticação
+                    // Apaga a Autenticação (Login)
                     await deleteUser(user);
 
-                    alert("Sua conta foi excluída com sucesso.");
-                    window.location.reload(); // Recarrega para limpar tudo
+                    alert("Sua conta foi excluída com sucesso. Sentiremos sua falta!");
+                    window.location.reload();
+
                 } catch (error) {
-                    console.error(error);
+                    console.error("Erro exclusão:", error);
                     deleteBtn.innerText = "Excluir Minha Conta";
                     deleteBtn.disabled = false;
 
-                    if(error.code === 'auth/requires-recent-login') {
-                        alert("POR SEGURANÇA: Você está logado há muito tempo.\n\nPor favor, faça Logout (Sair), entre novamente e tente excluir a conta em seguida.");
+                    if (error.code === 'auth/wrong-password') {
+                        alert("Senha incorreta! A conta NÃO foi excluída.");
+                    } else if (error.code === 'auth/popup-closed-by-user') {
+                        alert("Cancelado pelo usuário.");
                     } else {
-                        alert("Erro ao excluir: " + error.message);
+                        alert("Erro de segurança: " + error.message);
                     }
                 }
             }
