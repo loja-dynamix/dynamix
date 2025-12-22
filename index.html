@@ -878,20 +878,22 @@ const forgotBtn = document.getElementById('forgot-btn');
     // --- Submit Auth ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
+        
+        // Se for Google Completion, a senha é vazia e não importa
         const email = document.getElementById('email-input').value;
-        const password = document.getElementById('password-input').value; // Pode estar vazio no Google
+        const password = document.getElementById('password-input').value;
 
         submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
 
         try {
-            // CASO 1: LOGIN COMUM
+            // CENÁRIO 1: Login Normal (E-mail e Senha)
             if(isLogin && !isGoogleCompletion) {
                 await signInWithEmailAndPassword(auth, email, password);
                 modal.classList.replace('flex','hidden');
             } 
-            // CASO 2: CADASTRO NOVO ou COMPLETAR GOOGLE
+            // CENÁRIO 2: Cadastro Novo OU Completar Google
             else {
-                // Coleta dados do formulário
+                // Coleta dados
                 const name = document.getElementById('reg-name').value;
                 const cpf = document.getElementById('reg-cpf').value;
                 const phone = document.getElementById('reg-phone').value;
@@ -908,36 +910,45 @@ const forgotBtn = document.getElementById('forgot-btn');
                 let user;
 
                 if (isGoogleCompletion) {
-                    // Usuário já está logado pelo Google, só atualizamos o DB
+                    // SE FOR GOOGLE: Usuário já existe, pegamos o atual
                     user = auth.currentUser;
+                    if (!user) throw new Error("Usuário não detectado.");
+                    
+                    // Atualiza o nome no Auth do Firebase também
+                    await updateProfile(user, { displayName: name });
                 } else {
-                    // Cadastro Normal: Cria o usuário com senha
+                    // SE FOR CADASTRO DO ZERO: Cria conta com senha
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     user = cred.user;
                     await updateProfile(user, { displayName: name });
                 }
                 
-                // Salva no Banco de Dados (Firestore)
+                // SALVA NO BANCO (Firestore)
                 await setDoc(doc(db, "users", user.uid), {
                     fullName: name,
-                    email: email,
+                    email: user.email, // Usa o e-mail real do user
                     cpf: cpf,
                     phone: phone,
                     ...addressData,
                     cart: []
-                }, { merge: true }); // 'merge: true' é importante para não apagar dados existentes
+                }, { merge: true }); // Merge garante que não apague dados extras
 
-                // Reseta estado e fecha
+                // SUCESSO!
                 modal.classList.replace('flex','hidden');
                 
-                // Se foi completado via Google, recarrega a página para atualizar visual
-                if(isGoogleCompletion) window.location.reload(); 
+                // Se estava completando cadastro, recarrega para destravar a tela
+                if(isGoogleCompletion) {
+                    alert("Cadastro completado com sucesso!");
+                    window.location.reload();
+                }
             }
         } catch(err) {
             console.error(err);
             let msg = "Erro: " + err.code;
             if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
             if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
+            if(err.message === "Usuário não detectado.") msg = "Sessão expirou. Tente logar novamente.";
+            
             errorMsg.innerText = msg; 
             errorMsg.classList.remove('hidden');
         } finally {
@@ -948,7 +959,7 @@ const forgotBtn = document.getElementById('forgot-btn');
 
     document.getElementById('google-btn').onclick = async () => {
         const errorMsg = document.getElementById('error-message');
-        const closeBtn = document.getElementById('close-modal'); // Referência ao botão X
+        const closeBtn = document.getElementById('close-modal');
         
         try { 
             const result = await signInWithPopup(auth, provider); 
@@ -956,33 +967,33 @@ const forgotBtn = document.getElementById('forgot-btn');
 
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // Verifica se falta o CPF (indicador de cadastro incompleto)
+            // Se NÃO tem dados ou NÃO tem CPF preenchido
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 // --- MODO DE BLOQUEIO ---
                 isGoogleCompletion = true;
                 isLogin = false; 
                 
-                // 1. ESCONDE O BOTÃO DE FECHAR (Obriga a preencher)
-                closeBtn.style.display = 'none';
-                
-                // 2. Trava o fechamento clicando fora (opcional, mas bom garantir)
-                modal.onclick = (e) => { if(e.target === modal) return; }; // Desativa clique no fundo
+                // 1. Configurações Visuais
+                closeBtn.style.display = 'none'; // Some o X
+                modal.onclick = (e) => { if(e.target === modal) return; }; // Trava clique fundo
 
-                // 3. Configura textos
                 document.getElementById('modal-title').innerText = "Falta pouco!";
-                document.getElementById('modal-subtitle').innerText = "Para sua segurança, complete o cadastro obrigatório.";
+                document.getElementById('modal-subtitle').innerText = "Complete os dados obrigatórios para continuar.";
                 
-                // 4. Preenche dados conhecidos
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName || "";
                 
-                // 5. Limpa a tela
-                document.getElementById('password-input').style.display = 'none';
+                // 2. ESCONDE O DESNECESSÁRIO
+                const passInput = document.getElementById('password-input');
+                passInput.style.display = 'none';
+                passInput.required = false; // <--- A CORREÇÃO MÁGICA ESTÁ AQUI (Remove obrigatoriedade)
+                
                 document.getElementById('google-btn').parentElement.style.display = 'none';
                 document.getElementById('toggle-text').parentElement.style.display = 'none';
+                document.getElementById('forgot-link-container').style.display = 'none';
                 
-                // 6. Abre o formulário na marra
+                // 3. ABRE OS CAMPOS NA MARRA
                 const regDiv = document.getElementById('register-fields');
                 regDiv.classList.remove('hidden');
                 regDiv.classList.remove('expandable-fields');
@@ -990,7 +1001,7 @@ const forgotBtn = document.getElementById('forgot-btn');
                 regDiv.style.maxHeight = 'none';
                 regDiv.style.opacity = '1';
                 
-                // 7. Define Obrigatórios
+                // 4. DEFINE OBRIGATÓRIOS DO CADASTRO
                 document.getElementById('reg-name').required = true;
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
@@ -1002,8 +1013,7 @@ const forgotBtn = document.getElementById('forgot-btn');
                 document.getElementById('reg-state').required = true;
                 
                 submitBtn.innerText = "Salvar e Continuar";
-
-                // Nota: O modal NÃO fecha. O usuário está preso até salvar.
+                
             } else {
                 modal.classList.replace('flex','hidden');
                 window.location.reload();
@@ -1015,7 +1025,6 @@ const forgotBtn = document.getElementById('forgot-btn');
             if (err.code === 'auth/popup-closed-by-user') msg = "Janela fechada.";
             errorMsg.innerText = msg; 
             errorMsg.classList.remove('hidden'); 
-            // Se der erro no login, mostra o X de volta pra ele tentar outra coisa
             closeBtn.style.display = 'block'; 
         }
     };
