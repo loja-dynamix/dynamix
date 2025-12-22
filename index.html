@@ -498,6 +498,17 @@
                   <div class="flex items-center justify-between pt-4">
                       <p id="profile-status" class="text-sm font-bold"></p>
                       <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button>
+                    <div class="mt-10 pt-6 border-t border-red-100">
+    <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-sm text-red-800">
+            <strong>Excluir Conta:</strong> Essa ação é irreversível. Todos os seus dados serão apagados.
+        </div>
+        <button type="button" id="delete-account-btn" class="text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+            Excluir Minha Conta
+        </button>
+    </div>
+</div>
                   </div>
               </form>
           </div>
@@ -664,8 +675,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
@@ -723,6 +734,7 @@ window.buscarCep = async (valor, prefixo) => {
     const errorMsg = document.getElementById('error-message');
     const regFields = document.getElementById('register-fields');
     let isLogin = true;
+    let isGoogleCompletion = false; // Nova variável para controlar o fluxo do Google
 const forgotBtn = document.getElementById('forgot-btn');
     const recoverForm = document.getElementById('recover-form');
     const authFormSection = document.getElementById('auth-form');
@@ -867,16 +879,19 @@ const forgotBtn = document.getElementById('forgot-btn');
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
-        const password = document.getElementById('password-input').value;
+        const password = document.getElementById('password-input').value; // Pode estar vazio no Google
 
         submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
 
         try {
-            if(isLogin) {
-                // LOGIN
+            // CASO 1: LOGIN COMUM
+            if(isLogin && !isGoogleCompletion) {
                 await signInWithEmailAndPassword(auth, email, password);
-            } else {
-                // CADASTRO
+                modal.classList.replace('flex','hidden');
+            } 
+            // CASO 2: CADASTRO NOVO ou COMPLETAR GOOGLE
+            else {
+                // Coleta dados do formulário
                 const name = document.getElementById('reg-name').value;
                 const cpf = document.getElementById('reg-cpf').value;
                 const phone = document.getElementById('reg-phone').value;
@@ -890,35 +905,103 @@ const forgotBtn = document.getElementById('forgot-btn');
                     complement: document.getElementById('reg-complement').value
                 };
 
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await updateProfile(cred.user, { displayName: name });
+                let user;
+
+                if (isGoogleCompletion) {
+                    // Usuário já está logado pelo Google, só atualizamos o DB
+                    user = auth.currentUser;
+                } else {
+                    // Cadastro Normal: Cria o usuário com senha
+                    const cred = await createUserWithEmailAndPassword(auth, email, password);
+                    user = cred.user;
+                    await updateProfile(user, { displayName: name });
+                }
                 
-                // Salva TUDO no banco de dados
-                await setDoc(doc(db, "users", cred.user.uid), {
+                // Salva no Banco de Dados (Firestore)
+                await setDoc(doc(db, "users", user.uid), {
                     fullName: name,
                     email: email,
                     cpf: cpf,
                     phone: phone,
-                    ...addressData, // Espalha os dados do endereço
+                    ...addressData,
                     cart: []
-                });
+                }, { merge: true }); // 'merge: true' é importante para não apagar dados existentes
+
+                // Reseta estado e fecha
+                modal.classList.replace('flex','hidden');
+                
+                // Se foi completado via Google, recarrega a página para atualizar visual
+                if(isGoogleCompletion) window.location.reload(); 
             }
-            modal.classList.replace('flex','hidden');
         } catch(err) {
             console.error(err);
             let msg = "Erro: " + err.code;
-            if(err.code === 'auth/email-already-in-use') msg = "Este e-mail já está sendo usado.";
-            if(err.code === 'auth/weak-password') msg = "A senha deve ter pelo menos 6 caracteres.";
+            if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
+            if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
             errorMsg.innerText = msg; 
             errorMsg.classList.remove('hidden');
         } finally {
-            submitBtn.disabled = false; submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
+            submitBtn.disabled = false; 
+            if(!isGoogleCompletion) submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
         }
     };
 
     document.getElementById('google-btn').onclick = async () => {
-        try { await signInWithPopup(auth, provider); modal.classList.replace('flex','hidden'); } 
-        catch (err) { errorMsg.innerText = "Erro Google Login"; errorMsg.classList.remove('hidden'); }
+        const errorMsg = document.getElementById('error-message');
+        const googleBtn = document.getElementById('google-btn');
+        
+        try { 
+            const result = await signInWithPopup(auth, provider); 
+            const user = result.user;
+
+            // Verifica se o usuário já tem o cadastro completo (CPF é a chave)
+            const docSnap = await getDoc(doc(db, "users", user.uid));
+            
+            // Se NÃO tem dados ou NÃO tem CPF preenchido
+            if (!docSnap.exists() || !docSnap.data().cpf) {
+                // MODO: COMPLETAR CADASTRO
+                isGoogleCompletion = true;
+                isLogin = false; // Comporta-se como cadastro
+                
+                // Prepara o Modal
+                document.getElementById('modal-title').innerText = "Complete seu Cadastro";
+                document.getElementById('modal-subtitle').innerText = "Falta pouco! Precisamos de alguns dados obrigatórios.";
+                document.getElementById('email-input').value = user.email;
+                document.getElementById('email-input').disabled = true; // E-mail fixo
+                document.getElementById('reg-name').value = user.displayName;
+                
+                // Esconde Senha e Botão Google
+                document.getElementById('password-input').parentElement?.classList.add('hidden'); // Se estiver num div
+                document.getElementById('password-input').classList.add('hidden');
+                document.getElementById('google-btn').parentElement.classList.add('hidden');
+                document.getElementById('toggle-text').parentElement.classList.add('hidden'); // Esconde "Já tem conta?"
+                
+                // Mostra campos de registro
+                document.getElementById('register-fields').classList.remove('hidden');
+                
+                // Torna campos obrigatórios
+                document.getElementById('reg-cpf').required = true;
+                document.getElementById('reg-phone').required = true;
+                document.getElementById('reg-cep').required = true;
+                document.getElementById('reg-street').required = true;
+                document.getElementById('reg-number').required = true;
+                
+                // Muda botão principal
+                submitBtn.innerText = "Finalizar Cadastro";
+                
+                // O MODAL NÃO FECHA AQUI. O usuário é obrigado a preencher.
+            } else {
+                // Cadastro já estava completo, pode entrar
+                modal.classList.replace('flex','hidden');
+            }
+        } 
+        catch (err) { 
+            console.error(err);
+            let msg = "Erro ao conectar com Google.";
+            if (err.code === 'auth/popup-closed-by-user') msg = "Janela fechada.";
+            errorMsg.innerText = msg; 
+            errorMsg.classList.remove('hidden'); 
+        }
     };
 
     // --- Gerenciamento do Carrinho (DB Based) ---
@@ -1057,7 +1140,41 @@ const forgotBtn = document.getElementById('forgot-btn');
             statusMsg.className = "text-sm font-bold text-red-600"; 
         }
     };
-    
+    const deleteBtn = document.getElementById('delete-account-btn');
+    if(deleteBtn) {
+        deleteBtn.onclick = async () => {
+            const confirmacao = confirm("TEM CERTEZA? Essa ação não pode ser desfeita.\n\nPara sua segurança, se você fez login há muito tempo, será necessário sair e entrar novamente antes de excluir.");
+            
+            if(confirmacao) {
+                deleteBtn.innerText = "Excluindo...";
+                deleteBtn.disabled = true;
+                
+                try {
+                    const user = auth.currentUser;
+                    if(!user) return;
+
+                    // 1. Deleta dados do Firestore primeiro
+                    await deleteDoc(doc(db, "users", user.uid));
+
+                    // 2. Deleta Usuário da Autenticação
+                    await deleteUser(user);
+
+                    alert("Sua conta foi excluída com sucesso.");
+                    window.location.reload(); // Recarrega para limpar tudo
+                } catch (error) {
+                    console.error(error);
+                    deleteBtn.innerText = "Excluir Minha Conta";
+                    deleteBtn.disabled = false;
+
+                    if(error.code === 'auth/requires-recent-login') {
+                        alert("POR SEGURANÇA: Você está logado há muito tempo.\n\nPor favor, faça Logout (Sair), entre novamente e tente excluir a conta em seguida.");
+                    } else {
+                        alert("Erro ao excluir: " + error.message);
+                    }
+                }
+            }
+        };
+    }
     // Checkout
     window.checkout = function() {
         if (!auth.currentUser) { openModal(); return; }
