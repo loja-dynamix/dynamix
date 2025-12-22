@@ -647,6 +647,25 @@
       </div>
   </div>
 
+  <div id="custom-dialog" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative m-4 transform transition-all scale-100 border border-gray-100">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4" id="dialog-icon-bg">
+            <i class="fas fa-exclamation-triangle text-red-600 text-xl" id="dialog-icon"></i>
+        </div>
+        <div class="text-center mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2" id="dialog-title">Título</h3>
+            <p class="text-sm text-gray-500 leading-relaxed" id="dialog-message">Mensagem...</p>
+        </div>
+        <div id="dialog-input-container" class="hidden mb-6">
+            <label class="block text-xs font-bold text-gray-500 mb-1 text-left">Confirme sua Senha:</label>
+            <input type="password" id="dialog-input" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-gray-900" placeholder="Digite sua senha atual">
+        </div>
+        <div class="flex gap-3 justify-center">
+            <button id="dialog-btn-cancel" class="flex-1 bg-white border border-gray-300 text-gray-700 px-4 py-3 rounded-lg font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
+            <button id="dialog-btn-confirm" class="flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-red-700 transition-colors shadow-lg">Confirmar</button>
+        </div>
+  </div>
+
   <script>
     function switchView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -676,7 +695,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
@@ -695,24 +714,20 @@ import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from "https:/
 
     let currentUserData = null; 
     let cart = []; // Carrinho na Memória (Sync com DB)
-window.buscarCep = async (valor, prefixo) => {
-        // Remove tudo que não é número
+
+    // --- Função de Buscar CEP (Integração ViaCEP) ---
+    window.buscarCep = async (valor, prefixo) => {
         const cep = valor.replace(/\D/g, '');
         if (cep.length !== 8) return;
-
-        // Feedback visual
         document.getElementById(`${prefixo}-street`).value = "Buscando...";
-        
         try {
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
             const data = await response.json();
-            
             if (!data.erro) {
                 document.getElementById(`${prefixo}-street`).value = data.logradouro;
                 document.getElementById(`${prefixo}-neighborhood`).value = data.bairro;
                 document.getElementById(`${prefixo}-city`).value = data.localidade;
                 document.getElementById(`${prefixo}-state`).value = data.uf;
-                // Foca no número para o usuário digitar
                 document.getElementById(`${prefixo}-number`).focus();
             } else {
                 alert("CEP não encontrado.");
@@ -723,6 +738,7 @@ window.buscarCep = async (valor, prefixo) => {
             document.getElementById(`${prefixo}-street`).value = "";
         }
     };
+
     // DOM Refs
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
@@ -733,9 +749,11 @@ window.buscarCep = async (valor, prefixo) => {
     const submitBtn = document.getElementById('submit-btn');
     const errorMsg = document.getElementById('error-message');
     const regFields = document.getElementById('register-fields');
+    
     let isLogin = true;
-    let isGoogleCompletion = false; // Nova variável para controlar o fluxo do Google
-const forgotBtn = document.getElementById('forgot-btn');
+    let isGoogleCompletion = false;
+
+    const forgotBtn = document.getElementById('forgot-btn');
     const recoverForm = document.getElementById('recover-form');
     const authFormSection = document.getElementById('auth-form');
     const socialSection = document.getElementById('social-login-section');
@@ -766,31 +784,26 @@ const forgotBtn = document.getElementById('forgot-btn');
         };
     }
 
+    // Lógica de Recuperação de Senha
     if(recoverForm) {
         recoverForm.onsubmit = async (e) => {
             e.preventDefault();
-            const emailRec = document.getElementById('recover-email').value.trim(); // Remove espaços extras
+            const emailRec = document.getElementById('recover-email').value.trim();
             const msgBox = document.getElementById('recover-message');
             const btn = document.getElementById('send-recover-btn');
 
             if(!emailRec) return;
 
-            // Cria chaves de armazenamento ÚNICAS para este e-mail
-            // Ex: last_reset_time_joao@gmail.com
             const storageKeyTime = 'last_reset_time_' + emailRec;
             const storageKeyAttempts = 'reset_attempts_' + emailRec;
-
-            // --- 1. Verificação de Tempo (Individual por E-mail) ---
             const lastTime = localStorage.getItem(storageKeyTime);
             let attempts = parseInt(localStorage.getItem(storageKeyAttempts) || '0');
             const now = Date.now();
             
-            // Define o tempo de espera baseado nas tentativas
             let cooldownTime = 0;
-            if (attempts === 1) cooldownTime = 5 * 60 * 1000; // 5 minutos na segunda vez
-            if (attempts >= 2) cooldownTime = 10 * 60 * 1000; // 10 minutos nas próximas
+            if (attempts === 1) cooldownTime = 5 * 60 * 1000;
+            if (attempts >= 2) cooldownTime = 10 * 60 * 1000;
             
-            // Se tiver um registro de envio recente PARA ESSE E-MAIL
             if (lastTime && (now - lastTime) < cooldownTime) {
                 const minutesLeft = Math.ceil((cooldownTime - (now - lastTime)) / 60000);
                 msgBox.innerText = `Aguarde ${minutesLeft} min para reenviar para este e-mail.`;
@@ -804,10 +817,7 @@ const forgotBtn = document.getElementById('forgot-btn');
             msgBox.classList.add('hidden');
 
             try {
-                // --- 2. Envio do E-mail ---
                 await sendPasswordResetEmail(auth, emailRec);
-                
-                // Sucesso: Grava o horário SÓ PARA ESSE E-MAIL
                 localStorage.setItem(storageKeyTime, Date.now());
                 localStorage.setItem(storageKeyAttempts, attempts + 1);
 
@@ -817,17 +827,9 @@ const forgotBtn = document.getElementById('forgot-btn');
             } catch (error) {
                 console.error("Erro recuperação:", error.code);
                 let text = "Ocorreu um erro ao enviar.";
-                
-                // --- 3. Mensagens de Erro ---
-                // Nota: Para o erro 'auth/user-not-found' aparecer, 
-                // você deve desativar a proteção de enumeração no console do Firebase.
-                if(error.code === 'auth/user-not-found') {
-                    text = "Não existe nenhuma conta cadastrada com este e-mail.";
-                } else if(error.code === 'auth/invalid-email') {
-                    text = "O formato do e-mail digitado é inválido.";
-                } else if(error.code === 'auth/too-many-requests') {
-                    text = "O sistema bloqueou temporariamente este dispositivo.";
-                }
+                if(error.code === 'auth/user-not-found') text = "Não existe nenhuma conta cadastrada com este e-mail.";
+                else if(error.code === 'auth/invalid-email') text = "O formato do e-mail digitado é inválido.";
+                else if(error.code === 'auth/too-many-requests') text = "O sistema bloqueou temporariamente este dispositivo.";
                 
                 msgBox.innerText = text;
                 msgBox.className = "text-sm text-center font-bold bg-red-100 text-red-700 p-2 rounded block border border-red-200";
@@ -838,6 +840,7 @@ const forgotBtn = document.getElementById('forgot-btn');
             }
         };
     }
+
     // --- Lógica de Auth UI ---
     const openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
     if(loginBtn) loginBtn.onclick = openModal;
@@ -857,12 +860,10 @@ const forgotBtn = document.getElementById('forgot-btn');
         if(isLogin) { 
             regDiv.classList.add('hidden');
             if(forgotDiv) forgotDiv.classList.remove('hidden');
-            // Remove obrigatoriedade dos campos ocultos
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
         } else { 
             regDiv.classList.remove('hidden');
             if(forgotDiv) forgotDiv.classList.add('hidden');
-            // Torna obrigatórios os campos principais
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
@@ -875,25 +876,25 @@ const forgotBtn = document.getElementById('forgot-btn');
         }
     };
 
-    // --- Submit Auth ---
+    // --- Submit Auth (Com correção para não travar no Google) ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         
-        // Se for Google Completion, a senha é vazia e não importa
         const email = document.getElementById('email-input').value;
-        const password = document.getElementById('password-input').value;
+        const passInput = document.getElementById('password-input');
+        // Se a senha estiver desativada (Google Completion), envia vazio
+        const password = passInput.disabled ? "" : passInput.value;
 
         submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
 
         try {
-            // CENÁRIO 1: Login Normal (E-mail e Senha)
+            // CENÁRIO 1: Login Normal
             if(isLogin && !isGoogleCompletion) {
                 await signInWithEmailAndPassword(auth, email, password);
                 modal.classList.replace('flex','hidden');
             } 
-            // CENÁRIO 2: Cadastro Novo OU Completar Google
+            // CENÁRIO 2: Cadastro / Google Completion
             else {
-                // Coleta dados
                 const name = document.getElementById('reg-name').value;
                 const cpf = document.getElementById('reg-cpf').value;
                 const phone = document.getElementById('reg-phone').value;
@@ -910,44 +911,36 @@ const forgotBtn = document.getElementById('forgot-btn');
                 let user;
 
                 if (isGoogleCompletion) {
-                    // SE FOR GOOGLE: Usuário já existe, pegamos o atual
                     user = auth.currentUser;
-                    if (!user) throw new Error("Usuário não detectado.");
-                    
-                    // Atualiza o nome no Auth do Firebase também
+                    if (!user) throw new Error("Usuário não detectado (Sessão perdida).");
                     await updateProfile(user, { displayName: name });
                 } else {
-                    // SE FOR CADASTRO DO ZERO: Cria conta com senha
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     user = cred.user;
                     await updateProfile(user, { displayName: name });
                 }
                 
-                // SALVA NO BANCO (Firestore)
                 await setDoc(doc(db, "users", user.uid), {
                     fullName: name,
-                    email: user.email, // Usa o e-mail real do user
+                    email: user.email,
                     cpf: cpf,
                     phone: phone,
                     ...addressData,
                     cart: []
-                }, { merge: true }); // Merge garante que não apague dados extras
+                }, { merge: true });
 
-                // SUCESSO!
                 modal.classList.replace('flex','hidden');
                 
-                // Se estava completando cadastro, recarrega para destravar a tela
                 if(isGoogleCompletion) {
-                    alert("Cadastro completado com sucesso!");
+                    alert("Cadastro finalizado com sucesso!");
                     window.location.reload();
                 }
             }
         } catch(err) {
-            console.error(err);
+            console.error("ERRO:", err);
             let msg = "Erro: " + err.code;
             if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
-            if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
-            if(err.message === "Usuário não detectado.") msg = "Sessão expirou. Tente logar novamente.";
+            if(err.code === 'auth/weak-password') msg = "Senha muito fraca (mínimo 6 dígitos).";
             
             errorMsg.innerText = msg; 
             errorMsg.classList.remove('hidden');
@@ -957,6 +950,7 @@ const forgotBtn = document.getElementById('forgot-btn');
         }
     };
 
+    // --- Login com Google (Corrigido: Destrava senha) ---
     document.getElementById('google-btn').onclick = async () => {
         const errorMsg = document.getElementById('error-message');
         const closeBtn = document.getElementById('close-modal');
@@ -967,41 +961,39 @@ const forgotBtn = document.getElementById('forgot-btn');
 
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // Se NÃO tem dados ou NÃO tem CPF preenchido
             if (!docSnap.exists() || !docSnap.data().cpf) {
-                // --- MODO DE BLOQUEIO ---
+                // --- MODO: COMPLETAR CADASTRO ---
                 isGoogleCompletion = true;
                 isLogin = false; 
                 
-                // 1. Configurações Visuais
-                closeBtn.style.display = 'none'; // Some o X
-                modal.onclick = (e) => { if(e.target === modal) return; }; // Trava clique fundo
+                closeBtn.style.display = 'none'; // Esconde X
+                modal.onclick = (e) => { if(e.target === modal) return; }; 
 
                 document.getElementById('modal-title').innerText = "Falta pouco!";
-                document.getElementById('modal-subtitle').innerText = "Complete os dados obrigatórios para continuar.";
+                document.getElementById('modal-subtitle').innerText = "Complete os dados obrigatórios.";
                 
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName || "";
                 
-                // 2. ESCONDE O DESNECESSÁRIO
+                // DESATIVA SENHA PARA NÃO TRAVAR O SUBMIT
                 const passInput = document.getElementById('password-input');
                 passInput.style.display = 'none';
-                passInput.required = false; // <--- A CORREÇÃO MÁGICA ESTÁ AQUI (Remove obrigatoriedade)
+                passInput.required = false;
+                passInput.disabled = true; // Importante!
                 
                 document.getElementById('google-btn').parentElement.style.display = 'none';
                 document.getElementById('toggle-text').parentElement.style.display = 'none';
                 document.getElementById('forgot-link-container').style.display = 'none';
                 
-                // 3. ABRE OS CAMPOS NA MARRA
+                // Abre Campos na Marra
                 const regDiv = document.getElementById('register-fields');
                 regDiv.classList.remove('hidden');
                 regDiv.classList.remove('expandable-fields');
                 regDiv.style.display = 'block';
-                regDiv.style.maxHeight = 'none';
                 regDiv.style.opacity = '1';
+                regDiv.style.maxHeight = 'none';
                 
-                // 4. DEFINE OBRIGATÓRIOS DO CADASTRO
                 document.getElementById('reg-name').required = true;
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
@@ -1029,7 +1021,7 @@ const forgotBtn = document.getElementById('forgot-btn');
         }
     };
 
-    // --- Gerenciamento do Carrinho (DB Based) ---
+    // --- Carrinho ---
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
@@ -1052,14 +1044,11 @@ const forgotBtn = document.getElementById('forgot-btn');
             </div>`).join('');
     }
 
-    // Funções Globais de Carrinho
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
-        // Adiciona local (Optimistic)
         cart.push({name, price, image});
         updateCartUI();
         toggleCart();
-        // Salva DB
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
     };
 
@@ -1070,7 +1059,7 @@ const forgotBtn = document.getElementById('forgot-btn');
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
     };
 
-    // --- Monitoramento Auth (Estado) ---
+    // --- Monitoramento Auth ---
     onAuthStateChanged(auth, async (user) => {
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
@@ -1080,20 +1069,14 @@ const forgotBtn = document.getElementById('forgot-btn');
         const closeBtn = document.getElementById('close-modal');
 
         if (user) {
-            // Busca Dados
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // --- VERIFICAÇÃO DE SEGURANÇA (CADASTRO INCOMPLETO) ---
+            // Verifica Cadastro Incompleto
             if (!docSnap.exists() || !docSnap.data().cpf) {
-                // Se o usuário existe no Auth mas não tem CPF no banco:
-                // FORÇA A ABERTURA DO MODAL DE CADASTRO
+                console.log("Cadastro incompleto detectado.");
+                modal.classList.replace('hidden','flex'); 
+                closeBtn.style.display = 'none'; 
                 
-                console.log("Cadastro incompleto detectado. Bloqueando tela.");
-                
-                modal.classList.replace('hidden','flex'); // Abre modal
-                closeBtn.style.display = 'none'; // Some com o botão X
-                
-                // Configura o visual de "Completar Cadastro"
                 isGoogleCompletion = true;
                 isLogin = false;
                 
@@ -1104,34 +1087,30 @@ const forgotBtn = document.getElementById('forgot-btn');
                 document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName || "";
                 
-                // Esconde login
-                document.getElementById('password-input').style.display = 'none';
+                const passInput = document.getElementById('password-input');
+                passInput.style.display = 'none';
+                passInput.disabled = true; // Importante
+                
                 document.getElementById('google-btn').parentElement.style.display = 'none';
                 document.getElementById('toggle-text').parentElement.style.display = 'none';
                 document.getElementById('forgot-link-container').style.display = 'none';
                 
-                // Mostra formulário
                 const regDiv = document.getElementById('register-fields');
                 regDiv.classList.remove('hidden');
-                regDiv.classList.remove('expandable-fields');
                 regDiv.style.display = 'block';
-                regDiv.style.maxHeight = 'none';
                 regDiv.style.opacity = '1';
+                regDiv.style.maxHeight = 'none';
                 
-                // Obriga campos
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
                 document.getElementById('reg-cep').required = true;
                 
                 submitBtn.innerText = "Salvar Dados Obrigatórios";
-                
-                // Não deixa o resto do código rodar (não mostra menu de logado)
                 return; 
             }
             
-            // --- SE CHEGOU AQUI, O CADASTRO ESTÁ OK ---
-            closeBtn.style.display = 'block'; // Garante que o X volta ao normal
-
+            // Cadastro OK
+            closeBtn.style.display = 'block'; 
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
             
@@ -1139,7 +1118,6 @@ const forgotBtn = document.getElementById('forgot-btn');
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
             cart = currentUserData.cart || [];
             
-            // Popula Perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -1158,18 +1136,14 @@ const forgotBtn = document.getElementById('forgot-btn');
             if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
 
         } else {
-            // Deslogado
             currentUserData = null;
             cart = []; 
             updateCartUI();
-            
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
             if(mobileText) mobileText.innerText = "Entre ou Cadastre-se";
             if(document.getElementById('profile-view').classList.contains('active')) switchView('home-view');
             if (verifyWarning) verifyWarning.classList.add('hidden');
-            
-            // Garante que o modal esteja com o botão X visível para login normal
             closeBtn.style.display = 'block';
         }
     });
@@ -1185,8 +1159,6 @@ const forgotBtn = document.getElementById('forgot-btn');
         statusMsg.innerText = "Salvando..."; statusMsg.className = "text-sm font-bold text-gray-500";
         
         try {
-            // Nota: NÃO pegamos o valor de 'profile-name' nem 'profile-cpf' aqui, 
-            // garantindo que não sejam alterados no banco.
             const newData = {
                 phone: document.getElementById('profile-phone').value,
                 cep: document.getElementById('profile-cep').value,
@@ -1203,7 +1175,6 @@ const forgotBtn = document.getElementById('forgot-btn');
             statusMsg.innerText = "Dados atualizados!"; 
             statusMsg.className = "text-sm font-bold text-green-600";
             
-            // Atualiza memória local mantendo o que não mudou
             Object.assign(currentUserData, newData); 
         } catch (error) { 
             console.error(error); 
@@ -1211,44 +1182,108 @@ const forgotBtn = document.getElementById('forgot-btn');
             statusMsg.className = "text-sm font-bold text-red-600"; 
         }
     };
+
+    // --- 2. FUNÇÃO DA JANELA BONITA (Lógica Visual) ---
+    const showDialog = (type, title, msg) => {
+        return new Promise((resolve) => {
+            const dialog = document.getElementById('custom-dialog');
+            const titleEl = document.getElementById('dialog-title');
+            const msgEl = document.getElementById('dialog-message');
+            const inputContainer = document.getElementById('dialog-input-container');
+            const inputEl = document.getElementById('dialog-input');
+            const btnConfirm = document.getElementById('dialog-btn-confirm');
+            const btnCancel = document.getElementById('dialog-btn-cancel');
+            const iconBg = document.getElementById('dialog-icon-bg');
+            const icon = document.getElementById('dialog-icon');
+
+            titleEl.innerText = title;
+            msgEl.innerHTML = msg.replace(/\n/g, '<br>');
+            inputEl.value = ""; 
+
+            // Configura Visual (Alerta ou Perigo)
+            if (type === 'alert') {
+                inputContainer.classList.add('hidden');
+                btnCancel.classList.add('hidden');
+                btnConfirm.innerText = "OK";
+                btnConfirm.className = "flex-1 bg-green-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg";
+                iconBg.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+                icon.className = "fas fa-check text-green-600 text-xl";
+            } 
+            else if (type === 'confirm' || type === 'password') {
+                btnCancel.classList.remove('hidden');
+                btnConfirm.innerText = "Sim, Excluir";
+                btnConfirm.className = "flex-1 bg-red-600 text-white px-4 py-3 rounded-lg font-bold hover:bg-red-700 shadow-lg";
+                iconBg.className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
+                icon.className = "fas fa-exclamation-triangle text-red-600 text-xl";
+                
+                if (type === 'password') {
+                    inputContainer.classList.remove('hidden');
+                    inputEl.focus();
+                } else {
+                    inputContainer.classList.add('hidden');
+                }
+            }
+
+            dialog.classList.replace('hidden', 'flex'); // Abre Janela
+
+            // Limpa eventos antigos para não clicar 2x
+            const newConfirm = btnConfirm.cloneNode(true);
+            const newCancel = btnCancel.cloneNode(true);
+            btnConfirm.parentNode.replaceChild(newConfirm, btnConfirm);
+            btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+
+            newConfirm.addEventListener('click', () => {
+                dialog.classList.replace('flex', 'hidden');
+                if (type === 'password') resolve(inputEl.value);
+                else resolve(true);
+            });
+
+            newCancel.addEventListener('click', () => {
+                dialog.classList.replace('flex', 'hidden');
+                resolve(false);
+            });
+        });
+    };
+
+    // --- 3. LÓGICA DO BOTÃO EXCLUIR (Usa a janela acima) ---
     const deleteBtn = document.getElementById('delete-account-btn');
     if(deleteBtn) {
         deleteBtn.onclick = async () => {
             const user = auth.currentUser;
             if(!user) return;
 
-            // 1. Pergunta inicial
-            const confirmacao = confirm("ATENÇÃO: Você solicitou a exclusão da sua conta.\n\nPara sua segurança, será necessário CONFIRMAR SUAS CREDENCIAIS (Senha ou Google) agora.\n\nDeseja continuar?");
+            // Pergunta Inicial
+            const confirmacao = await showDialog('confirm', 
+                'Excluir Conta Permanentemente?', 
+                'Tem certeza? Todos os seus dados serão apagados.\nEssa ação não pode ser desfeita.'
+            );
             
             if(confirmacao) {
-                // Descobre se o usuário usa Google ou Senha
                 const providerId = user.providerData[0].providerId;
 
                 try {
-                    // CASO 1: Usuário do GOOGLE
+                    // Se for Google
                     if (providerId === 'google.com') {
-                        alert("Por favor, faça login com o Google novamente na janela a seguir para confirmar a exclusão.");
+                        await showDialog('alert', 'Confirmação Necessária', 'Faça login com o Google na próxima tela para confirmar.');
                         await reauthenticateWithPopup(user, new GoogleAuthProvider());
                     } 
-                    // CASO 2: Usuário de E-MAIL/SENHA
+                    // Se for Senha
                     else if (providerId === 'password') {
-                        const password = prompt("SEGURANÇA: Para excluir permanentemente, digite sua SENHA atual:");
-                        if (!password) return alert("Exclusão cancelada (senha não informada).");
+                        const password = await showDialog('password', 'Confirmação de Segurança', 'Digite sua senha atual para confirmar:');
+                        if (!password) return; 
                         
                         const credential = EmailAuthProvider.credential(user.email, password);
                         await reauthenticateWithCredential(user, credential);
                     }
 
-                    // Se chegou aqui, a senha/google estava CERTA. Agora podemos excluir.
-                    deleteBtn.innerText = "Apagando dados...";
+                    deleteBtn.innerText = "Apagando...";
                     deleteBtn.disabled = true;
 
-                    // Apaga do Banco de Dados
+                    // Apaga tudo
                     await deleteDoc(doc(db, "users", user.uid));
-                    // Apaga a Autenticação (Login)
                     await deleteUser(user);
 
-                    alert("Sua conta foi excluída com sucesso. Sentiremos sua falta!");
+                    await showDialog('alert', 'Conta Excluída', 'Sua conta foi excluída com sucesso.');
                     window.location.reload();
 
                 } catch (error) {
@@ -1257,16 +1292,19 @@ const forgotBtn = document.getElementById('forgot-btn');
                     deleteBtn.disabled = false;
 
                     if (error.code === 'auth/wrong-password') {
-                        alert("Senha incorreta! A conta NÃO foi excluída.");
+                        showDialog('alert', 'Senha Incorreta', 'A senha informada está errada.');
                     } else if (error.code === 'auth/popup-closed-by-user') {
-                        alert("Cancelado pelo usuário.");
+                        // Cancelado
+                    } else if (error.code === 'auth/requires-recent-login') {
+                         showDialog('alert', 'Sessão Expirada', 'Faça Logout e entre novamente antes de excluir.');
                     } else {
-                        alert("Erro de segurança: " + error.message);
+                        showDialog('alert', 'Erro', 'Erro: ' + error.message);
                     }
                 }
             }
         };
     }
+
     // Checkout
     window.checkout = function() {
         if (!auth.currentUser) { openModal(); return; }
