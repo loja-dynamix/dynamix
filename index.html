@@ -948,49 +948,49 @@ const forgotBtn = document.getElementById('forgot-btn');
 
     document.getElementById('google-btn').onclick = async () => {
         const errorMsg = document.getElementById('error-message');
+        const closeBtn = document.getElementById('close-modal'); // Referência ao botão X
         
         try { 
             const result = await signInWithPopup(auth, provider); 
             const user = result.user;
 
-            // Busca dados do usuário no banco
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // Verifica se é um usuário NOVO ou INCOMPLETO (Sem CPF)
+            // Verifica se falta o CPF (indicador de cadastro incompleto)
             if (!docSnap.exists() || !docSnap.data().cpf) {
-                // MODO: COMPLETAR CADASTRO
+                // --- MODO DE BLOQUEIO ---
                 isGoogleCompletion = true;
                 isLogin = false; 
                 
-                // 1. Muda os textos do Modal
-                document.getElementById('modal-title').innerText = "Complete seu Cadastro";
-                document.getElementById('modal-subtitle').innerText = "Falta pouco! Preencha os campos obrigatórios abaixo.";
+                // 1. ESCONDE O BOTÃO DE FECHAR (Obriga a preencher)
+                closeBtn.style.display = 'none';
                 
-                // 2. Preenche o que já temos
+                // 2. Trava o fechamento clicando fora (opcional, mas bom garantir)
+                modal.onclick = (e) => { if(e.target === modal) return; }; // Desativa clique no fundo
+
+                // 3. Configura textos
+                document.getElementById('modal-title').innerText = "Falta pouco!";
+                document.getElementById('modal-subtitle').innerText = "Para sua segurança, complete o cadastro obrigatório.";
+                
+                // 4. Preenche dados conhecidos
                 document.getElementById('email-input').value = user.email;
-                document.getElementById('email-input').disabled = true; // Trava o e-mail
-                document.getElementById('reg-name').value = user.displayName || ""; // Preenche nome se houver
+                document.getElementById('email-input').disabled = true;
+                document.getElementById('reg-name').value = user.displayName || "";
                 
-                // 3. Esconde o que não precisa (Senha, Botão Google, Link de Login)
-                // Usamos 'style.display = none' para garantir que suma
+                // 5. Limpa a tela
                 document.getElementById('password-input').style.display = 'none';
                 document.getElementById('google-btn').parentElement.style.display = 'none';
                 document.getElementById('toggle-text').parentElement.style.display = 'none';
                 
-                // 4. FORÇA A EXIBIÇÃO DOS CAMPOS DE CADASTRO
+                // 6. Abre o formulário na marra
                 const regDiv = document.getElementById('register-fields');
-                
-                // Remove classes que podem esconder
                 regDiv.classList.remove('hidden');
-                regDiv.classList.remove('expandable-fields'); // Remove a animação que pode estar travando
-                
-                // Aplica estilos diretos para garantir visibilidade
+                regDiv.classList.remove('expandable-fields');
                 regDiv.style.display = 'block';
                 regDiv.style.maxHeight = 'none';
                 regDiv.style.opacity = '1';
-                regDiv.style.visibility = 'visible';
                 
-                // 5. Torna os campos OBRIGATÓRIOS (Isso impede de pular)
+                // 7. Define Obrigatórios
                 document.getElementById('reg-name').required = true;
                 document.getElementById('reg-cpf').required = true;
                 document.getElementById('reg-phone').required = true;
@@ -1001,16 +1001,11 @@ const forgotBtn = document.getElementById('forgot-btn');
                 document.getElementById('reg-city').required = true;
                 document.getElementById('reg-state').required = true;
                 
-                // 6. Atualiza o botão de envio
                 submitBtn.innerText = "Salvar e Continuar";
-                
-                // Nota: O modal NÃO fecha aqui. O usuário fica preso na tela 
-                // até preencher tudo e clicar em "Salvar e Continuar".
-                
+
+                // Nota: O modal NÃO fecha. O usuário está preso até salvar.
             } else {
-                // Se já tem cadastro completo, fecha e entra
                 modal.classList.replace('flex','hidden');
-                // Opcional: Recarregar para atualizar o menu superior
                 window.location.reload();
             }
         } 
@@ -1020,6 +1015,8 @@ const forgotBtn = document.getElementById('forgot-btn');
             if (err.code === 'auth/popup-closed-by-user') msg = "Janela fechada.";
             errorMsg.innerText = msg; 
             errorMsg.classList.remove('hidden'); 
+            // Se der erro no login, mostra o X de volta pra ele tentar outra coisa
+            closeBtn.style.display = 'block'; 
         }
     };
 
@@ -1071,38 +1068,81 @@ const forgotBtn = document.getElementById('forgot-btn');
         const nameDisplay = document.getElementById('user-name-display');
         const mobileText = document.getElementById('mobile-login-text');
         const verifyWarning = document.getElementById('verify-warning');
+        const closeBtn = document.getElementById('close-modal');
 
         if (user) {
+            // Busca Dados
+            const docSnap = await getDoc(doc(db, "users", user.uid));
+            
+            // --- VERIFICAÇÃO DE SEGURANÇA (CADASTRO INCOMPLETO) ---
+            if (!docSnap.exists() || !docSnap.data().cpf) {
+                // Se o usuário existe no Auth mas não tem CPF no banco:
+                // FORÇA A ABERTURA DO MODAL DE CADASTRO
+                
+                console.log("Cadastro incompleto detectado. Bloqueando tela.");
+                
+                modal.classList.replace('hidden','flex'); // Abre modal
+                closeBtn.style.display = 'none'; // Some com o botão X
+                
+                // Configura o visual de "Completar Cadastro"
+                isGoogleCompletion = true;
+                isLogin = false;
+                
+                document.getElementById('modal-title').innerText = "Complete seu Cadastro";
+                document.getElementById('modal-subtitle').innerText = "Preenchimento obrigatório para continuar.";
+                
+                document.getElementById('email-input').value = user.email;
+                document.getElementById('email-input').disabled = true;
+                document.getElementById('reg-name').value = user.displayName || "";
+                
+                // Esconde login
+                document.getElementById('password-input').style.display = 'none';
+                document.getElementById('google-btn').parentElement.style.display = 'none';
+                document.getElementById('toggle-text').parentElement.style.display = 'none';
+                document.getElementById('forgot-link-container').style.display = 'none';
+                
+                // Mostra formulário
+                const regDiv = document.getElementById('register-fields');
+                regDiv.classList.remove('hidden');
+                regDiv.classList.remove('expandable-fields');
+                regDiv.style.display = 'block';
+                regDiv.style.maxHeight = 'none';
+                regDiv.style.opacity = '1';
+                
+                // Obriga campos
+                document.getElementById('reg-cpf').required = true;
+                document.getElementById('reg-phone').required = true;
+                document.getElementById('reg-cep').required = true;
+                
+                submitBtn.innerText = "Salvar Dados Obrigatórios";
+                
+                // Não deixa o resto do código rodar (não mostra menu de logado)
+                return; 
+            }
+            
+            // --- SE CHEGOU AQUI, O CADASTRO ESTÁ OK ---
+            closeBtn.style.display = 'block'; // Garante que o X volta ao normal
+
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
             
-            // Busca Dados + Carrinho do DB
-            const docSnap = await getDoc(doc(db, "users", user.uid));
-            if (docSnap.exists()) {
-                currentUserData = docSnap.data();
-                nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
-                cart = currentUserData.cart || []; // Carrega carrinho do banco
-                
-                // Popula Perfil
-                document.getElementById('profile-email').value = user.email;
-                document.getElementById('profile-name').value = currentUserData.fullName || "";
-                document.getElementById('profile-cpf').value = currentUserData.cpf || ""; // CPF Carregado
-                document.getElementById('profile-phone').value = currentUserData.phone || "";
-                
-                // Endereço
-                document.getElementById('profile-cep').value = currentUserData.cep || "";
-                document.getElementById('profile-street').value = currentUserData.street || "";
-                document.getElementById('profile-number').value = currentUserData.number || "";
-                document.getElementById('profile-neighborhood').value = currentUserData.neighborhood || "";
-                document.getElementById('profile-city').value = currentUserData.city || "";
-                document.getElementById('profile-state').value = currentUserData.state || "";
-                document.getElementById('profile-complement').value = currentUserData.complement || "";
-            } else {
-                const displayName = user.displayName || "Cliente";
-                nameDisplay.innerText = displayName;
-                currentUserData = { fullName: displayName, phone: "", address: "", cart: [] };
-                cart = [];
-            }
+            currentUserData = docSnap.data();
+            nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
+            cart = currentUserData.cart || [];
+            
+            // Popula Perfil
+            document.getElementById('profile-email').value = user.email;
+            document.getElementById('profile-name').value = currentUserData.fullName || "";
+            document.getElementById('profile-cpf').value = currentUserData.cpf || "";
+            document.getElementById('profile-phone').value = currentUserData.phone || "";
+            document.getElementById('profile-cep').value = currentUserData.cep || "";
+            document.getElementById('profile-street').value = currentUserData.street || "";
+            document.getElementById('profile-number').value = currentUserData.number || "";
+            document.getElementById('profile-neighborhood').value = currentUserData.neighborhood || "";
+            document.getElementById('profile-city').value = currentUserData.city || "";
+            document.getElementById('profile-state').value = currentUserData.state || "";
+            document.getElementById('profile-complement').value = currentUserData.complement || "";
+
             updateCartUI();
             
             if(mobileText) mobileText.innerText = "Olá, " + nameDisplay.innerText;
@@ -1111,7 +1151,7 @@ const forgotBtn = document.getElementById('forgot-btn');
         } else {
             // Deslogado
             currentUserData = null;
-            cart = []; // Zera carrinho local
+            cart = []; 
             updateCartUI();
             
             loginTrigger.classList.remove('hidden');
@@ -1119,6 +1159,9 @@ const forgotBtn = document.getElementById('forgot-btn');
             if(mobileText) mobileText.innerText = "Entre ou Cadastre-se";
             if(document.getElementById('profile-view').classList.contains('active')) switchView('home-view');
             if (verifyWarning) verifyWarning.classList.add('hidden');
+            
+            // Garante que o modal esteja com o botão X visível para login normal
+            closeBtn.style.display = 'block';
         }
     });
 
