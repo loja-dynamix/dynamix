@@ -714,7 +714,30 @@
 
     let currentUserData = null; 
     let cart = []; // Carrinho na Memória (Sync com DB)
-
+if (auth.currentUser) {
+    const unsubscribe = onSnapshot(doc(db, "users", auth.currentUser.uid), (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.cart && JSON.stringify(data.cart) !== JSON.stringify(cart)) {
+                cart = data.cart;
+                updateCartUI();
+            }
+            // Também atualiza dados do perfil se mudarem
+            if (currentUserData) {
+                Object.assign(currentUserData, {
+                    phone: data.phone,
+                    cep: data.cep,
+                    street: data.street,
+                    number: data.number,
+                    neighborhood: data.neighborhood,
+                    city: data.city,
+                    state: data.state,
+                    complement: data.complement
+                });
+            }
+        }
+    });
+}
     // --- Função de Buscar CEP (Integração ViaCEP) ---
     window.buscarCep = async (valor, prefixo) => {
         const cep = valor.replace(/\D/g, '');
@@ -1045,19 +1068,44 @@
     }
 
     window.safeAddToCart = async (name, price, image) => {
-        if(!auth.currentUser) { openModal(); return; }
-        cart.push({name, price, image});
-        updateCartUI();
-        toggleCart();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
-    };
+      if(!auth.currentUser) { 
+          openModal(); 
+          return; 
+      }
+      cart.push({name, price, image});
+      
+      // Atualiza UI imediatamente
+      updateCartUI();
+      
+      // Abre o carrinho para o usuário ver que foi adicionado
+      toggleCart();
 
-    window.removeFromCart = async (index) => {
-        if(!auth.currentUser) return;
-        cart.splice(index, 1);
-        updateCartUI();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) { console.error("Erro salvar carrinho", e); }
-    };
+      try { 
+          await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+      } catch(e) { 
+          console.error("Erro salvar carrinho", e);
+          // Se der erro no Firebase, remove do carrinho local para não ficar inconsistente
+          cart.pop();
+          updateCartUI();
+          alert("Erro ao salvar no carrinho. Tente novamente.");
+      }
+  };
+
+  // SUBSTITUA a função removeFromCart por esta:
+  window.removeFromCart = async (index) => {
+      if(!auth.currentUser) return;
+      
+      cart.splice(index, 1);
+      
+      // Atualiza UI imediatamente
+      updateCartUI();
+      
+      try { 
+          await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+      } catch(e) { 
+          console.error("Erro remover do carrinho", e);
+      }
+  };
 
     // --- Monitoramento Auth ---
     onAuthStateChanged(auth, async (user) => {
@@ -1152,36 +1200,44 @@
 
     // Salvar Perfil
     document.getElementById('profile-form').onsubmit = async (e) => {
-        e.preventDefault();
-        const statusMsg = document.getElementById('profile-status');
-        if (!auth.currentUser) return;
+    e.preventDefault();
+    const statusMsg = document.getElementById('profile-status');
+    if (!auth.currentUser) return;
+    
+    statusMsg.innerText = "Salvando..."; 
+    statusMsg.className = "text-sm font-bold text-gray-500";
+    
+    try {
+        const newData = {
+            phone: document.getElementById('profile-phone').value.trim(),
+            cep: document.getElementById('profile-cep').value.trim(),
+            street: document.getElementById('profile-street').value.trim(),
+            number: document.getElementById('profile-number').value.trim(),
+            neighborhood: document.getElementById('profile-neighborhood').value.trim(),
+            city: document.getElementById('profile-city').value.trim(),
+            state: document.getElementById('profile-state').value.trim(),
+            complement: document.getElementById('profile-complement').value.trim()
+        };
         
-        statusMsg.innerText = "Salvando..."; statusMsg.className = "text-sm font-bold text-gray-500";
+        await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
         
-        try {
-            const newData = {
-                phone: document.getElementById('profile-phone').value,
-                cep: document.getElementById('profile-cep').value,
-                street: document.getElementById('profile-street').value,
-                number: document.getElementById('profile-number').value,
-                neighborhood: document.getElementById('profile-neighborhood').value,
-                city: document.getElementById('profile-city').value,
-                state: document.getElementById('profile-state').value,
-                complement: document.getElementById('profile-complement').value
-            };
-            
-            await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
-            
-            statusMsg.innerText = "Dados atualizados!"; 
-            statusMsg.className = "text-sm font-bold text-green-600";
-            
-            Object.assign(currentUserData, newData); 
-        } catch (error) { 
-            console.error(error); 
-            statusMsg.innerText = "Erro ao salvar."; 
-            statusMsg.className = "text-sm font-bold text-red-600"; 
-        }
-    };
+        // Atualiza os dados em memória imediatamente
+        Object.assign(currentUserData, newData);
+        
+        statusMsg.innerText = "Dados atualizados com sucesso!"; 
+        statusMsg.className = "text-sm font-bold text-green-600";
+        
+        // Pequeno feedback visual
+        setTimeout(() => {
+            statusMsg.innerText = "";
+        }, 3000);
+        
+    } catch (error) { 
+        console.error(error); 
+        statusMsg.innerText = "Erro ao salvar. Tente novamente."; 
+        statusMsg.className = "text-sm font-bold text-red-600"; 
+    }
+};
 
     // --- 2. FUNÇÃO DA JANELA BONITA (Lógica Visual) ---
     const showDialog = (type, title, msg) => {
