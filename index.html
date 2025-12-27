@@ -483,7 +483,7 @@
                         <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
                         <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                             <div class="text-sm text-red-800">
-                                <strong>Excluir Conta:</strong> Essa ação é irreversível. Todos os seus dados serão apagados.
+                                <strong>Excluir Conta:</strong> Essa ação é irreversível.
                             </div>
                             <button type="button" id="delete-account-btn" onclick="handleDeleteAccount()" class="text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
                                 Excluir Minha Conta
@@ -580,6 +580,13 @@
             </div>
             <div id="error-message" class="text-red-500 text-sm text-center hidden font-bold bg-red-50 p-2 rounded"></div>
             <button type="submit" id="submit-btn" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-transform mt-4">Entrar</button>
+        </form>
+        <form id="recover-form" class="hidden space-y-4">
+            <p class="text-sm text-gray-600 text-center mb-4">Digite seu e-mail abaixo. Enviaremos um link para você redefinir sua senha.</p>
+            <input type="email" id="recover-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none" placeholder="Seu e-mail cadastrado">
+            <div id="recover-message" class="text-sm text-center hidden font-bold p-2 rounded"></div>
+            <button type="submit" id="send-recover-btn" class="w-full bg-gradient-to-r from-[var(--accent3-color)] to-[var(--accent4-color)] text-white font-bold py-3 rounded-lg hover:shadow-lg transition-transform">Enviar Link de Recuperação</button>
+            <button type="button" id="back-to-login-btn" class="w-full text-gray-500 font-medium py-2 hover:underline">Voltar para o Login</button>
         </form>
         <div id="social-login-section">
             <div class="mt-4"><div class="relative"><div class="absolute inset-0 flex items-center"><div class="w-full border-t border-gray-200"></div></div><div class="relative flex justify-center text-sm"><span class="px-2 bg-white text-gray-500">Ou</span></div></div><button id="google-btn" class="mt-4 w-full bg-white border border-gray-300 text-gray-700 font-medium py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 text-sm"><i class="fab fa-google text-red-500"></i> Google</button></div>
@@ -733,7 +740,10 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    // CONFIGURA O GOOGLE PARA PEDIR CONTA SEMPRE
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     let currentUserData = null;
     let cart = []; 
 
@@ -892,11 +902,15 @@
     // --- AUTH UI LOGIC ---
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
+    const recoverForm = document.getElementById('recover-form');
     const loginBtn = document.getElementById('login-trigger-btn');
     const closeBtn = document.getElementById('close-modal');
     const toggleBtn = document.getElementById('toggle-auth-mode');
+    const forgotBtn = document.getElementById('forgot-btn');
+    const backToLoginBtn = document.getElementById('back-to-login-btn');
     const submitBtn = document.getElementById('submit-btn');
     const errorMsg = document.getElementById('error-message');
+    const socialSection = document.getElementById('social-login-section');
     let isLogin = true;
     let isGoogleCompletion = false;
 
@@ -904,6 +918,7 @@
     if(loginBtn) loginBtn.onclick = openModal;
     closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
    
+    // Alternar entre Login e Cadastro
     toggleBtn.onclick = (e) => {
         e.preventDefault(); isLogin = !isLogin;
         document.getElementById('modal-title').innerText = isLogin ? "Bem-vindo" : "Criar Conta";
@@ -913,9 +928,11 @@
         const regDiv = document.getElementById('register-fields');
         if(isLogin) {
             regDiv.classList.add('hidden');
+            document.getElementById('forgot-link-container').classList.remove('hidden');
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
         } else {
             regDiv.classList.remove('hidden');
+            document.getElementById('forgot-link-container').classList.add('hidden');
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
@@ -923,6 +940,55 @@
         }
     };
 
+    // Alternar para Recuperação de Senha
+    forgotBtn.onclick = () => {
+        authForm.classList.add('hidden');
+        socialSection.classList.add('hidden');
+        recoverForm.classList.remove('hidden');
+        document.getElementById('modal-title').innerText = "Recuperar Senha";
+        document.getElementById('modal-subtitle').innerText = "Informe seu e-mail";
+    };
+
+    // Voltar da Recuperação para Login
+    backToLoginBtn.onclick = () => {
+        recoverForm.classList.add('hidden');
+        authForm.classList.remove('hidden');
+        socialSection.classList.remove('hidden');
+        document.getElementById('modal-title').innerText = "Bem-vindo";
+        document.getElementById('modal-subtitle').innerText = "Acesse sua conta para continuar";
+    };
+
+    // Envio do formulário de Recuperação
+    recoverForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const emailRec = document.getElementById('recover-email').value.trim();
+        const msgBox = document.getElementById('recover-message');
+        const btn = document.getElementById('send-recover-btn');
+
+        if(!emailRec) return;
+        
+        btn.disabled = true;
+        btn.innerText = "Enviando...";
+        msgBox.classList.add('hidden');
+
+        try {
+            await sendPasswordResetEmail(auth, emailRec);
+            msgBox.innerText = "E-mail enviado! Verifique sua caixa de entrada.";
+            msgBox.className = "text-sm text-center font-bold bg-green-100 text-green-700 p-2 rounded block border border-green-200";
+            document.getElementById('recover-email').value = "";
+        } catch (error) {
+            let text = "Erro ao enviar.";
+            if(error.code === 'auth/user-not-found') text = "E-mail não cadastrado.";
+            msgBox.innerText = text;
+            msgBox.className = "text-sm text-center font-bold bg-red-100 text-red-700 p-2 rounded block border border-red-200";
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Enviar Link de Recuperação";
+            msgBox.classList.remove('hidden');
+        }
+    };
+
+    // Submit Principal (Login/Cadastro)
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
