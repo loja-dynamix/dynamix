@@ -11,6 +11,8 @@
   <link id="google-fonts-link" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://kit.fontawesome.com/8e98006f77.js" crossorigin="anonymous"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
   <style>
     :root {
       --accent-color: #f3a712;
@@ -38,19 +40,12 @@
     .expandable-fields { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out; opacity: 0; }
     .expandable-fields.open { max-height: 500px; opacity: 1; }
     
-    /* --- CORREÇÃO DO LAYOUT (VIEW SWITCHER) --- */
-    /* Força display none quando não tem a classe active, ignorando o Tailwind */
+    /* View Switcher */
     .view-section { display: none !important; }
-    
-    /* Quando ativo, exibe. Se for o container de produtos, usa Flex para o layout funcionar */
     .view-section.active { display: block !important; animation: fadeIn 0.5s; }
-    
-    /* Regra específica para o container de produtos manter o footer embaixo */
     #products-view.active { display: flex !important; flex-direction: column; }
-
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    /* Custom Scrollbar */
     .custom-scroll::-webkit-scrollbar { width: 6px; }
     .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
     .custom-scroll::-webkit-scrollbar-thumb { background: var(--accent2-color); border-radius: 10px; }
@@ -140,160 +135,48 @@
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Buscar</h3>
                 <div class="relative">
-                    <input type="text" placeholder="O que você procura?" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] transition-all">
+                    <input type="text" id="search-input" placeholder="O que você procura?" class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] transition-all">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
                 </div>
             </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Categorias</h3>
-                <ul class="space-y-3 text-sm text-gray-600">
-                    <li class="flex items-center gap-2"><input type="checkbox" id="cat-all" class="rounded text-[var(--accent2-color)]" checked><label for="cat-all">Todos os Produtos</label></li>
-                    <li class="flex items-center gap-2"><input type="checkbox" id="cat-emagrecimento" class="rounded text-[var(--accent2-color)]"><label for="cat-emagrecimento">Emagrecimento</label></li>
-                    <li class="flex items-center gap-2"><input type="checkbox" id="cat-massa" class="rounded text-[var(--accent2-color)]"><label for="cat-massa">Ganho de Massa</label></li>
-                    <li class="flex items-center gap-2"><input type="checkbox" id="cat-vitaminas" class="rounded text-[var(--accent2-color)]"><label for="cat-vitaminas">Vitaminas</label></li>
+                <ul id="category-list" class="space-y-3 text-sm text-gray-600">
+                    <li class="text-gray-400 text-xs">Carregando categorias...</li>
                 </ul>
             </div>
 
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                 <h3 class="font-bold text-lg mb-4 font-[var(--font-family-heading)]">Preço</h3>
                 <div class="flex items-center gap-2">
-                    <input type="number" placeholder="Min" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
+                    <input type="number" id="price-min" placeholder="Min" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
                     <span class="text-gray-400">-</span>
-                    <input type="number" placeholder="Max" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
+                    <input type="number" id="price-max" placeholder="Max" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded text-sm">
                 </div>
-                <button class="w-full mt-3 bg-black text-white py-2 rounded text-sm font-bold hover:bg-[var(--accent2-color)] transition-colors">Filtrar</button>
+                <button id="apply-price-filter" class="w-full mt-3 bg-black text-white py-2 rounded text-sm font-bold hover:bg-[var(--accent2-color)] transition-colors">Filtrar</button>
             </div>
           </aside>
 
           <main class="w-full lg:w-3/4">
             <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
-                <p class="text-sm text-gray-500">Mostrando <span class="font-bold text-black">12</span> de <span class="font-bold text-black">48</span> produtos</p>
+                <p class="text-sm text-gray-500">Mostrando <span id="count-shown" class="font-bold text-black">0</span> de <span id="count-total" class="font-bold text-black">0</span> produtos</p>
                 <div class="flex items-center gap-2">
                     <span class="text-sm text-gray-500 hidden sm:inline">Ordenar por:</span>
-                    <select class="border-none bg-gray-50 text-sm font-bold text-black focus:ring-0 rounded-lg cursor-pointer py-2 pl-3 pr-8">
-                        <option>Mais Populares</option>
-                        <option>Menor Preço</option>
-                        <option>Maior Preço</option>
+                    <select id="sort-select" class="border-none bg-gray-50 text-sm font-bold text-black focus:ring-0 rounded-lg cursor-pointer py-2 pl-3 pr-8">
+                        <option value="default">Relevância</option>
+                        <option value="price-asc">Menor Preço</option>
+                        <option value="price-desc">Maior Preço</option>
+                        <option value="name-asc">Nome (A-Z)</option>
                     </select>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                  <div class="relative overflow-hidden shrink-0">
-                    <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                    <span class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">-20%</span>
-                  </div>
-                  <div class="p-4 flex flex-col flex-grow">
-                    <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1">Massa Muscular</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Whey Protein Isolado</h3>
-                        <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                    </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                        <div><span class="block text-xs text-gray-400 line-through">R$ 249,90</span><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 199,90</span></div>
-                        <button onclick="window.safeAddToCart('Whey Protein Isolado', 199.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/64223829-c4e4-4b27-049d-0a8fb3ff3c00/publicContain')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                  <div class="relative overflow-hidden shrink-0">
-                    <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                  </div>
-                  <div class="p-4 flex flex-col flex-grow">
-                    <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1">Força</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Creatina Mono 300g</h3>
-                        <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                    </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                        <div><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 109,90</span></div>
-                        <button onclick="window.safeAddToCart('Creatina Monohidratada 300g', 109.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/56d3e0bd-b834-44b7-0168-a259e68cc000/publicContain')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                  <div class="relative overflow-hidden shrink-0">
-                    <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                    <span class="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">Vegano</span>
-                  </div>
-                  <div class="p-4 flex flex-col flex-grow">
-                    <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1">Beleza</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Colágeno Verisol</h3>
-                        <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="far fa-star"></i></div>
-                    </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                        <div><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 149,90</span></div>
-                        <button onclick="window.safeAddToCart('Colágeno Verisol', 149.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5b4968af-23af-4aea-5688-ef36df5f0200/public')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                   <div class="relative overflow-hidden shrink-0">
-                     <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                     <span class="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">Oferta</span>
-                   </div>
-                   <div class="p-4 flex flex-col flex-grow">
-                     <div class="flex-grow">
-                         <p class="text-xs text-gray-500 mb-1">Emagrecimento</p>
-                         <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Termogênico Fire</h3>
-                         <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                     </div>
-                     <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                         <div><span class="block text-xs text-gray-400 line-through">R$ 159,90</span><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 129,90</span></div>
-                         <button onclick="window.safeAddToCart('Termogênico Fire Burn', 129.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/7d86a54c-76b0-4d53-2c97-45173395be00/publicContain')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                     </div>
-                   </div>
+            <div id="products-container" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                 <div class="col-span-full text-center py-12">
+                     <i class="fas fa-spinner fa-spin text-4xl text-[var(--primary-color)]"></i>
+                     <p class="mt-2 text-gray-500">Carregando catálogo...</p>
                  </div>
-
-                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                   <div class="relative overflow-hidden shrink-0">
-                     <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                   </div>
-                   <div class="p-4 flex flex-col flex-grow">
-                     <div class="flex-grow">
-                         <p class="text-xs text-gray-500 mb-1">Saúde</p>
-                         <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Multivitamínico</h3>
-                         <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
-                     </div>
-                     <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                         <div><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 89,90</span></div>
-                         <button onclick="window.safeAddToCart('Multivitamínico Daily', 89.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/5e114643-5b6a-4e41-ccbc-eeec7344d800/publicContain')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                     </div>
-                   </div>
-                 </div>
-
-                 <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
-                   <div class="relative overflow-hidden shrink-0">
-                     <img src="https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                     <span class="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">Lançamento</span>
-                   </div>
-                   <div class="p-4 flex flex-col flex-grow">
-                     <div class="flex-grow">
-                         <p class="text-xs text-gray-500 mb-1">Pré-Treino</p>
-                         <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight">Explosive Energy</h3>
-                         <div class="flex text-yellow-400 text-xs mb-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></div>
-                     </div>
-                     <div class="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between">
-                         <div><span class="text-xl font-bold text-[var(--accent2-color)]">R$ 139,90</span></div>
-                         <button onclick="window.safeAddToCart('Explosive Energy', 139.90, 'https://imagedelivery.net/xaKlCos5cTg_1RWzIu_h-A/9abc5020-5149-48c6-3f94-42dfbac02500/public')" class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center"><i class="fas fa-shopping-cart"></i></button>
-                     </div>
-                   </div>
-                 </div>
-            </div>
-
-            <div class="mt-12 flex justify-center">
-                <nav class="flex items-center gap-2">
-                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><i class="fas fa-chevron-left"></i></a>
-                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--accent2-color)] text-white font-bold shadow-md">1</a>
-                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 font-medium">2</a>
-                    <a href="#" class="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"><i class="fas fa-chevron-right"></i></a>
-                </nav>
             </div>
           </main>
         </div>
@@ -320,7 +203,6 @@
                       <div><label class="block text-xs font-bold text-gray-500 mb-1">CPF (Fixo)</label><input type="text" id="profile-cpf" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
                   </div>
                   <div><label class="block text-xs font-bold text-gray-500 mb-1">E-mail (Fixo)</label><input type="email" id="profile-email" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
-                  
                   <hr class="border-gray-200">
                   <p class="font-bold text-lg">Dados de Entrega e Contato</p>
                   <div><label class="block text-xs font-bold text-gray-700 mb-1">Telefone / WhatsApp</label><input type="tel" id="profile-phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]"></div>
@@ -337,12 +219,10 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">Estado</label><input type="text" id="profile-state" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] bg-gray-50"></div>
                   </div>
                   <div><label class="block text-xs font-bold text-gray-700 mb-1">Complemento</label><input type="text" id="profile-complement" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]"></div>
-                  
                   <div class="flex items-center justify-between pt-4">
                       <p id="profile-status" class="text-sm font-bold"></p>
                       <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button>
                   </div>
-
                   <div class="mt-10 pt-6 border-t border-red-100">
                       <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
                       <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -375,7 +255,7 @@
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
           <ul class="space-y-3">
             <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
-            <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
+            <li><a href="#" onclick="switchView('products-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
             <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
             <li><a href="#" onclick="switchView('profile-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
           </ul>
@@ -561,22 +441,189 @@
 
     let currentUserData = null;
     let cart = [];
+    
+    // --- VARIÁVEIS GLOBAIS DE PRODUTOS ---
+    let todosProdutos = []; // Lista original completa
+    let categoriasUnicas = new Set();
+    const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
 
-    // --- Sincronização em Tempo Real ---
-    if (auth.currentUser) {
-        syncUserData(auth.currentUser.uid);
+    // --- CARREGAMENTO DE PRODUTOS ---
+    function carregarProdutos() {
+        if(typeof Papa === 'undefined') return;
+        Papa.parse(LINK_DA_PLANILHA, {
+            download: true,
+            header: true,
+            complete: function(results) {
+                // Filtra e prepara os dados
+                todosProdutos = results.data.filter(p => p.nome && p.preco_por).map(p => ({
+                    ...p,
+                    precoNumerico: parseFloat(p.preco_por.replace(',', '.')) || 0,
+                    categoriaNormalizada: p.categoria ? p.categoria.trim() : 'Outros'
+                }));
+                
+                // Extrai categorias únicas para o filtro
+                todosProdutos.forEach(p => categoriasUnicas.add(p.categoriaNormalizada));
+                
+                gerarFiltrosCategorias();
+                aplicarFiltros(); // Renderiza a primeira vez
+            },
+            error: function(err) {
+                document.getElementById('products-container').innerHTML = '<p class="col-span-full text-center text-red-500">Erro ao carregar produtos.</p>';
+            }
+        });
     }
+
+    // --- GERAÇÃO DINÂMICA DE CHECKBOXES DE CATEGORIA ---
+    function gerarFiltrosCategorias() {
+        const listaCat = document.getElementById('category-list');
+        if(!listaCat) return;
+        listaCat.innerHTML = `
+            <li class="flex items-center gap-2">
+                <input type="checkbox" id="cat-all" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]" checked>
+                <label for="cat-all" class="cursor-pointer hover:text-[var(--accent2-color)]">Todos os Produtos</label>
+            </li>
+        `;
+        
+        categoriasUnicas.forEach(cat => {
+            const li = document.createElement('li');
+            li.className = "flex items-center gap-2";
+            li.innerHTML = `
+                <input type="checkbox" value="${cat}" class="cat-checkbox rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                <label class="cursor-pointer hover:text-[var(--accent2-color)] capitalize">${cat}</label>
+            `;
+            // Adiciona evento de clique no checkbox
+            li.querySelector('input').addEventListener('change', function() {
+                const allCheck = document.getElementById('cat-all');
+                if(this.checked) allCheck.checked = false; 
+                aplicarFiltros();
+            });
+            listaCat.appendChild(li);
+        });
+
+        // Evento do "Todos"
+        document.getElementById('cat-all').addEventListener('change', function() {
+            if(this.checked) {
+                document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false);
+            } else {
+                // Se desmarcar "todos" e não tiver nada marcado, remarca "todos"
+                const anyChecked = document.querySelector('.cat-checkbox:checked');
+                if(!anyChecked) this.checked = true;
+            }
+            aplicarFiltros();
+        });
+    }
+
+    // --- LÓGICA DE FILTRAGEM E ORDENAÇÃO ---
+    function aplicarFiltros() {
+        let filtrados = [...todosProdutos];
+
+        // 1. Busca por Texto
+        const termoBusca = document.getElementById('search-input').value.toLowerCase();
+        if(termoBusca) {
+            filtrados = filtrados.filter(p => p.nome.toLowerCase().includes(termoBusca));
+        }
+
+        // 2. Filtro de Categoria
+        const catAll = document.getElementById('cat-all').checked;
+        if(!catAll) {
+            const catsSelecionadas = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
+            if(catsSelecionadas.length > 0) {
+                filtrados = filtrados.filter(p => catsSelecionadas.includes(p.categoriaNormalizada));
+            }
+        }
+
+        // 3. Filtro de Preço
+        const minPrice = parseFloat(document.getElementById('price-min').value) || 0;
+        const maxPrice = parseFloat(document.getElementById('price-max').value) || Infinity;
+        filtrados = filtrados.filter(p => p.precoNumerico >= minPrice && p.precoNumerico <= maxPrice);
+
+        // 4. Ordenação
+        const sortType = document.getElementById('sort-select').value;
+        if(sortType === 'price-asc') filtrados.sort((a, b) => a.precoNumerico - b.precoNumerico);
+        if(sortType === 'price-desc') filtrados.sort((a, b) => b.precoNumerico - a.precoNumerico);
+        if(sortType === 'name-asc') filtrados.sort((a, b) => a.nome.localeCompare(b.nome));
+
+        // Atualiza contadores
+        document.getElementById('count-shown').innerText = filtrados.length;
+        document.getElementById('count-total').innerText = todosProdutos.length;
+
+        renderizarGrid(filtrados);
+    }
+
+    // --- RENDERIZAÇÃO ---
+    function renderizarGrid(produtos) {
+        const container = document.getElementById('products-container');
+        container.innerHTML = "";
+
+        if(produtos.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Nenhum produto encontrado com esses filtros.</div>';
+            return;
+        }
+
+        produtos.forEach(produto => {
+            let estrelasHTML = '';
+            const rating = parseInt(produto.rating) || 5;
+            for(let i=0; i<5; i++) {
+                if(i < rating) estrelasHTML += '<i class="fas fa-star text-yellow-400 text-xs"></i>';
+                else estrelasHTML += '<i class="far fa-star text-yellow-400 text-xs"></i>';
+            }
+
+            let tagHTML = '';
+            if(produto.tag) {
+                let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
+                if(produto.tag.toLowerCase().includes('novo')) corTag = 'bg-blue-500';
+                tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
+            }
+
+            const htmlDoCard = `
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative">
+                <div class="relative overflow-hidden shrink-0">
+                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                    ${tagHTML}
+                </div>
+                <div class="p-4 flex flex-col flex-grow">
+                    <div class="flex-grow">
+                        <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2" title="${produto.nome}">${produto.nome}</h3>
+                        <div class="flex mb-3">${estrelasHTML}</div>
+                    </div>
+                    <div class="mt-auto pt-3 border-t border-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
+                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
+                            </div>
+                            <button onclick="window.safeAddToCart('${produto.nome.replace(/'/g, "\\'")}', ${produto.precoNumerico}, '${produto.imagem}')" 
+                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            container.innerHTML += htmlDoCard;
+        });
+    }
+
+    // --- EVENT LISTENERS DOS FILTROS ---
+    document.getElementById('search-input').addEventListener('input', aplicarFiltros);
+    document.getElementById('sort-select').addEventListener('change', aplicarFiltros);
+    document.getElementById('apply-price-filter').addEventListener('click', aplicarFiltros);
+
+    // INICIALIZAÇÃO
+    carregarProdutos();
+
+    // --- CÓDIGO PADRÃO DE AUTH / CARRINHO / PERFIL (MANTIDO) ---
+    if (auth.currentUser) syncUserData(auth.currentUser.uid);
 
     function syncUserData(uid) {
         onSnapshot(doc(db, "users", uid), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                // Sincroniza Carrinho
                 if (data.cart && JSON.stringify(data.cart) !== JSON.stringify(cart)) {
                     cart = data.cart;
                     updateCartUI();
                 }
-                // Sincroniza Dados de Perfil
                 if (currentUserData) {
                     Object.assign(currentUserData, {
                         phone: data.phone, cep: data.cep, street: data.street, number: data.number,
@@ -587,7 +634,6 @@
         });
     }
 
-    // --- Buscar CEP ---
     window.buscarCep = async (valor, prefixo) => {
         const cep = valor.replace(/\D/g, '');
         if (cep.length !== 8) return;
@@ -610,7 +656,7 @@
         }
     };
 
-    // --- UI References ---
+    // --- UI References & Auth Logic (Igual Home) ---
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
     const loginBtn = document.getElementById('login-trigger-btn');
@@ -621,9 +667,6 @@
     const recoverForm = document.getElementById('recover-form');
     const forgotBtn = document.getElementById('forgot-btn');
     const backToLoginBtn = document.getElementById('back-to-login-btn');
-    const socialSection = document.getElementById('social-login-section');
-    const modalTitle = document.getElementById('modal-title');
-    const modalSubtitle = document.getElementById('modal-subtitle');
     const forgotLinkContainer = document.getElementById('forgot-link-container');
 
     let isLogin = true;
@@ -633,7 +676,6 @@
     if(loginBtn) loginBtn.onclick = openModal;
     closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
 
-    // Toggle Login/Register
     toggleBtn.onclick = (e) => {
         e.preventDefault(); isLogin = !isLogin;
         document.getElementById('modal-title').innerText = isLogin ? "Bem-vindo" : "Criar Conta";
@@ -642,14 +684,13 @@
         toggleBtn.innerText = isLogin ? "Criar conta" : "Fazer Login";
         
         const regDiv = document.getElementById('register-fields');
-        const forgotDiv = document.getElementById('forgot-link-container');
         if(isLogin) {
             regDiv.classList.add('hidden');
-            if(forgotDiv) forgotDiv.classList.remove('hidden');
+            if(forgotLinkContainer) forgotLinkContainer.classList.remove('hidden');
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
         } else {
             regDiv.classList.remove('hidden');
-            if(forgotDiv) forgotDiv.classList.add('hidden');
+            if(forgotLinkContainer) forgotLinkContainer.classList.add('hidden');
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
@@ -657,17 +698,16 @@
         }
     };
 
-    // Toggle Recover
     if(forgotBtn) forgotBtn.onclick = () => {
-        authForm.classList.add('hidden'); socialSection.classList.add('hidden');
-        recoverForm.classList.remove('hidden'); modalTitle.innerText = "Recuperar Senha";
+        authForm.classList.add('hidden'); 
+        document.getElementById('social-login-section').classList.add('hidden');
+        recoverForm.classList.remove('hidden'); document.getElementById('modal-title').innerText = "Recuperar Senha";
     };
     if(backToLoginBtn) backToLoginBtn.onclick = () => {
         recoverForm.classList.add('hidden'); authForm.classList.remove('hidden');
-        socialSection.classList.remove('hidden'); modalTitle.innerText = "Bem-vindo";
+        document.getElementById('social-login-section').classList.remove('hidden'); document.getElementById('modal-title').innerText = "Bem-vindo";
     };
 
-    // Submit Auth
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
@@ -719,7 +759,6 @@
         }
     };
 
-    // Google Auth
     document.getElementById('google-btn').onclick = async () => {
         try {
             const result = await signInWithPopup(auth, provider);
@@ -728,7 +767,7 @@
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 isGoogleCompletion = true; isLogin = false;
                 closeBtn.style.display = 'none';
-                modalTitle.innerText = "Falta pouco!";
+                document.getElementById('modal-title').innerText = "Falta pouco!";
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName || "";
@@ -745,7 +784,6 @@
         } catch (err) { console.error(err); }
     };
 
-    // --- Monitoramento de Estado ---
     onAuthStateChanged(auth, async (user) => {
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
@@ -753,10 +791,9 @@
         const verifyWarning = document.getElementById('verify-warning');
         
         if (user) {
-            syncUserData(user.uid); // Começa a ouvir mudanças
+            syncUserData(user.uid); 
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
-            // Cadastro Incompleto?
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 modal.classList.replace('hidden','flex');
                 closeBtn.style.display = 'none';
@@ -775,7 +812,6 @@
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
             cart = currentUserData.cart || [];
             
-            // Popula form de perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -796,7 +832,6 @@
             updateCartUI();
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
-            // Se estiver vendo perfil e deslogar, volta para produtos
             if(document.getElementById('profile-view').classList.contains('active')) switchView('products-view');
             if (verifyWarning) verifyWarning.classList.add('hidden');
             closeBtn.style.display = 'block';
@@ -805,7 +840,6 @@
 
     document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-    // Salvar Perfil
     document.getElementById('profile-form').onsubmit = async (e) => {
         e.preventDefault();
         const statusMsg = document.getElementById('profile-status');
@@ -828,7 +862,6 @@
         } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
     };
 
-    // Dialog Function
     window.showDialog = (type, title, msg) => {
         return new Promise((resolve) => {
             const dialog = document.getElementById('custom-dialog');
@@ -862,7 +895,6 @@
         });
     };
 
-    // Delete Account
     const deleteBtn = document.getElementById('delete-account-btn');
     if(deleteBtn) deleteBtn.onclick = async () => {
         const user = auth.currentUser; if(!user) return;
@@ -883,7 +915,6 @@
         }
     };
 
-    // Carrinho UI
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
@@ -900,7 +931,6 @@
             </div>`).join('');
     }
 
-    // Funções Globais para o HTML chamar
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
         cart.push({name, price, image}); updateCartUI(); toggleCart();
