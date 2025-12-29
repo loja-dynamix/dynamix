@@ -490,9 +490,7 @@
               <h2 id="modal-product-title" class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 font-[var(--font-family-heading)] leading-tight">Nome do Produto</h2>
               
               <div class="flex items-center gap-2 mb-6">
-                  <div class="flex text-yellow-400 text-sm">
-                      <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                  </div>
+                  <div id="modal-product-stars" class="flex text-yellow-400 text-sm"></div>
                   <span class="text-gray-400 text-sm">(Avaliações verificadas)</span>
               </div>
 
@@ -575,7 +573,7 @@
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
 
     function carregarProdutos() {
-        if(typeof Papa === 'undefined') return; // Se não tiver a lib, ignora
+        if(typeof Papa === 'undefined') return;
         Papa.parse(LINK_DA_PLANILHA, {
             download: true,
             header: true,
@@ -591,13 +589,12 @@
 
     function renderizarProdutos(produtos) {
         const container = document.getElementById('products-container');
-        if(!container) return; // Se não tiver container na página, sai
+        if(!container) return;
         
         container.innerHTML = "";
         const produtosValidos = produtos.filter(p => p.nome && p.preco_por);
         
         // Na Home, mostra apenas os primeiros 10
-        const isHomePage = true; // Estamos na index
         const listaFinal = produtosValidos.slice(0, 10);
 
         listaFinal.forEach(produto => {
@@ -620,11 +617,11 @@
             const safeNome = produto.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
-            const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); // Caso adicione coluna descricao na planilha
+            const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
             const safePrecoAntigo = produto.preco_de || '';
 
             const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}')" 
+            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating})" 
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
                 <div class="relative overflow-hidden shrink-0">
@@ -824,7 +821,7 @@
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 isGoogleCompletion = true; isLogin = false;
                 closeBtn.style.display = 'none';
-                modalTitle.innerText = "Falta pouco!";
+                document.getElementById('modal-title').innerText = "Falta pouco!";
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('email-input').disabled = true;
                 document.getElementById('reg-name').value = user.displayName || "";
@@ -988,61 +985,73 @@
             </div>`).join('');
     }
 
+    // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
         cart.push({name, price, image}); updateCartUI(); toggleCart();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
         catch(e) { cart.pop(); updateCartUI(); }
     };
-    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo) => {
+
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
         const modal = document.getElementById('product-modal');
         
-        // Preencher os dados
+        // 1. Dados básicos
         document.getElementById('modal-product-image').src = imagem;
         document.getElementById('modal-product-title').innerText = nome;
         document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
+        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas.";
         
-        // Descrição: Se a planilha não tiver coluna 'descricao', usa um texto padrão
-        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas para melhorar sua saúde e bem-estar.";
-        
-        // Preço antigo (riscado)
+        // 2. Lógica das Estrelas
+        const starsContainer = document.getElementById('modal-product-stars');
+        if (starsContainer) {
+            let starsHTML = '';
+            const nota = parseInt(rating) || 5;
+            for(let i=0; i<5; i++) {
+                if(i < nota) starsHTML += '<i class="fas fa-star"></i>';
+                else starsHTML += '<i class="far fa-star"></i>';
+            }
+            starsContainer.innerHTML = starsHTML;
+        }
+
+        // 3. Preço antigo
         const oldPriceEl = document.getElementById('modal-product-old-price');
-        if(precoAntigo && precoAntigo !== 'undefined') {
+        if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
             oldPriceEl.innerText = 'R$ ' + precoAntigo;
             oldPriceEl.classList.remove('hidden');
         } else {
             oldPriceEl.classList.add('hidden');
         }
 
-        // Configurar botões do modal
+        // 4. Botões
         const btnCart = document.getElementById('modal-btn-add-cart');
         const btnBuy = document.getElementById('modal-btn-buy-now');
 
-        // Botão Adicionar ao Carrinho (usa sua função existente)
         btnCart.onclick = () => {
             window.safeAddToCart(nome, preco, imagem);
-            closeProductModal();
+            if(window.closeProductModal) window.closeProductModal();
+            else modal.classList.replace('flex', 'hidden'); 
         };
 
-        // Botão Comprar Agora (Vai direto pro WhatsApp)
         btnBuy.onclick = () => {
             const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
             window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
         };
 
-        // Mostrar o modal
         modal.classList.replace('hidden', 'flex');
     };
 
     window.closeProductModal = () => {
         document.getElementById('product-modal').classList.replace('flex', 'hidden');
     };
+
     window.removeFromCart = async (index) => {
         if(!auth.currentUser) return;
         cart.splice(index, 1); updateCartUI();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
     };
+
     window.checkout = () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
