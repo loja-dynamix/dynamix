@@ -473,7 +473,53 @@
         </div>
     </div>
   </div>
+<div id="product-modal" class="fixed inset-0 z-[90] hidden items-center justify-center modal-backdrop p-4 transition-opacity duration-300">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl relative overflow-hidden flex flex-col md:flex-row max-h-[90vh] animate-[fadeIn_0.3s_ease-out]">
+          
+          <button onclick="closeProductModal()" class="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-md text-gray-500 hover:text-red-500 hover:bg-gray-100 transition-colors">
+              <i class="fas fa-times text-xl"></i>
+          </button>
 
+          <div class="w-full md:w-1/2 bg-gray-100 flex items-center justify-center p-6 relative">
+             <div class="absolute top-4 left-4" id="modal-product-tags"></div>
+             <img id="modal-product-image" src="" alt="Produto" class="max-h-[300px] md:max-h-[400px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500">
+          </div>
+
+          <div class="w-full md:w-1/2 p-8 flex flex-col overflow-y-auto bg-white">
+              <span id="modal-product-category" class="text-sm font-bold text-[var(--accent-color)] uppercase tracking-wider mb-2">Categoria</span>
+              <h2 id="modal-product-title" class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 font-[var(--font-family-heading)] leading-tight">Nome do Produto</h2>
+              
+              <div class="flex items-center gap-2 mb-6">
+                  <div class="flex text-yellow-400 text-sm">
+                      <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                  </div>
+                  <span class="text-gray-400 text-sm">(Avaliações verificadas)</span>
+              </div>
+
+              <div class="mb-6">
+                  <p class="text-gray-500 text-sm mb-1">Preço especial:</p>
+                  <div class="flex items-end gap-3">
+                      <span id="modal-product-price" class="text-4xl font-bold text-[var(--accent2-color)]">R$ 0,00</span>
+                      <span id="modal-product-old-price" class="text-lg text-gray-400 line-through mb-2 hidden"></span>
+                  </div>
+              </div>
+
+              <div class="prose prose-sm text-gray-600 mb-8 flex-grow">
+                  <h3 class="font-bold text-gray-900 mb-2">Descrição</h3>
+                  <p id="modal-product-desc">Detalhes do produto indisponíveis no momento.</p>
+              </div>
+
+              <div class="mt-auto pt-6 border-t border-gray-100 flex gap-4">
+                  <button id="modal-btn-add-cart" class="flex-1 bg-black text-white py-4 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2">
+                      <i class="fas fa-cart-plus"></i> Adicionar ao Carrinho
+                  </button>
+                  <button id="modal-btn-buy-now" class="flex-1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black py-4 rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-transform flex items-center justify-center gap-2">
+                      <i class="fas fa-bolt"></i> Comprar Agora
+                  </button>
+              </div>
+          </div>
+      </div>
+  </div>
   <script>
     function switchView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -569,16 +615,30 @@
 
             const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
             
+            const safeNome = produto.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const safeImg = produto.imagem;
+            const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
+            const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); // Caso adicione coluna descricao na planilha
+            const safePrecoAntigo = produto.preco_de || '';
+
             const htmlDoCard = `
-            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col">
+            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}')" 
+                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
+                
                 <div class="relative overflow-hidden shrink-0">
                     <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                    <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                     ${tagHTML}
+                    
+                    <div class="absolute bottom-3 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
+                        <span class="bg-white/90 backdrop-blur text-xs font-bold px-3 py-1 rounded-full shadow-lg text-gray-800">Ver Detalhes</span>
+                    </div>
                 </div>
+
                 <div class="p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
                         <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2 group-hover:text-[var(--accent-color)] transition-colors">${produto.nome}</h3>
                         <div class="flex mb-3">${estrelasHTML}</div>
                     </div>
                     <div class="mt-auto pt-3 border-t border-gray-50">
@@ -587,8 +647,8 @@
                                 ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
                                 <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
                             </div>
-                            <button onclick="window.safeAddToCart('${produto.nome.replace(/'/g, "\\'")}', ${precoNumerico}, '${produto.imagem}')" 
-                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer">
+                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
+                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95">
                                 <i class="fas fa-shopping-cart"></i>
                             </button>
                         </div>
@@ -931,6 +991,50 @@
         cart.push({name, price, image}); updateCartUI(); toggleCart();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
         catch(e) { cart.pop(); updateCartUI(); }
+    };
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo) => {
+        const modal = document.getElementById('product-modal');
+        
+        // Preencher os dados
+        document.getElementById('modal-product-image').src = imagem;
+        document.getElementById('modal-product-title').innerText = nome;
+        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
+        document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
+        
+        // Descrição: Se a planilha não tiver coluna 'descricao', usa um texto padrão
+        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas para melhorar sua saúde e bem-estar.";
+        
+        // Preço antigo (riscado)
+        const oldPriceEl = document.getElementById('modal-product-old-price');
+        if(precoAntigo && precoAntigo !== 'undefined') {
+            oldPriceEl.innerText = 'R$ ' + precoAntigo;
+            oldPriceEl.classList.remove('hidden');
+        } else {
+            oldPriceEl.classList.add('hidden');
+        }
+
+        // Configurar botões do modal
+        const btnCart = document.getElementById('modal-btn-add-cart');
+        const btnBuy = document.getElementById('modal-btn-buy-now');
+
+        // Botão Adicionar ao Carrinho (usa sua função existente)
+        btnCart.onclick = () => {
+            window.safeAddToCart(nome, preco, imagem);
+            closeProductModal();
+        };
+
+        // Botão Comprar Agora (Vai direto pro WhatsApp)
+        btnBuy.onclick = () => {
+            const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        // Mostrar o modal
+        modal.classList.replace('hidden', 'flex');
+    };
+
+    window.closeProductModal = () => {
+        document.getElementById('product-modal').classList.replace('flex', 'hidden');
     };
     window.removeFromCart = async (index) => {
         if(!auth.currentUser) return;
