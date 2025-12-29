@@ -398,9 +398,8 @@
               <h2 id="modal-product-title" class="text-2xl md:text-3xl font-bold text-gray-900 mb-4 font-[var(--font-family-heading)] leading-tight">Nome do Produto</h2>
               
               <div class="flex items-center gap-2 mb-6">
-                  <div class="flex text-yellow-400 text-sm">
-                      <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                  </div>
+                  <div id="modal-product-stars" class="flex text-yellow-400 text-sm">
+                      </div>
                   <span class="text-gray-400 text-sm">(Avaliações verificadas)</span>
               </div>
 
@@ -635,9 +634,10 @@
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
             const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
             const safePrecoAntigo = produto.preco_de || '';
-
+            
+            // CORREÇÃO: Usamos apenas 'produto.precoNumerico' aqui
             const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}')" 
+            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating})" 
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
                 
                 <div class="relative overflow-hidden shrink-0">
@@ -998,35 +998,53 @@
             </div>`).join('');
     }
 
+    // --- FUNÇÕES GLOBAIS (EXPOSTAS PARA O HTML) ---
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
         cart.push({name, price, image}); updateCartUI(); toggleCart();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
         catch(e) { cart.pop(); updateCartUI(); }
     };
-    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo) => {
+
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
         const modal = document.getElementById('product-modal');
         
+        // 1. Preenche dados
         document.getElementById('modal-product-image').src = imagem;
         document.getElementById('modal-product-title').innerText = nome;
         document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
         document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas.";
         
+        // 2. Lógica de Estrelas
+        const starsContainer = document.getElementById('modal-product-stars');
+        if (starsContainer) {
+            let starsHTML = '';
+            const nota = parseInt(rating) || 5;
+            for(let i=0; i<5; i++) {
+                if(i < nota) starsHTML += '<i class="fas fa-star"></i>';
+                else starsHTML += '<i class="far fa-star"></i>';
+            }
+            starsContainer.innerHTML = starsHTML;
+        }
+
+        // 3. Preço Antigo
         const oldPriceEl = document.getElementById('modal-product-old-price');
-        if(precoAntigo && precoAntigo !== 'undefined') {
+        if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
             oldPriceEl.innerText = 'R$ ' + precoAntigo;
             oldPriceEl.classList.remove('hidden');
         } else {
             oldPriceEl.classList.add('hidden');
         }
 
+        // 4. Botões
         const btnCart = document.getElementById('modal-btn-add-cart');
         const btnBuy = document.getElementById('modal-btn-buy-now');
 
         btnCart.onclick = () => {
             window.safeAddToCart(nome, preco, imagem);
-            closeProductModal();
+            if(window.closeProductModal) window.closeProductModal();
+            else modal.classList.replace('flex', 'hidden'); 
         };
 
         btnBuy.onclick = () => {
@@ -1040,11 +1058,13 @@
     window.closeProductModal = () => {
         document.getElementById('product-modal').classList.replace('flex', 'hidden');
     };
+
     window.removeFromCart = async (index) => {
         if(!auth.currentUser) return;
         cart.splice(index, 1); updateCartUI();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
     };
+
     window.checkout = () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
