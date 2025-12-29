@@ -184,17 +184,57 @@
   </div>
 
   <div id="profile-view" class="view-section min-h-[60vh] bg-gray-50 py-10">
-      <div class="container mx-auto px-4 max-w-3xl">
-          <button onclick="switchView('contact-view')" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-[var(--primary-color)]">
-              <i class="fas fa-arrow-left"></i> Voltar
+      <div class="container mx-auto px-4 max-w-4xl">
+          <button onclick="switchView('home-view')" class="mb-6 flex items-center gap-2 text-gray-600 hover:text-[var(--primary-color)] transition-colors">
+              <i class="fas fa-arrow-left"></i> Voltar para a Loja
           </button>
-          <div class="bg-white rounded-2xl shadow-xl p-8">
-              <div class="flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-[var(--dark-text-color)] font-[var(--font-family-heading)]">Minha Conta</h2>
-                <i class="fas fa-user-circle text-4xl text-[var(--accent-color)]"></i>
+          
+          <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8">
+              <div class="flex justify-between items-center mb-8 border-b pb-4">
+                <div>
+                  <h2 class="text-3xl font-bold text-[var(--dark-text-color)] font-[var(--font-family-heading)]">Minha Conta</h2>
+                  <p class="text-sm text-gray-500">Gerencie seus dados e pedidos</p>
+                </div>
+                <i class="fas fa-user-circle text-5xl text-[var(--accent-color)]"></i>
               </div>
-              <p class="text-gray-500 mb-8 bg-yellow-50 p-3 rounded border border-yellow-200 text-sm">
-                <i class="fas fa-info-circle mr-1"></i> Dados como CPF e E-mail não podem ser alterados por segurança.
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+                  <div onclick="openDashboardModal('orders')" class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md hover:border-[var(--primary-color)] cursor-pointer transition-all group flex flex-col items-center text-center gap-3 relative overflow-hidden">
+                      <div class="absolute top-0 left-0 w-1 h-full bg-[var(--accent-color)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                          <i class="fas fa-box-open"></i>
+                      </div>
+                      <div>
+                          <h3 class="font-bold text-gray-800">Meus Pedidos</h3>
+                          <p class="text-xs text-gray-500">Acompanhe suas entregas</p>
+                      </div>
+                  </div>
+
+                  <div onclick="openDashboardModal('history')" class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md hover:border-[var(--primary-color)] cursor-pointer transition-all group flex flex-col items-center text-center gap-3 relative overflow-hidden">
+                      <div class="absolute top-0 left-0 w-1 h-full bg-[var(--accent2-color)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div class="w-12 h-12 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                          <i class="fas fa-history"></i>
+                      </div>
+                      <div>
+                          <h3 class="font-bold text-gray-800">Vistos Recentemente</h3>
+                          <p class="text-xs text-gray-500">Produtos que você olhou</p>
+                      </div>
+                  </div>
+
+                  <div onclick="openDashboardModal('support')" class="bg-white border border-gray-200 p-5 rounded-xl shadow-sm hover:shadow-md hover:border-[var(--primary-color)] cursor-pointer transition-all group flex flex-col items-center text-center gap-3 relative overflow-hidden">
+                      <div class="absolute top-0 left-0 w-1 h-full bg-green-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div class="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                          <i class="fas fa-headset"></i>
+                      </div>
+                      <div>
+                          <h3 class="font-bold text-gray-800">Precisa de Ajuda?</h3>
+                          <p class="text-xs text-gray-500">Fale sobre um pedido</p>
+                      </div>
+                  </div>
+              </div>
+              <p class="text-gray-500 mb-6 bg-yellow-50 p-3 rounded border border-yellow-200 text-sm flex items-start gap-2">
+                <i class="fas fa-info-circle mt-0.5"></i> 
+                <span>Dados como CPF e E-mail não podem ser alterados por segurança. Mantenha seu endereço atualizado para entregas.</span>
               </p>
               
               <form id="profile-form" class="space-y-6">
@@ -205,7 +245,7 @@
                   <div><label class="block text-xs font-bold text-gray-500 mb-1">E-mail (Fixo)</label><input type="email" id="profile-email" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
                   
                   <hr class="border-gray-200">
-                  <p class="font-bold text-lg">Dados de Entrega e Contato</p>
+                  <p class="font-bold text-lg text-[var(--dark-text-color)]">Dados de Entrega e Contato</p>
                   <div><label class="block text-xs font-bold text-gray-700 mb-1">Telefone / WhatsApp</label><input type="tel" id="profile-phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]"></div>
                   <div class="grid grid-cols-3 gap-3">
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">CEP</label><input type="text" id="profile-cep" onblur="buscarCep(this.value, 'profile')" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]"></div>
@@ -220,23 +260,21 @@
                     <div><label class="block text-xs font-bold text-gray-700 mb-1">Estado</label><input type="text" id="profile-state" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] bg-gray-50"></div>
                   </div>
                   <div><label class="block text-xs font-bold text-gray-700 mb-1">Complemento</label><input type="text" id="profile-complement" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)]"></div>
-                  
                   <div class="flex items-center justify-between pt-4">
-                      <p id="profile-status" class="text-sm font-bold"></p>
+                      <p id="profile-status" class="text-sm font-bold text-green-600"></p>
                       <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transform hover:scale-105 transition-all">Salvar Alterações</button>
                   </div>
-
                   <div class="mt-10 pt-6 border-t border-red-100">
-                      <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
-                      <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <div class="text-sm text-red-800">
-                              <strong>Excluir Conta:</strong> Essa ação é irreversível. Todos os seus dados serão apagados.
-                          </div>
-                          <button type="button" id="delete-account-btn" class="text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
-                              Excluir Minha Conta
-                          </button>
-                      </div>
-                  </div>
+                        <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div class="text-sm text-red-800">
+                                <strong>Excluir Conta:</strong> Essa ação é irreversível. Todos os seus dados serão apagados.
+                            </div>
+                            <button type="button" id="delete-account-btn" class="text-red-600 border border-red-300 bg-white hover:bg-red-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                                Excluir Minha Conta
+                            </button>
+                        </div>
+                    </div>
               </form>
           </div>
       </div>
@@ -440,7 +478,20 @@
         </div>
     </div>
   </div>
-
+<div id="dashboard-modal" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop p-4 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative flex flex-col max-h-[90vh] animate-[fadeIn_0.3s_ease-out]">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+            <h3 id="dash-modal-title" class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                </h3>
+            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden')" class="text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-white shadow-sm">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div id="dash-modal-content" class="p-6 overflow-y-auto bg-white rounded-b-2xl">
+            </div>
+    </div>
+</div>
   <script>
     // Controle Visual de Views
     function switchView(viewId) {
@@ -836,6 +887,67 @@
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
         catch(e) { cart.pop(); updateCartUI(); }
     };
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
+        // --- CÓDIGO NOVO: Salvar no Histórico ---
+        try {
+            let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
+            // Remove se já existir para adicionar no topo
+            recentes = recentes.filter(p => p.nome !== nome);
+            // Adiciona no início
+            recentes.unshift({ nome, preco, imagem, categoria, rating });
+            // Mantém apenas os últimos 6
+            if(recentes.length > 6) recentes.pop();
+            localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
+        } catch(e) { console.log('Erro ao salvar histórico'); }
+        // ----------------------------------------
+
+        const modal = document.getElementById('product-modal');
+        
+        document.getElementById('modal-product-image').src = imagem;
+        document.getElementById('modal-product-title').innerText = nome;
+        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
+        document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
+        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas.";
+        
+        const starsContainer = document.getElementById('modal-product-stars');
+        if (starsContainer) {
+            let starsHTML = '';
+            const nota = parseInt(rating) || 5;
+            for(let i=0; i<5; i++) {
+                if(i < nota) starsHTML += '<i class="fas fa-star"></i>';
+                else starsHTML += '<i class="far fa-star"></i>';
+            }
+            starsContainer.innerHTML = starsHTML;
+        }
+
+        const oldPriceEl = document.getElementById('modal-product-old-price');
+        if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
+            oldPriceEl.innerText = 'R$ ' + precoAntigo;
+            oldPriceEl.classList.remove('hidden');
+        } else {
+            oldPriceEl.classList.add('hidden');
+        }
+
+        const btnCart = document.getElementById('modal-btn-add-cart');
+        const btnBuy = document.getElementById('modal-btn-buy-now');
+
+        btnCart.onclick = () => {
+            window.safeAddToCart(nome, preco, imagem);
+            if(window.closeProductModal) window.closeProductModal();
+            else modal.classList.replace('flex', 'hidden'); 
+        };
+
+        btnBuy.onclick = () => {
+            const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        modal.classList.replace('hidden', 'flex');
+    };
+
+    window.closeProductModal = () => {
+        document.getElementById('product-modal').classList.replace('flex', 'hidden');
+    };
     window.removeFromCart = async (index) => {
         if(!auth.currentUser) return;
         cart.splice(index, 1); updateCartUI();
@@ -847,6 +959,104 @@
         let msg = `*NOVO PEDIDO*\nCliente: ${currentUserData.fullName}\nItens:\n`;
         cart.forEach(i => msg += `- ${i.name}\n`);
         window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+    window.openDashboardModal = (type) => {
+        const modal = document.getElementById('dashboard-modal');
+        const titleEl = document.getElementById('dash-modal-title');
+        const contentEl = document.getElementById('dash-modal-content');
+        
+        modal.classList.replace('hidden', 'flex');
+        contentEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-[var(--primary-color)]"></i></div>';
+
+        if (type === 'orders') {
+            titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
+            
+            // Como não há banco de pedidos real ainda, simulei um para visualização
+            setTimeout(() => {
+                contentEl.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Entregue</span>
+                                    <h4 class="font-bold text-gray-800 mt-1">Pedido #1024 - Kit Emagrecimento</h4>
+                                    <p class="text-xs text-gray-500">Realizado em 15/12/2024</p>
+                                </div>
+                                <span class="font-bold text-[var(--accent2-color)]">R$ 249,90</span>
+                            </div>
+                            <div class="border-t border-gray-100 my-3"></div>
+                            <div class="flex gap-2">
+                                <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-sm text-center hover:bg-blue-100 transition-colors">
+                                    <i class="fas fa-truck mr-1"></i> Rastrear Pedido
+                                </a>
+                                <button onclick="window.open('https://wa.me/5511916658264?text=Preciso%20de%20ajuda%20com%20o%20pedido%201024', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors">
+                                    <i class="fas fa-question-circle mr-1"></i> Ajuda
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                            <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
+                            <p class="text-gray-500 text-sm">Você ainda não tem outros pedidos registrados.</p>
+                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
+                        </div>
+                    </div>
+                `;
+            }, 300);
+
+        } else if (type === 'history') {
+            titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
+            
+            const recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
+            
+            if (recentes.length === 0) {
+                contentEl.innerHTML = `
+                    <div class="text-center py-10">
+                        <i class="far fa-eye-slash text-gray-300 text-5xl mb-3"></i>
+                        <p class="text-gray-500">Você ainda não visualizou nenhum produto.</p>
+                        <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-4 bg-[var(--primary-color)] text-black px-6 py-2 rounded-lg font-bold text-sm">Explorar Produtos</button>
+                    </div>
+                `;
+            } else {
+                let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
+                recentes.forEach(prod => {
+                    html += `
+                        <div class="flex items-center gap-3 bg-white border border-gray-100 p-2 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer" onclick="window.openProductModal('${prod.nome}', ${prod.preco}, '${prod.imagem}')">
+                            <img src="${prod.imagem}" class="w-16 h-16 object-cover rounded-md bg-gray-100">
+                            <div class="flex-grow min-w-0">
+                                <h4 class="font-bold text-sm text-gray-800 truncate">${prod.nome}</h4>
+                                <div class="flex items-center gap-1 text-xs text-yellow-400 mb-1"><i class="fas fa-star"></i> <span>${prod.rating || 5}.0</span></div>
+                                <span class="font-bold text-[var(--accent2-color)] text-sm">R$ ${prod.preco.toFixed(2).replace('.',',')}</span>
+                            </div>
+                            <button class="text-[var(--accent-color)] hover:scale-110 transition-transform"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                html += '<div class="mt-4 text-center"><button onclick="localStorage.removeItem(\'dynamix_recentes\'); openDashboardModal(\'history\')" class="text-xs text-red-400 underline">Limpar Histórico</button></div>';
+                contentEl.innerHTML = html;
+            }
+
+        } else if (type === 'support') {
+            titleEl.innerHTML = '<i class="fas fa-headset text-green-600"></i> Central de Ajuda';
+            contentEl.innerHTML = `
+                <div class="text-center space-y-4">
+                    <img src="https://cdn-icons-png.flaticon.com/512/4961/4961759.png" class="w-24 mx-auto opacity-80">
+                    <h4 class="text-lg font-bold text-gray-800">Como podemos ajudar?</h4>
+                    <p class="text-sm text-gray-500 px-4">Nossa equipe de suporte está disponível para resolver dúvidas sobre pedidos, pagamentos ou produtos.</p>
+                    
+                    <div class="grid gap-3 mt-6">
+                        <a href="https://wa.me/5511916658264?text=Olá,%20preciso%20de%20ajuda%20com%20um%20pedido" target="_blank" class="flex items-center justify-center gap-3 bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all transform hover:scale-105">
+                            <i class="fab fa-whatsapp text-2xl"></i> Falar no WhatsApp
+                        </a>
+                        <a href="mailto:contato@dynamix.com.br" class="flex items-center justify-center gap-3 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all">
+                            <i class="far fa-envelope text-xl"></i> Enviar E-mail
+                        </a>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-4">Horário de atendimento: Seg a Sex, 09h às 18h.</p>
+                </div>
+            `;
+        }
     };
   </script>
 </body>
