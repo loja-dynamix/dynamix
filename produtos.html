@@ -61,11 +61,11 @@
         </a>
         
         <nav class="hidden lg:flex items-center space-x-8">
-          <a href="https://loja-dynamix.github.io/dynamix/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
-          <a href="#" onclick="switchView('products-view')" class="text-[var(--accent-color)] font-bold transition-colors duration-300">Produtos</a>
-          <a href="/produtos.html?categoria=Combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
-          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
-          <a href="/contato" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
+          <a href="https://loja-dynamix.github.io/dynamix/" onclick="switchView('home-view')" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          <a href="https://loja-dynamix.github.io/dynamix/produtos.html" onclick="switchView('home-view'); setTimeout(()=>document.getElementById('products-anchor').scrollIntoView({behavior:'smooth'}), 100);" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          <a href="https://loja-dynamix.github.io/dynamix/produtos.html?categoria=Combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          <a href="https://loja-dynamix.github.io/dynamix/sobre" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          <a href="https://loja-dynamix.github.io/dynamix/contato" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
           
           <button onclick="toggleCart()" class="relative text-[var(--dark-text-color)] hover:text-[var(--accent-color)] transition-colors mr-2">
             <i class="fas fa-shopping-cart text-2xl"></i>
