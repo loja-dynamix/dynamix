@@ -1157,12 +1157,65 @@
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
     };
 
-    window.checkout = () => {
+    window.checkout = async () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        let msg = `*NOVO PEDIDO*\nCliente: ${currentUserData.fullName}\nItens:\n`;
-        cart.forEach(i => msg += `- ${i.name}\n`);
-        window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+
+        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+        const textoOriginal = btnCheckout.innerHTML;
+        
+        // Muda o texto do botão para o cliente saber que está carregando
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        btnCheckout.disabled = true;
+
+        // Prepara os dados para enviar para o seu "Backend" na Vercel
+        const items = cart.map(item => ({
+            title: item.name,
+            quantity: 1,
+            currency_id: 'BRL',
+            unit_price: parseFloat(item.price)
+        }));
+
+        const payer = {
+            email: currentUserData.email || "email@cliente.com",
+            name: currentUserData.fullName || "Cliente",
+        };
+
+        try {
+            // AQUI A MÁGICA ACONTECE: O site chama o seu arquivo seguro na pasta /api
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ items, payer })
+            });
+
+            const data = await response.json();
+
+            if (data.init_point) {
+                // Se deu tudo certo, leva o cliente para o Mercado Pago
+                window.location.href = data.init_point;
+            } else {
+                throw new Error("Erro ao gerar link de pagamento.");
+            }
+
+        } catch (error) {
+            console.error(error);
+            // Se der erro no servidor, avisa e manda para o WhatsApp como plano B
+            alert("Houve um problema na conexão de pagamento. Vamos finalizar pelo WhatsApp!");
+            
+            let msg = `*PEDIDO (Fallback)*\nCliente: ${currentUserData.fullName}\nItens:\n`;
+            cart.forEach(i => msg += `- ${i.name}\n`);
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            msg += `\n*Total: R$ ${total.toFixed(2)}*`;
+            
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        } finally {
+            // Restaura o botão ao normal
+            btnCheckout.innerHTML = textoOriginal;
+            btnCheckout.disabled = false;
+        }
     };
     window.openDashboardModal = (type) => {
         const modal = document.getElementById('dashboard-modal');
