@@ -522,7 +522,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
@@ -923,11 +923,8 @@
             
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 modal.classList.replace('hidden','flex');
-                closeBtn.style.display = 'none';
-                isGoogleCompletion = true; isLogin = false;
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('register-fields').classList.remove('hidden');
-                submitBtn.innerText = "Salvar Dados Obrigatórios";
                 return;
             }
 
@@ -939,6 +936,7 @@
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
             cart = currentUserData.cart || [];
             
+            // Preenche dados do perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -953,18 +951,56 @@
             
             updateCartUI();
             if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
+
+            // --- LÓGICA DE RETORNO DO PAGAMENTO ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentId = urlParams.get('payment_id');
+            const statusURL = urlParams.get('collection_status');
+            const pendente = localStorage.getItem('pedido_pendente');
+            
+            if (paymentId && pendente) {
+                try {
+                    window.showDialog('alert', 'Processando...', 'Confirmando pagamento...');
+                    const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
+                    const checkData = await checkResponse.json();
+                    const statusReal = checkData.status || statusURL;
+                    const pedidoData = JSON.parse(pendente);
+                    
+                    let statusFinal = 'Pendente';
+                    if (statusReal === 'approved') statusFinal = 'Pago';
+                    if (statusReal === 'rejected') statusFinal = 'Cancelado';
+
+                    await addDoc(collection(db, "users", user.uid, "orders"), {
+                        items: pedidoData.items,
+                        total: pedidoData.total,
+                        data: new Date(),
+                        status: statusFinal,
+                        id_pagamento: paymentId,
+                        metodo: checkData.payment_type || 'MP'
+                    });
+
+                    await updateDoc(doc(db, "users", user.uid), { cart: [] });
+                    cart = [];
+                    updateCartUI();
+                    localStorage.removeItem('pedido_pendente');
+                    document.getElementById('custom-dialog').classList.add('hidden');
+
+                    if (statusReal === 'approved') alert(`Sucesso! Pagamento confirmado.`);
+                    else alert(`Pedido registrado: ${statusFinal}. Aguarde atualização.`);
+
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                } catch (e) { console.error(e); alert("Erro ao salvar pedido."); }
+            }
+
         } else {
             currentUserData = null;
             cart = [];
             updateCartUI();
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
-            if(document.getElementById('profile-view').classList.contains('active')) switchView('products-view');
             if (verifyWarning) verifyWarning.classList.add('hidden');
-            closeBtn.style.display = 'block';
         }
     });
-
     document.getElementById('logout-btn').onclick = () => signOut(auth);
 
     document.getElementById('profile-form').onsubmit = async (e) => {
@@ -1135,17 +1171,14 @@
     };
 
     window.checkout = async () => {
-        // 1. Verificações de segurança
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
 
-        // 2. Feedback visual no botão
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
         btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         btnCheckout.disabled = true;
 
-        // 3. Prepara os dados do carrinho para o Mercado Pago
         const items = cart.map(item => ({
             title: item.name,
             quantity: 1,
@@ -1159,19 +1192,22 @@
         };
 
         try {
-            // 4. Chama o seu backend na Vercel (que já está configurado!)
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ items, payer })
             });
 
             const data = await response.json();
 
-            // 5. Redireciona para o pagamento
             if (data.init_point) {
+                // SALVA O RASCUNHO (ESSENCIAL PARA O RETORNO FUNCIONAR)
+                localStorage.setItem('pedido_pendente', JSON.stringify({
+                    items: cart,
+                    total: cart.reduce((sum, i) => sum + i.price, 0),
+                    data: new Date().toISOString()
+                }));
+                
                 window.location.href = data.init_point;
             } else {
                 throw new Error("Erro ao gerar link.");
@@ -1179,65 +1215,91 @@
 
         } catch (error) {
             console.error(error);
-            // Plano B: Se der erro, manda para o WhatsApp
-            alert("Houve um pequeno erro na conexão. Finalizando pelo WhatsApp!");
-            
-            let msg = `*PEDIDO (Fallback)*\nCliente: ${currentUserData.fullName}\nItens:\n`;
+            alert("Erro na conexão automática. Vamos pelo WhatsApp!");
+            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\nItens:\n`;
             cart.forEach(i => msg += `- ${i.name}\n`);
-            const total = cart.reduce((sum, item) => sum + item.price, 0);
-            msg += `\n*Total: R$ ${total.toFixed(2)}*`;
-            
             window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
         } finally {
-            // Restaura o botão
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
         }
     };
-    window.openDashboardModal = (type) => {
+    window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
         const titleEl = document.getElementById('dash-modal-title');
         const contentEl = document.getElementById('dash-modal-content');
         
+        // Abre o modal e mostra um "carregando"
         modal.classList.replace('hidden', 'flex');
         contentEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-[var(--primary-color)]"></i></div>';
 
+        // --- ABA DE PEDIDOS ---
         if (type === 'orders') {
             titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
             
-            // Como não há banco de pedidos real ainda, simulei um para visualização
-            setTimeout(() => {
-                contentEl.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Entregue</span>
-                                    <h4 class="font-bold text-gray-800 mt-1">Pedido #1024 - Kit Emagrecimento</h4>
-                                    <p class="text-xs text-gray-500">Realizado em 15/12/2024</p>
-                                </div>
-                                <span class="font-bold text-[var(--accent2-color)]">R$ 249,90</span>
-                            </div>
-                            <div class="border-t border-gray-100 my-3"></div>
-                            <div class="flex gap-2">
-                                <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-sm text-center hover:bg-blue-100 transition-colors">
-                                    <i class="fas fa-truck mr-1"></i> Rastrear Pedido
-                                </a>
-                                <button onclick="window.open('https://wa.me/5511916658264?text=Preciso%20de%20ajuda%20com%20o%20pedido%201024', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors">
-                                    <i class="fas fa-question-circle mr-1"></i> Ajuda
-                                </button>
-                            </div>
-                        </div>
-                        
+            if (!auth.currentUser) {
+                contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
+                return;
+            }
+
+            try {
+                // Busca a coleção "orders" dentro do usuário atual, ordenado por data
+                const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    contentEl.innerHTML = `
                         <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                             <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
-                            <p class="text-gray-500 text-sm">Você ainda não tem outros pedidos registrados.</p>
+                            <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
                             <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
-                        </div>
-                    </div>
-                `;
-            }, 300);
+                        </div>`;
+                } else {
+                    let html = '<div class="space-y-4">';
+                    querySnapshot.forEach((doc) => {
+                        const pedido = doc.data();
+                        
+                        // Formata a data do Firebase para pt-BR
+                        let dataFormatada = 'Data desconhecida';
+                        if (pedido.data && pedido.data.toDate) {
+                            dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        }
+                        
+                        // Cria uma string simples com os nomes dos produtos
+                        const resumoItens = pedido.items ? pedido.items.map(i => i.name).join(', ') : 'Itens variados';
 
+                        let corStatus = pedido.status === 'Pago' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+
+html += `
+<div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div class="flex justify-between items-start mb-2">
+        <div>
+            <span class="${corStatus} text-xs font-bold px-2 py-1 rounded uppercase">${pedido.status}</span>
+            <h4 class="font-bold text-gray-800 mt-1">Pedido #${doc.id.slice(0,6).toUpperCase()}</h4>
+            <p class="text-xs text-gray-500">${dataFormatada}</p>
+        </div>
+        <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
+    </div>
+    <div class="flex gap-2 mt-3">
+        ${pedido.status !== 'Pago' ? 
+          `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors">
+             <i class="fas fa-sync-alt"></i> Atualizar Pagamento
+           </button>` : ''}
+        <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
+            Ajuda
+        </button>
+    </div>
+</div>`;
+                    });
+                    html += '</div>';
+                    contentEl.innerHTML = html;
+                }
+            } catch (error) {
+                console.error("Erro ao buscar pedidos:", error);
+                contentEl.innerHTML = '<p class="text-center text-red-500 mt-4">Erro ao carregar seu histórico de pedidos.</p>';
+            }
+
+        // --- ABA DE HISTÓRICO (Vistos Recentemente) ---
         } else if (type === 'history') {
             titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
             
@@ -1271,6 +1333,7 @@
                 contentEl.innerHTML = html;
             }
 
+        // --- ABA DE SUPORTE ---
         } else if (type === 'support') {
             titleEl.innerHTML = '<i class="fas fa-headset text-green-600"></i> Central de Ajuda';
             contentEl.innerHTML = `
@@ -1290,6 +1353,28 @@
                     <p class="text-xs text-gray-400 mt-4">Horário de atendimento: Seg a Sex, 09h às 18h.</p>
                 </div>
             `;
+        }
+    };
+    window.verificarStatusManual = async (paymentId, docId) => {
+        if(!paymentId || paymentId === 'MP') { alert("Pagamento manual ou antigo."); return; }
+        
+        try {
+            const btn = event.target;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+            
+            const response = await fetch(`/api/verificar?id=${paymentId}`);
+            const data = await response.json();
+            
+            if(data.status === 'approved') {
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { status: 'Pago' });
+                alert("Pagamento confirmado! O status foi atualizado.");
+                openDashboardModal('orders'); // Recarrega a lista
+            } else {
+                alert(`O banco informou: ${data.status_detail || 'Ainda pendente'}. Tente novamente em instantes.`);
+            }
+            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Pagamento';
+        } catch(e) {
+            alert("Erro ao verificar.");
         }
     };
   </script>
