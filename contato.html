@@ -55,10 +55,14 @@
         
         <nav class="hidden lg:flex items-center space-x-8">
           <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
-          <a href="/products" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
-          <a href="/combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
-          <a href="/about-us" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
-          <a href="#" onclick="switchView('contact-view')" class="text-[var(--accent-color)] font-bold transition-colors duration-300">Contato</a>
+          
+          <a href="/produtos.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          
+          <a href="/produtos.html?categoria=Combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          
+          <a href="/sobre.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          
+          <a href="/contato.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
           
           <button onclick="toggleCart()" class="relative text-[var(--dark-text-color)] hover:text-[var(--accent-color)] transition-colors mr-2">
             <i class="fas fa-shopping-cart text-2xl"></i>
@@ -75,7 +79,6 @@
                 </span>
               </div>
             </button>
-            
             <div id="user-logged-menu" class="hidden flex items-center gap-3">
                 <button onclick="switchView('profile-view')" class="flex flex-col leading-none text-left group">
                     <span class="text-[11px] text-gray-500 font-medium">Olá,</span>
@@ -953,12 +956,65 @@
         cart.splice(index, 1); updateCartUI();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
     };
-    window.checkout = () => {
+    window.checkout = async () => {
+        // 1. Verificações de segurança
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        let msg = `*NOVO PEDIDO*\nCliente: ${currentUserData.fullName}\nItens:\n`;
-        cart.forEach(i => msg += `- ${i.name}\n`);
-        window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+
+        // 2. Feedback visual no botão
+        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+        const textoOriginal = btnCheckout.innerHTML;
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        btnCheckout.disabled = true;
+
+        // 3. Prepara os dados do carrinho para o Mercado Pago
+        const items = cart.map(item => ({
+            title: item.name,
+            quantity: 1,
+            currency_id: 'BRL',
+            unit_price: parseFloat(item.price)
+        }));
+
+        const payer = {
+            email: currentUserData.email || "email@cliente.com",
+            name: currentUserData.fullName || "Cliente",
+        };
+
+        try {
+            // 4. Chama o seu backend na Vercel (que já está configurado!)
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ items, payer })
+            });
+
+            const data = await response.json();
+
+            // 5. Redireciona para o pagamento
+            if (data.init_point) {
+                window.location.href = data.init_point;
+            } else {
+                throw new Error("Erro ao gerar link.");
+            }
+
+        } catch (error) {
+            console.error(error);
+            // Plano B: Se der erro, manda para o WhatsApp
+            alert("Houve um pequeno erro na conexão. Finalizando pelo WhatsApp!");
+            
+            let msg = `*PEDIDO (Fallback)*\nCliente: ${currentUserData.fullName}\nItens:\n`;
+            cart.forEach(i => msg += `- ${i.name}\n`);
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            msg += `\n*Total: R$ ${total.toFixed(2)}*`;
+            
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        } finally {
+            // Restaura o botão
+            btnCheckout.innerHTML = textoOriginal;
+            btnCheckout.disabled = false;
+        }
     };
     window.openDashboardModal = (type) => {
         const modal = document.getElementById('dashboard-modal');
