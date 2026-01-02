@@ -608,7 +608,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCcxUtccSBADIElGz6FHrIMAEFyI99njvU",
@@ -949,6 +949,7 @@
             syncUserData(user.uid); 
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
+            // Verifica se o cadastro está completo (CPF é obrigatório)
             if (!docSnap.exists() || !docSnap.data().cpf) {
                 modal.classList.replace('hidden','flex');
                 closeBtn.style.display = 'none';
@@ -959,6 +960,7 @@
                 return;
             }
 
+            // --- LÓGICA DE LOGIN COM SUCESSO ---
             closeBtn.style.display = 'block';
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
@@ -967,6 +969,7 @@
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
             cart = currentUserData.cart || [];
             
+            // Preencher todo o formulário de perfil com os dados do banco
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -981,7 +984,55 @@
             
             updateCartUI();
             if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
+
+            // ============================================================
+            // DETECTAR RETORNO DO MERCADO PAGO E SALVAR PEDIDO
+            // ============================================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusPagamento = urlParams.get('collection_status'); // O MP manda isso na URL
+
+            if (statusPagamento === 'approved') {
+                const pendente = localStorage.getItem('pedido_pendente');
+                if (pendente) {
+                    try {
+                        const pedidoData = JSON.parse(pendente);
+                        
+                        // 1. Salvar na coleção de pedidos do usuário no Firestore
+                        await addDoc(collection(db, "users", user.uid, "orders"), {
+                            items: pedidoData.items,
+                            total: pedidoData.total,
+                            data: new Date(), // Data do servidor
+                            status: 'Pago',
+                            id_pagamento: urlParams.get('payment_id') || 'MP'
+                        });
+
+                        // 2. Limpar carrinho no Banco de Dados
+                        await updateDoc(doc(db, "users", user.uid), { cart: [] });
+                        
+                        // 3. Limpar carrinho na tela e memória local
+                        cart = [];
+                        updateCartUI();
+                        localStorage.removeItem('pedido_pendente');
+
+                        // 4. Mostrar mensagem de Sucesso
+                        if(window.showDialog) {
+                            window.showDialog('alert', 'Pagamento Aprovado! 🎉', 'Seu pedido foi confirmado com sucesso. Veja em "Meus Pedidos".');
+                        } else {
+                            alert('Pagamento Aprovado! Seu pedido foi confirmado.');
+                        }
+
+                        // 5. Limpar a URL para não salvar o pedido de novo se o cliente der F5
+                        window.history.replaceState({}, document.title, window.location.pathname);
+
+                    } catch (e) {
+                        console.error("Erro ao salvar pedido:", e);
+                    }
+                }
+            }
+            // ============================================================
+
         } else {
+            // --- LÓGICA DE LOGOUT (USUÁRIO SAIU) ---
             currentUserData = null;
             cart = [];
             updateCartUI();
@@ -1168,12 +1219,9 @@
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
-        
-        // Muda o texto do botão para o cliente saber que está carregando
         btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         btnCheckout.disabled = true;
 
-        // Prepara os dados para enviar para o seu "Backend" na Vercel
         const items = cart.map(item => ({
             title: item.name,
             quantity: 1,
@@ -1187,85 +1235,110 @@
         };
 
         try {
-            // AQUI A MÁGICA ACONTECE: O site chama o seu arquivo seguro na pasta /api
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ items, payer })
             });
 
             const data = await response.json();
 
             if (data.init_point) {
-                // Se deu tudo certo, leva o cliente para o Mercado Pago
+                // --- LINHA NOVA: Salva o carrinho num "rascunho" antes de sair ---
+                localStorage.setItem('pedido_pendente', JSON.stringify({
+                    items: cart,
+                    total: cart.reduce((sum, i) => sum + i.price, 0),
+                    data: new Date().toISOString()
+                }));
+                // -----------------------------------------------------------------
+                
                 window.location.href = data.init_point;
             } else {
-                throw new Error("Erro ao gerar link de pagamento.");
+                throw new Error("Erro ao gerar link.");
             }
 
         } catch (error) {
             console.error(error);
-            // Se der erro no servidor, avisa e manda para o WhatsApp como plano B
-            alert("Houve um problema na conexão de pagamento. Vamos finalizar pelo WhatsApp!");
-            
-            let msg = `*PEDIDO (Fallback)*\nCliente: ${currentUserData.fullName}\nItens:\n`;
+            alert("Erro na conexão. Vamos pelo WhatsApp!");
+            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\nItens:\n`;
             cart.forEach(i => msg += `- ${i.name}\n`);
-            const total = cart.reduce((sum, item) => sum + item.price, 0);
-            msg += `\n*Total: R$ ${total.toFixed(2)}*`;
-            
             window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
         } finally {
-            // Restaura o botão ao normal
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
         }
     };
-    window.openDashboardModal = (type) => {
+    window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
         const titleEl = document.getElementById('dash-modal-title');
         const contentEl = document.getElementById('dash-modal-content');
         
+        // Abre o modal e mostra um "carregando"
         modal.classList.replace('hidden', 'flex');
         contentEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-[var(--primary-color)]"></i></div>';
 
+        // --- ABA DE PEDIDOS ---
         if (type === 'orders') {
             titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
             
-            // Como não há banco de pedidos real ainda, simulei um para visualização
-            setTimeout(() => {
-                contentEl.innerHTML = `
-                    <div class="space-y-4">
+            if (!auth.currentUser) {
+                contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
+                return;
+            }
+
+            try {
+                // Busca a coleção "orders" dentro do usuário atual, ordenado por data
+                const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    contentEl.innerHTML = `
+                        <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                            <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
+                            <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
+                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
+                        </div>`;
+                } else {
+                    let html = '<div class="space-y-4">';
+                    querySnapshot.forEach((doc) => {
+                        const pedido = doc.data();
+                        
+                        // Formata a data do Firebase para pt-BR
+                        let dataFormatada = 'Data desconhecida';
+                        if (pedido.data && pedido.data.toDate) {
+                            dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        }
+                        
+                        // Cria uma string simples com os nomes dos produtos
+                        const resumoItens = pedido.items ? pedido.items.map(i => i.name).join(', ') : 'Itens variados';
+
+                        html += `
                         <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                             <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Entregue</span>
-                                    <h4 class="font-bold text-gray-800 mt-1">Pedido #1024 - Kit Emagrecimento</h4>
-                                    <p class="text-xs text-gray-500">Realizado em 15/12/2024</p>
+                                    <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">${pedido.status || 'Pago'}</span>
+                                    <h4 class="font-bold text-gray-800 mt-1">Pedido #${doc.id.slice(0,6).toUpperCase()}</h4>
+                                    <p class="text-xs text-gray-500">${dataFormatada}</p>
                                 </div>
-                                <span class="font-bold text-[var(--accent2-color)]">R$ 249,90</span>
+                                <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
                             </div>
-                            <div class="border-t border-gray-100 my-3"></div>
+                            <p class="text-xs text-gray-600 truncate mb-3 border-t border-gray-50 pt-2">${resumoItens}</p>
                             <div class="flex gap-2">
-                                <a href="https://rastreamento.correios.com.br/app/index.php" target="_blank" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-sm text-center hover:bg-blue-100 transition-colors">
-                                    <i class="fas fa-truck mr-1"></i> Rastrear Pedido
-                                </a>
-                                <button onclick="window.open('https://wa.me/5511916658264?text=Preciso%20de%20ajuda%20com%20o%20pedido%201024', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors">
-                                    <i class="fas fa-question-circle mr-1"></i> Ajuda
+                                <button onclick="window.open('https://wa.me/5511916658264?text=Olá, gostaria de saber sobre o pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-sm hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+                                    <i class="fab fa-whatsapp"></i> Acompanhar / Ajuda
                                 </button>
                             </div>
-                        </div>
-                        
-                        <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                            <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
-                            <p class="text-gray-500 text-sm">Você ainda não tem outros pedidos registrados.</p>
-                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
-                        </div>
-                    </div>
-                `;
-            }, 300);
+                        </div>`;
+                    });
+                    html += '</div>';
+                    contentEl.innerHTML = html;
+                }
+            } catch (error) {
+                console.error("Erro ao buscar pedidos:", error);
+                contentEl.innerHTML = '<p class="text-center text-red-500 mt-4">Erro ao carregar seu histórico de pedidos.</p>';
+            }
 
+        // --- ABA DE HISTÓRICO (Vistos Recentemente) ---
         } else if (type === 'history') {
             titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
             
@@ -1299,6 +1372,7 @@
                 contentEl.innerHTML = html;
             }
 
+        // --- ABA DE SUPORTE ---
         } else if (type === 'support') {
             titleEl.innerHTML = '<i class="fas fa-headset text-green-600"></i> Central de Ajuda';
             contentEl.innerHTML = `
