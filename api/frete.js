@@ -1,74 +1,117 @@
-// api/frete.js
+const https = require('https');
+
 module.exports = async (req, res) => {
-    // 1. Configuração de permissões (CORS)
+    // 1. Configuração CORS (Para aceitar qualquer origem)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-    if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-  
-    // --- IMPORTANTE: COLOQUE SEU CEP DE ORIGEM AQUI ---
-    const CEP_ORIGEM = '01001000'; // Exemplo: Praça da Sé (Mude para o seu CEP)
-    // --------------------------------------------------
+
+    // Responde rápido se for apenas verificação do navegador
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
+    // --- SEU CEP DE ORIGEM ---
+    const CEP_ORIGEM = '01001000'; 
+    // -------------------------
 
     const { cepDestino } = req.body;
-  
+
+    // Função de Fallback (Plano B): Se tudo der errado, mostre isso
+    const retornarFreteFixo = () => {
+        console.log("Usando Frete Fixo de emergência");
+        return res.status(200).json([
+            { nome: 'Entrega Padrão', preco: 25.00, prazo: '5-10' },
+            { nome: 'Entrega Expressa', preco: 45.90, prazo: '2-4' }
+        ]);
+    };
+
     if (!cepDestino) {
-      return res.status(400).json({ error: 'CEP obrigatório' });
+        return res.status(400).json({ error: 'CEP faltando' });
     }
-  
+
+    // Limpa o CEP (deixa só números)
+    const cepLimpo = cepDestino.replace(/\D/g, '');
+
+    if (cepLimpo.length !== 8) {
+        return res.status(400).json({ error: 'CEP inválido' });
+    }
+
+    const url = `https://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?nCdEmpresa=&sDsSenha=&sCepOrigem=${CEP_ORIGEM}&sCepDestino=${cepLimpo}&nVlPeso=1&nCdFormato=1&nVlComprimento=20&nVlAltura=20&nVlLargura=20&sCdMaoPropria=n&nVlValorDeclarado=0&sCdAvisoRecebimento=n&nCdServico=04014,04510&StrRetorno=xml`;
+
+    // Usamos uma Promise para envolver a requisição antiga do Node
+    const consultarCorreios = () => {
+        return new Promise((resolve, reject) => {
+            const request = https.get(url, (response) => {
+                let data = '';
+
+                // Recebe os pedacinhos dos dados
+                response.on('data', (chunk) => {
+                    data += chunk;
+                });
+
+                // Quando terminar de receber tudo
+                response.on('end', () => {
+                    resolve(data);
+                });
+            });
+
+            request.on('error', (err) => {
+                reject(err);
+            });
+            
+            // Define um timeout de 4 segundos. Se Correios não responder, cancela.
+            request.setTimeout(4000, () => {
+                request.destroy();
+                reject(new Error("Timeout Correios"));
+            });
+        });
+    };
+
     try {
-      // Códigos: 04014 = SEDEX, 04510 = PAC
-      const url = `http://ws.correios.com.br/calculador/CalcPrecoPrazo.aspx?nCdEmpresa=&sDsSenha=&sCepOrigem=${CEP_ORIGEM}&sCepDestino=${cepDestino}&nVlPeso=1&nCdFormato=1&nVlComprimento=20&nVlAltura=20&nVlLargura=20&sCdMaoPropria=n&nVlValorDeclarado=0&sCdAvisoRecebimento=n&nCdServico=04014,04510&StrRetorno=xml`;
-  
-      // Faz a chamada aos Correios
-      const response = await fetch(url);
-      const xmlText = await response.text();
-  
-      // Pequena função para ler o XML dos Correios sem precisar de bibliotecas pesadas
-      const getTagValue = (xml, tag) => {
-        const regex = new RegExp(`<${tag}>(.*?)<\/${tag}>`);
-        const match = xml.match(regex);
-        return match ? match[1] : null;
-      };
+        const xmlText = await consultarCorreios();
 
-      // Separamos os serviços (PAC e SEDEX)
-      // A resposta dos correios vem tudo junto, precisamos separar
-      const servicos = xmlText.split('<cServico>');
-      const opcoes = [];
+        // Função "manual" para ler XML (sem bibliotecas)
+        const extract = (xml, tag) => {
+            const regex = new RegExp(`<${tag}>(.*?)<\/${tag}>`);
+            const match = xml.match(regex);
+            return match ? match[1] : null;
+        };
 
-      servicos.forEach(servico => {
-          const codigo = getTagValue(servico, 'Codigo');
-          const valorStr = getTagValue(servico, 'Valor');
-          const prazo = getTagValue(servico, 'PrazoEntrega');
-          const erro = getTagValue(servico, 'Erro');
+        const servicos = xmlText.split('<cServico>');
+        const resultados = [];
 
-          // Se tiver valor e não tiver erro grave (0 ou nulo)
-          if (valorStr && erro === '0') {
-              const valorNumerico = parseFloat(valorStr.replace('.', '').replace(',', '.'));
-              
-              if (valorNumerico > 0) {
-                  opcoes.push({
-                      nome: codigo === '04014' ? 'SEDEX' : 'PAC',
-                      preco: valorNumerico,
-                      prazo: prazo
-                  });
-              }
-          }
-      });
+        servicos.forEach(s => {
+            const codigo = extract(s, 'Codigo');
+            const valor = extract(s, 'Valor');
+            const prazo = extract(s, 'PrazoEntrega');
+            const erro = extract(s, 'Erro');
 
-      if (opcoes.length === 0) {
-          // Se não retornou nada, vamos criar um "Frete Fixo" de fallback para não travar a venda
-          return res.status(200).json([
-              { nome: 'Envio Padrão', preco: 25.00, prazo: '5-10' }
-          ]);
-      }
-  
-      return res.status(200).json(opcoes);
-  
+            // 04014 = SEDEX, 04510 = PAC
+            if (valor && (erro === '0' || erro === '010' || !erro)) {
+                const precoFloat = parseFloat(valor.replace('.', '').replace(',', '.'));
+                if (precoFloat > 0) {
+                    resultados.push({
+                        nome: codigo === '04014' ? 'SEDEX' : 'PAC',
+                        preco: precoFloat,
+                        prazo: prazo
+                    });
+                }
+            }
+        });
+
+        if (resultados.length > 0) {
+            return res.status(200).json(resultados);
+        } else {
+            // Se os Correios responderam mas não deram preço, usa o fixo
+            return retornarFreteFixo();
+        }
+
     } catch (error) {
-      console.error("Erro Correios:", error);
-      return res.status(500).json({ error: 'Erro ao conectar com Correios' });
+        // Se deu erro de conexão, timeout ou qualquer outra coisa
+        console.error("Erro na API:", error.message);
+        return retornarFreteFixo();
     }
-  };
+};
