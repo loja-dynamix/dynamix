@@ -54,16 +54,21 @@
         </a>
         
         <nav class="hidden lg:flex items-center space-x-8">
-          <a href="https://loja-dynamix.github.io/dynamix/" onclick="switchView('home-view')" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
-          <a href="https://loja-dynamix.github.io/dynamix/produtos.html" onclick="switchView('home-view'); setTimeout(()=>document.getElementById('products-anchor').scrollIntoView({behavior:'smooth'}), 100);" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
-          <a href="https://loja-dynamix.github.io/dynamix/produtos.html?categoria=Combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
-          <a href="https://loja-dynamix.github.io/dynamix/sobre" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
-          <a href="https://loja-dynamix.github.io/dynamix/contato" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
+          <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
+          
+          <a href="/produtos.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Produtos</a>
+          
+          <a href="/produtos.html?categoria=Combos" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Combos</a>
+          
+          <a href="/sobre.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Sobre Nós</a>
+          
+          <a href="/contato.html" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Contato</a>
           
           <button onclick="toggleCart()" class="relative text-[var(--dark-text-color)] hover:text-[var(--accent-color)] transition-colors mr-2">
             <i class="fas fa-shopping-cart text-2xl"></i>
             <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
           </button>
+
           <div class="pl-4 border-l border-gray-300 min-w-[160px] relative">
             <button id="login-trigger-btn" class="flex items-center gap-3 group text-left w-full">
               <i class="fas fa-user text-2xl text-black group-hover:text-[var(--accent-color)] transition-colors duration-300"></i>
