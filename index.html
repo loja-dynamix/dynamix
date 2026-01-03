@@ -1181,9 +1181,9 @@
         const opcoesDiv = document.getElementById('frete-opcoes');
         const cep = cepInput.value;
 
-        if (cep.length !== 8) { alert("Digite um CEP válido (8 números)."); return; }
+        if (cep.length < 8) { alert("CEP incompleto."); return; }
 
-        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Calculando Correios...</p>';
+        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Consultando BrasilAPI...</p>';
 
         try {
             const response = await fetch('/api/frete', {
@@ -1192,16 +1192,24 @@
                 body: JSON.stringify({ cepDestino: cep })
             });
 
-            const opcoes = await response.json();
+            const dados = await response.json();
 
-            if (opcoes.error) { throw new Error(opcoes.error); }
+            // SE DER ERRO, VAI MOSTRAR AQUI O MOTIVO REAL
+            if (dados.error || !response.ok) {
+                if (dados.fallback) {
+                    // Se você quiser ativar o fallback fixo depois, descomente aqui.
+                    // Por enquanto, vamos mostrar o erro para corrigir.
+                    console.log("Erro backend:", dados.error);
+                }
+                throw new Error(dados.error || "Erro desconhecido");
+            }
 
             let htmlOpcoes = '';
-            opcoes.forEach((op, index) => {
+            dados.forEach((op) => {
                 htmlOpcoes += `
-                    <label class="flex items-center justify-between border p-2 rounded cursor-pointer hover:bg-gray-50">
+                    <label class="flex items-center justify-between border p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors">
                         <div class="flex items-center gap-2">
-                            <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})'>
+                            <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
                             <span class="text-sm text-gray-700">${op.nome} <span class="text-xs text-gray-400">(${op.prazo} dias)</span></span>
                         </div>
                         <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
@@ -1212,10 +1220,10 @@
 
         } catch (e) {
             console.error(e);
-            opcoesDiv.innerHTML = '<p class="text-xs text-red-500">Erro ao calcular. Tente novamente.</p>';
+            // Aqui vai aparecer o erro vermelho na tela para você ler
+            opcoesDiv.innerHTML = `<p class="text-xs text-red-500 text-center font-bold">${e.message}</p>`;
         }
     };
-
     window.selecionarFrete = (opcao) => {
         freteSelecionado = opcao;
         updateCartUI(); // Recarrega o carrinho para somar o total visualmente
