@@ -1,10 +1,9 @@
 {
-  "name": "dynamix-loja",
+  "name": "dynamix-store",
   "version": "1.0.0",
-  "engines": {
-    "node": "20.x"
-  },
   "dependencies": {
-    "node-fetch": "^3.3.0"
+    "mercadopago": "^1.5.17",
+    "nodemailer": "^6.9.7",
+    "node-fetch": "^2.6.7"
   }
 }
