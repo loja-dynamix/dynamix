@@ -1019,6 +1019,26 @@
                     document.getElementById('custom-dialog').classList.add('hidden'); // Fecha o loading
                     if (statusReal === 'approved') {
                         alert(`Sucesso! Seu pagamento foi confirmado.`);
+                      fetch('/api/notificar', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            cliente: {
+                                nome: currentUserData.fullName,
+                                email: user.email,
+                                cpf: currentUserData.cpf,
+                                telefone: currentUserData.phone
+                            },
+                            pedido: {
+                                id_pagamento: paymentId,
+                                total: pedidoData.total,
+                                frete_nome: pedidoData.frete ? pedidoData.frete.nome : 'Padrão',
+                                frete_valor: pedidoData.frete ? pedidoData.frete.preco : 0,
+                                itens: pedidoData.items
+                            },
+                            entrega: pedidoData.entrega // Envia o endereço escolhido no checkout
+                        })
+                    });
                     } else {
                         alert(`Pedido Registrado! Status atual: ${statusFinal}. Se você pagou via Pix, aguarde alguns minutos que atualizará automático.`);
                     }
@@ -1120,7 +1140,9 @@
         }
     };
 
+    // Variáveis globais para controle
     let freteSelecionado = null; 
+    let usarOutroEndereco = false;
 
     function updateCartUI() {
         const container = document.getElementById('cart-items');
@@ -1130,10 +1152,7 @@
         // Atualiza contadores
         countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
         
-        // Calcula subtotal dos produtos
         const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-        
-        // Calcula Total Final (Produtos + Frete)
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         const totalFinal = subtotal + valorFrete;
 
@@ -1141,11 +1160,10 @@
         
         if (cart.length === 0) { 
             container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; // Reseta frete se esvaziar
+            freteSelecionado = null; 
             return; 
         }
 
-        // HTML dos itens
         let html = cart.map((item, index) => `
             <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
                 <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
@@ -1153,13 +1171,31 @@
                 <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
             </div>`).join('');
 
-        // --- NOVO: ÁREA DE CÁLCULO DE FRETE ---
+        // --- ÁREA DE FRETE E ENDEREÇO ---
         html += `
             <div class="mt-4 pt-4 border-t border-gray-200">
+                
+                <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <label class="flex items-center gap-2 cursor-pointer mb-2">
+                        <input type="checkbox" id="check-outro-endereco" onchange="toggleOutroEndereco(this.checked)" ${usarOutroEndereco ? 'checked' : ''}>
+                        <span class="text-sm font-bold text-gray-700">Entregar em outro endereço?</span>
+                    </label>
+                    
+                    <div id="form-outro-endereco" class="${usarOutroEndereco ? '' : 'hidden'} space-y-2 mt-2 border-t pt-2">
+                        <input type="text" id="outro-rua" placeholder="Rua e Número" class="w-full border rounded px-2 py-1 text-xs">
+                        <input type="text" id="outro-bairro" placeholder="Bairro" class="w-full border rounded px-2 py-1 text-xs">
+                        <div class="flex gap-2">
+                            <input type="text" id="outro-cidade" placeholder="Cidade" class="w-full border rounded px-2 py-1 text-xs">
+                            <input type="text" id="outro-uf" placeholder="UF" class="w-12 border rounded px-2 py-1 text-xs uppercase" maxlength="2">
+                        </div>
+                        <input type="text" id="outro-comp" placeholder="Complemento (Opcional)" class="w-full border rounded px-2 py-1 text-xs">
+                    </div>
+                </div>
+
                 <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
                 <div class="flex gap-2">
-                    <input type="text" id="cart-cep-input" placeholder="Seu CEP" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
-                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold">OK</button>
+                    <input type="text" id="cart-cep-input" placeholder="CEP de Entrega" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
+                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold hover:bg-gray-700 transition">OK</button>
                 </div>
                 <div id="frete-opcoes" class="mt-3 space-y-2">
                     ${freteSelecionado ? 
@@ -1175,22 +1211,13 @@
         container.innerHTML = html;
     }
 
-    // --- NOVA FUNÇÃO PARA CALCULAR O FRETE ---
-    window.calcularFreteCarrinho = async () => {
-        const cepInput = document.getElementById('cart-cep-input');
-        const opcoesDiv = document.getElementById('frete-opcoes');
-        const cep = cepInput.value;
-
-        if (cep.length < 8) { alert("CEP incompleto."); return; }
-
-        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Consultando BrasilAPI...</p>';
-
-        try {
-            const response = await fetch('/api/frete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cepDestino: cep })
-            });
+    // Função auxiliar para mostrar/esconder o formulário
+    window.toggleOutroEndereco = (checked) => {
+        usarOutroEndereco = checked;
+        const form = document.getElementById('form-outro-endereco');
+        if(checked) form.classList.remove('hidden');
+        else form.classList.add('hidden');
+    };
 
             const dados = await response.json();
 
@@ -1308,18 +1335,48 @@
     window.checkout = async () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        
-        // --- VALIDAÇÃO DE FRETE ---
         if (!freteSelecionado) {
-            alert("Por favor, calcule e selecione um frete antes de finalizar.");
-            // Abre o carrinho se estiver fechado
+            alert("Por favor, calcule e selecione um frete.");
             const sidebar = document.getElementById('cart-sidebar');
             if (!sidebar.classList.contains('open')) toggleCart();
-            // Foca no input
-            setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
             return;
         }
-        // --------------------------
+
+        // --- CAPTURA ENDEREÇO DE ENTREGA ---
+        let dadosEntrega = {
+            tipo: 'Cadastro',
+            cep: document.getElementById('cart-cep-input').value, // O CEP usado no cálculo
+            rua: currentUserData.street,
+            numero: currentUserData.number,
+            bairro: currentUserData.neighborhood,
+            cidade: currentUserData.city,
+            estado: currentUserData.state,
+            complemento: currentUserData.complement
+        };
+
+        if (usarOutroEndereco) {
+            const rua = document.getElementById('outro-rua').value;
+            const bairro = document.getElementById('outro-bairro').value;
+            const cidade = document.getElementById('outro-cidade').value;
+            const uf = document.getElementById('outro-uf').value;
+            
+            if(!rua || !bairro || !cidade || !uf) {
+                alert("Preencha o endereço de entrega completo.");
+                return;
+            }
+            
+            dadosEntrega = {
+                tipo: 'Outro',
+                cep: document.getElementById('cart-cep-input').value,
+                rua: rua,
+                numero: 'S/N', // Simplificação
+                bairro: bairro,
+                cidade: cidade,
+                estado: uf,
+                complemento: document.getElementById('outro-comp').value
+            };
+        }
+        // -----------------------------------
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
@@ -1345,20 +1402,20 @@
                 body: JSON.stringify({ 
                     items, 
                     payer,
-                    shipment_cost: freteSelecionado.preco // ENVIA O VALOR DO FRETE
+                    shipment_cost: freteSelecionado.preco
                 })
             });
 
             const data = await response.json();
 
             if (data.init_point) {
-                // Salva rascunho com o total INCLUINDO frete
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
                 localStorage.setItem('pedido_pendente', JSON.stringify({
                     items: cart,
                     total: totalComFrete,
-                    frete: freteSelecionado, // Salva info do frete
+                    frete: freteSelecionado,
+                    entrega: dadosEntrega, // AGORA SALVAMOS O ENDEREÇO AQUI
                     data: new Date().toISOString()
                 }));
                 
