@@ -627,6 +627,12 @@
 
     let currentUserData = null;
     let cart = [];
+    
+    // --- ESTADO DO ENDEREÇO ---
+    // 'profile' = Usa o endereço do cadastro
+    // 'other' = Usa o formulário de novo endereço
+    window.addressMode = 'profile'; 
+    let freteSelecionado = null;
 
     // --- CARREGAMENTO DE PRODUTOS ---
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
@@ -652,8 +658,6 @@
         
         container.innerHTML = "";
         const produtosValidos = produtos.filter(p => p.nome && p.preco_por);
-        
-        // Na Home, mostra apenas os primeiros 10
         const listaFinal = produtosValidos.slice(0, 10);
 
         listaFinal.forEach(produto => {
@@ -673,6 +677,7 @@
 
             const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
             
+            // Tratamento de aspas para evitar erros no onclick
             const safeNome = produto.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
@@ -720,7 +725,7 @@
     
     carregarProdutos();
 
-    // --- Sincronização Auth e Carrinho ---
+    // --- SINCRONIZAÇÃO AUTH E CARRINHO ---
     if (auth.currentUser) syncUserData(auth.currentUser.uid);
 
     function syncUserData(uid) {
@@ -736,11 +741,14 @@
                         phone: data.phone, cep: data.cep, street: data.street, number: data.number,
                         neighborhood: data.neighborhood, city: data.city, state: data.state, complement: data.complement
                     });
+                    // Se o endereço foi atualizado, atualiza a UI do carrinho se estiver aberta
+                    if(document.getElementById('cart-sidebar').classList.contains('open')) updateCartUI();
                 }
             }
         });
     }
 
+    // --- FUNÇÕES DE CEP ---
     window.buscarCep = async (valor, prefixo) => {
         const cep = valor.replace(/\D/g, '');
         if (cep.length !== 8) return;
@@ -763,7 +771,32 @@
         }
     };
 
-    // --- UI Logic ---
+    window.buscarCepCart = async (valor) => {
+        const cep = valor.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+        
+        const ruaInput = document.getElementById('cart-rua');
+        if(ruaInput) ruaInput.value = "Buscando...";
+        
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+            if (!data.erro) {
+                document.getElementById('cart-rua').value = data.logradouro;
+                document.getElementById('cart-bairro').value = data.bairro;
+                document.getElementById('cart-cidade').value = data.localidade;
+                document.getElementById('cart-uf').value = data.uf;
+                document.getElementById('cart-numero').focus();
+            } else {
+                alert("CEP não encontrado.");
+                document.getElementById('cart-rua').value = "";
+            }
+        } catch (e) {
+            if(ruaInput) ruaInput.value = "";
+        }
+    };
+
+    // --- UI LOGIN LOGIC ---
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
     const loginBtn = document.getElementById('login-trigger-btn');
@@ -775,18 +808,19 @@
     const forgotBtn = document.getElementById('forgot-btn');
     const backToLoginBtn = document.getElementById('back-to-login-btn');
     const socialSection = document.getElementById('social-login-section');
-    const modalTitle = document.getElementById('modal-title');
-    const modalSubtitle = document.getElementById('modal-subtitle');
     const forgotLinkContainer = document.getElementById('forgot-link-container');
 
     let isLogin = true;
     let isGoogleCompletion = false;
 
-    const openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
-    if(loginBtn) loginBtn.onclick = openModal;
-    closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
+    // Funções globais de modal
+    window.openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
+    window.closeModalFunc = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
+    
+    if(loginBtn) loginBtn.onclick = window.openModal;
+    if(closeBtn) closeBtn.onclick = window.closeModalFunc;
 
-    toggleBtn.onclick = (e) => {
+    if(toggleBtn) toggleBtn.onclick = (e) => {
         e.preventDefault(); isLogin = !isLogin;
         document.getElementById('modal-title').innerText = isLogin ? "Bem-vindo" : "Criar Conta";
         submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
@@ -794,14 +828,13 @@
         toggleBtn.innerText = isLogin ? "Criar conta" : "Fazer Login";
         
         const regDiv = document.getElementById('register-fields');
-        const forgotDiv = document.getElementById('forgot-link-container');
         if(isLogin) {
             regDiv.classList.add('hidden');
-            if(forgotDiv) forgotDiv.classList.remove('hidden');
+            if(forgotLinkContainer) forgotLinkContainer.classList.remove('hidden');
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
         } else {
             regDiv.classList.remove('hidden');
-            if(forgotDiv) forgotDiv.classList.add('hidden');
+            if(forgotLinkContainer) forgotLinkContainer.classList.add('hidden');
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
@@ -811,14 +844,13 @@
 
     if(forgotBtn) forgotBtn.onclick = () => {
         authForm.classList.add('hidden'); socialSection.classList.add('hidden');
-        recoverForm.classList.remove('hidden'); modalTitle.innerText = "Recuperar Senha";
+        recoverForm.classList.remove('hidden'); document.getElementById('modal-title').innerText = "Recuperar Senha";
     };
     if(backToLoginBtn) backToLoginBtn.onclick = () => {
         recoverForm.classList.add('hidden'); authForm.classList.remove('hidden');
-        socialSection.classList.remove('hidden'); modalTitle.innerText = "Bem-vindo";
+        socialSection.classList.remove('hidden'); document.getElementById('modal-title').innerText = "Bem-vindo";
     };
 
-    // --- LÓGICA DE LOGIN / CADASTRO ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
@@ -846,7 +878,6 @@
                 let user;
                 if (isGoogleCompletion) {
                     user = auth.currentUser;
-                    if (!user) throw new Error("Usuário não detectado.");
                     await updateProfile(user, { displayName: name });
                 } else {
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
@@ -863,6 +894,7 @@
             let msg = "Erro: " + err.code;
             if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
             if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
+            if(err.code === 'auth/invalid-credential') msg = "Senha ou e-mail incorretos.";
             errorMsg.innerText = msg; errorMsg.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;
@@ -870,74 +902,55 @@
         }
     };
 
-    // --- LÓGICA DE RECUPERAÇÃO DE SENHA (CORRIGIDA E SEPARADA) ---
-    if (recoverForm) {
-        recoverForm.onsubmit = async (e) => {
-            e.preventDefault(); // IMPEDE A PÁGINA DE REINICIAR
-            
-            const email = document.getElementById('recover-email').value;
-            const msgBox = document.getElementById('recover-message');
-            const btn = document.getElementById('send-recover-btn');
-
-            // Feedback visual
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
-            msgBox.classList.add('hidden');
-            msgBox.className = "text-sm text-center font-bold p-2 rounded hidden"; 
-
+    if (document.getElementById('google-btn')) {
+        document.getElementById('google-btn').onclick = async () => {
             try {
-                // Tenta enviar o e-mail
-                await sendPasswordResetEmail(auth, email);
-                
-                // Sucesso
-                msgBox.innerText = "Link enviado! Verifique seu e-mail.";
-                msgBox.classList.remove('hidden');
-                msgBox.classList.add('text-green-600', 'bg-green-50', 'border', 'border-green-200');
-                document.getElementById('recover-email').value = ""; 
-                
-            } catch (error) {
-                // Erro
-                let mensagemErro = "Erro ao enviar.";
-                console.error(error.code); 
-
-                if (error.code === 'auth/user-not-found') mensagemErro = "Este e-mail não possui cadastro.";
-                if (error.code === 'auth/invalid-email') mensagemErro = "E-mail inválido.";
-                if (error.code === 'auth/too-many-requests') mensagemErro = "Muitas tentativas. Tente mais tarde.";
-
-                msgBox.innerText = mensagemErro;
-                msgBox.classList.remove('hidden');
-                msgBox.classList.add('text-red-600', 'bg-red-50', 'border', 'border-red-200');
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Enviar Link de Recuperação";
-            }
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
+                const docSnap = await getDoc(doc(db, "users", user.uid));
+                if (!docSnap.exists() || !docSnap.data().cpf) {
+                    isGoogleCompletion = true; isLogin = false;
+                    closeBtn.style.display = 'none';
+                    document.getElementById('modal-title').innerText = "Falta pouco!";
+                    document.getElementById('email-input').value = user.email;
+                    document.getElementById('email-input').disabled = true;
+                    document.getElementById('reg-name').value = user.displayName || "";
+                    document.getElementById('password-input').style.display = 'none';
+                    document.getElementById('password-input').disabled = true;
+                    document.getElementById('google-btn').parentElement.style.display = 'none';
+                    if(forgotLinkContainer) forgotLinkContainer.classList.add('hidden');
+                    document.getElementById('register-fields').classList.remove('hidden');
+                    submitBtn.innerText = "Salvar e Continuar";
+                } else {
+                    modal.classList.replace('flex','hidden');
+                    window.location.reload();
+                }
+            } catch (err) { console.error(err); }
         };
     }
 
-    document.getElementById('google-btn').onclick = async () => {
-        try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            const docSnap = await getDoc(doc(db, "users", user.uid));
-            if (!docSnap.exists() || !docSnap.data().cpf) {
-                isGoogleCompletion = true; isLogin = false;
-                closeBtn.style.display = 'none';
-                document.getElementById('modal-title').innerText = "Falta pouco!";
-                document.getElementById('email-input').value = user.email;
-                document.getElementById('email-input').disabled = true;
-                document.getElementById('reg-name').value = user.displayName || "";
-                document.getElementById('password-input').style.display = 'none';
-                document.getElementById('password-input').disabled = true;
-                document.getElementById('google-btn').parentElement.style.display = 'none';
-                if(forgotLinkContainer) forgotLinkContainer.classList.add('hidden');
-                document.getElementById('register-fields').classList.remove('hidden');
-                submitBtn.innerText = "Salvar e Continuar";
-            } else {
-                modal.classList.replace('flex','hidden');
-                window.location.reload();
+    if (recoverForm) {
+        recoverForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('recover-email').value;
+            const msgBox = document.getElementById('recover-message');
+            const btn = document.getElementById('send-recover-btn');
+            btn.disabled = true; btn.innerText = "Enviando...";
+            msgBox.classList.add('hidden');
+            try {
+                await sendPasswordResetEmail(auth, email);
+                msgBox.innerText = "Link enviado! Verifique seu e-mail.";
+                msgBox.classList.remove('hidden');
+                msgBox.classList.add('text-green-600', 'bg-green-50');
+            } catch (error) {
+                msgBox.innerText = "Erro ao enviar. Verifique o e-mail.";
+                msgBox.classList.remove('hidden');
+                msgBox.classList.add('text-red-600', 'bg-red-50');
+            } finally {
+                btn.disabled = false; btn.innerText = "Enviar Link de Recuperação";
             }
-        } catch (err) { console.error(err); }
-    };
+        };
+    }
 
     onAuthStateChanged(auth, async (user) => {
         const userMenu = document.getElementById('user-logged-menu');
@@ -949,15 +962,14 @@
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
             if (!docSnap.exists() || !docSnap.data().cpf) {
-                // ... Lógica de cadastro incompleto (mantém igual) ...
-                modal.classList.replace('hidden','flex');
+                // Cadastro incompleto
+                window.openModal();
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('register-fields').classList.remove('hidden');
                 return;
             }
 
-            // Login Sucesso
-            closeBtn.style.display = 'block';
+            if(closeBtn) closeBtn.style.display = 'block';
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
             currentUserData = docSnap.data();
@@ -965,76 +977,61 @@
             cart = currentUserData.cart || [];
             updateCartUI();
 
-            // Preenche dados do perfil (Código resumido aqui, mas mantenha o preenchimento dos inputs)
+            // Preenche Perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
-            // ... (mantenha os outros campos do profile aqui) ...
+            document.getElementById('profile-cpf').value = currentUserData.cpf || "";
+            document.getElementById('profile-phone').value = currentUserData.phone || "";
+            document.getElementById('profile-cep').value = currentUserData.cep || "";
+            document.getElementById('profile-street').value = currentUserData.street || "";
+            document.getElementById('profile-number').value = currentUserData.number || "";
+            document.getElementById('profile-neighborhood').value = currentUserData.neighborhood || "";
+            document.getElementById('profile-city').value = currentUserData.city || "";
+            document.getElementById('profile-state').value = currentUserData.state || "";
+            document.getElementById('profile-complement').value = currentUserData.complement || "";
 
-            // ============================================================
-            // NOVA LÓGICA: DETECTAR RETORNO E CONSULTAR API REAL
-            // ============================================================
+            // Verifica pagamento retorno
             const urlParams = new URLSearchParams(window.location.search);
-            const paymentId = urlParams.get('payment_id'); // ID oficial do MP
-            const statusURL = urlParams.get('collection_status'); // Status da URL (pode estar desatualizado)
-
-            // Se tiver um ID de pagamento na URL e tivermos um pedido pendente na memória
+            const paymentId = urlParams.get('payment_id');
             const pendente = localStorage.getItem('pedido_pendente');
             
             if (paymentId && pendente) {
                 try {
-                    // 1. Antes de salvar, vamos perguntar ao Mercado Pago o status REAL
-                    // Mostra um loading rápido
-                    window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento com o banco.');
-                    
+                    window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento.');
                     const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
                     const checkData = await checkResponse.json();
                     
-                    const statusReal = checkData.status || statusURL; // Usa o da API, se falhar usa da URL
-
+                    const statusReal = checkData.status || urlParams.get('collection_status');
                     const pedidoData = JSON.parse(pendente);
                     
-                    // Define o status bonito para exibir
                     let statusFinal = 'Pendente';
                     if (statusReal === 'approved') statusFinal = 'Pago';
                     if (statusReal === 'rejected') statusFinal = 'Cancelado';
-                    if (statusReal === 'in_process') statusFinal = 'Em Análise';
-
-                    // 2. Salvar no Banco de Dados (Independente se aprovou ou não!)
+                    
                     await addDoc(collection(db, "users", user.uid, "orders"), {
                         items: pedidoData.items,
                         total: pedidoData.total,
                         data: new Date(),
-                        status: statusFinal, // Salva o status real
+                        status: statusFinal,
                         id_pagamento: paymentId,
-                        metodo: checkData.payment_type || 'MP'
+                        metodo: checkData.payment_type || 'MP',
+                        entrega: pedidoData.entrega || {}
                     });
 
-                    // 3. Limpar carrinho e memória
                     await updateDoc(doc(db, "users", user.uid), { cart: [] });
                     cart = [];
                     updateCartUI();
                     localStorage.removeItem('pedido_pendente');
-
-                    // 4. Feedback ao Cliente
-                    document.getElementById('custom-dialog').classList.add('hidden'); // Fecha o loading
-                    if (statusReal === 'approved') {
-                        alert(`Sucesso! Seu pagamento foi confirmado.`);
-                    } else {
-                        alert(`Pedido Registrado! Status atual: ${statusFinal}. Se você pagou via Pix, aguarde alguns minutos que atualizará automático.`);
-                    }
-
-                    // 5. Limpa a URL
+                    document.getElementById('custom-dialog').classList.add('hidden');
+                    alert(`Pedido Registrado! Status: ${statusFinal}`);
                     window.history.replaceState({}, document.title, window.location.pathname);
-
                 } catch (e) {
-                    console.error("Erro ao verificar/salvar:", e);
-                    alert("Erro ao confirmar status, mas seu pedido foi salvo para análise.");
+                    console.error(e);
+                    document.getElementById('custom-dialog').classList.add('hidden');
                 }
             }
-            // ============================================================
 
         } else {
-            // Logout logic...
             currentUserData = null;
             cart = [];
             updateCartUI();
@@ -1045,26 +1042,321 @@
 
     document.getElementById('logout-btn').onclick = () => signOut(auth);
 
-    document.getElementById('profile-form').onsubmit = async (e) => {
-        e.preventDefault();
-        const statusMsg = document.getElementById('profile-status');
-        if (!auth.currentUser) return;
-        statusMsg.innerText = "Salvando...";
+    // --- FUNÇÕES GLOBAIS DE CARRINHO E INTERFACE ---
+    
+    // Função para alterar o modo de endereço e atualizar a UI
+    window.setAddressMode = (mode) => {
+        window.addressMode = mode; // Atualiza variável global
+        freteSelecionado = null; // Reseta frete ao mudar endereço
+        updateCartUI();
+    };
+
+    window.updateCartUI = function() {
+        const container = document.getElementById('cart-items');
+        const totalEl = document.getElementById('cart-total');
+        const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
+        
+        // Atualiza contadores
+        countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
+        
+        // Calcula valores
+        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+        const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
+        const totalFinal = subtotal + valorFrete;
+
+        if (totalEl) totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        
+        if (cart.length === 0) { 
+            container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-gray-400"><i class="fas fa-shopping-basket text-6xl mb-4 opacity-20"></i><p>Seu carrinho está vazio.</p></div>`; 
+            freteSelecionado = null;
+            return; 
+        }
+
+        let html = cart.map((item, index) => `
+            <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-3 relative">
+                <img src="${item.image}" class="w-16 h-16 object-cover rounded-lg bg-gray-50">
+                <div class="flex-grow pr-8">
+                    <h4 class="font-bold text-sm text-gray-800 line-clamp-2">${item.name}</h4>
+                    <p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                </div>
+                <button onclick="window.removeFromCart(${index})" class="absolute top-3 right-3 text-gray-300 hover:text-red-500"><i class="fas fa-trash-alt"></i></button>
+            </div>`).join('');
+
+        // Lógica de visualização do endereço
+        const temEnderecoPerfil = currentUserData && currentUserData.cep && currentUserData.street;
+        
+        // Se estiver deslogado, força visualmente o modo 'other' ou pede login
+        const isProfileSelected = window.addressMode === 'profile';
+        const isOtherSelected = window.addressMode === 'other';
+
+        const addressSection = `
+            <div class="mt-6 pt-6 border-t border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> Entrega</h3>
+
+                <div onclick="window.setAddressMode('profile')" class="cursor-pointer mb-3 border-2 ${isProfileSelected ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-100 bg-white'} rounded-xl p-3 transition-all relative">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1"><i class="fas ${isProfileSelected ? 'fa-check-circle text-[var(--accent-color)]' : 'fa-circle text-gray-200'}"></i></div>
+                        <div class="flex-grow">
+                            <span class="font-bold text-sm text-gray-800">Usar Endereço Cadastrado</span>
+                            ${auth.currentUser ? (temEnderecoPerfil ? 
+                                `<p class="text-xs text-gray-500 mt-1">${currentUserData.street}, ${currentUserData.number} - ${currentUserData.neighborhood}<br>${currentUserData.city}/${currentUserData.state}</p>` : 
+                                `<div class="mt-2 text-xs text-red-500 font-bold">Endereço incompleto. <button onclick="switchView('profile-view'); toggleCart()" class="underline">Atualizar Perfil</button></div>`) 
+                                : `<div class="mt-2 text-xs text-gray-500">Faça login para usar esta opção.</div>`
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div onclick="window.setAddressMode('other')" class="cursor-pointer border-2 ${isOtherSelected ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-100 bg-white'} rounded-xl p-3 transition-all">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div><i class="fas ${isOtherSelected ? 'fa-check-circle text-[var(--accent-color)]' : 'fa-circle text-gray-200'}"></i></div>
+                        <span class="font-bold text-sm text-gray-800">Enviar para outro local</span>
+                    </div>
+                    
+                    <div id="form-outro-endereco" class="${isOtherSelected ? 'block' : 'hidden'} mt-2 pl-1 space-y-2 border-t border-orange-200 pt-3 animate-[fadeIn_0.3s]">
+                        <div class="flex gap-2">
+                             <input type="text" id="cart-cep-input" placeholder="CEP" onblur="window.buscarCepCart(this.value)" class="w-1/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none" maxlength="9">
+                             <input type="text" id="cart-rua" placeholder="Rua" class="w-2/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-gray-50 outline-none">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="cart-numero" placeholder="Número" class="w-1/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none">
+                            <input type="text" id="cart-bairro" placeholder="Bairro" class="w-2/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-gray-50 outline-none">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="cart-cidade" placeholder="Cidade" class="w-2/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-gray-50 outline-none">
+                            <input type="text" id="cart-uf" placeholder="UF" class="w-1/3 border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-gray-50 outline-none">
+                        </div>
+                        <input type="text" id="cart-comp" placeholder="Complemento (Opcional)" class="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none">
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button onclick="window.calcularFreteCarrinho()" class="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition flex justify-center items-center gap-2 border border-gray-300">
+                        <i class="fas fa-calculator"></i> ${freteSelecionado ? 'Recalcular Frete' : 'Calcular Frete'}
+                    </button>
+                </div>
+
+                <div id="frete-opcoes" class="mt-4 space-y-2">
+                    ${freteSelecionado ? 
+                        `<div class="flex justify-between items-center text-sm bg-green-50 p-3 rounded-xl border border-green-200 animate-[fadeIn_0.3s]">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600"><i class="fas fa-truck"></i></div>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">${freteSelecionado.nome}</span>
+                                    <span class="text-xs text-gray-500">Prazo: ${freteSelecionado.prazo} dias</span>
+                                </div>
+                            </div>
+                            <span class="font-bold text-green-700 text-lg">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
+                         </div>` : ''}
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html + addressSection;
+    };
+
+    window.calcularFreteCarrinho = async () => {
+        const opcoesDiv = document.getElementById('frete-opcoes');
+        let cepParaCalculo = '';
+
+        if (window.addressMode === 'profile') {
+            if (!currentUserData || !currentUserData.cep) {
+                alert("Para usar o endereço cadastrado, você precisa preencher seu perfil ou fazer login.");
+                return;
+            }
+            cepParaCalculo = currentUserData.cep;
+        } else {
+            const input = document.getElementById('cart-cep-input');
+            if(!input || input.value.length < 8) {
+                alert("Digite um CEP válido para o novo endereço.");
+                return;
+            }
+            cepParaCalculo = input.value;
+        }
+
+        cepParaCalculo = cepParaCalculo.replace(/\D/g, '');
+        opcoesDiv.innerHTML = '<div class="text-center text-gray-400 py-2"><i class="fas fa-spinner fa-spin"></i> Calculando...</div>';
+
         try {
-            const newData = {
-                phone: document.getElementById('profile-phone').value.trim(),
-                cep: document.getElementById('profile-cep').value.trim(),
-                street: document.getElementById('profile-street').value.trim(),
-                number: document.getElementById('profile-number').value.trim(),
-                neighborhood: document.getElementById('profile-neighborhood').value.trim(),
-                city: document.getElementById('profile-city').value.trim(),
-                state: document.getElementById('profile-state').value.trim(),
-                complement: document.getElementById('profile-complement').value.trim()
+            const response = await fetch('/api/frete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cepDestino: cepParaCalculo })
+            });
+
+            const dados = await response.json();
+            if (dados.error || !response.ok) throw new Error(dados.error || "Erro ao calcular");
+
+            let htmlOpcoes = '';
+            dados.forEach((op) => {
+                htmlOpcoes += `
+                    <label class="flex items-center justify-between border border-gray-200 p-3 rounded-xl cursor-pointer hover:border-[var(--accent-color)] hover:bg-orange-50 transition-all bg-white group select-none">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="frete" onchange='window.selecionarFrete(${JSON.stringify(op)})' class="accent-[var(--accent-color)] w-4 h-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-gray-700">${op.nome}</span>
+                                <span class="text-xs text-gray-400">Até ${op.prazo} dias úteis</span>
+                            </div>
+                        </div>
+                        <span class="text-base font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
+                    </label>
+                `;
+            });
+            opcoesDiv.innerHTML = htmlOpcoes;
+        } catch (e) {
+            console.error(e);
+            opcoesDiv.innerHTML = `<p class="text-xs text-red-500 text-center font-bold">Erro ao calcular frete.</p>`;
+        }
+    };
+
+    window.selecionarFrete = (opcao) => {
+        freteSelecionado = opcao;
+        updateCartUI();
+    };
+
+    window.safeAddToCart = async (name, price, image) => {
+        if(!auth.currentUser) { window.openModal(); return; }
+        cart.push({name, price, image}); updateCartUI(); toggleCart();
+        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
+        catch(e) { cart.pop(); updateCartUI(); }
+    };
+
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
+        // Histórico
+        try {
+            let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
+            recentes = recentes.filter(p => p.nome !== nome);
+            recentes.unshift({ nome, preco, imagem, categoria, rating });
+            if(recentes.length > 6) recentes.pop();
+            localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
+        } catch(e) {}
+
+        const modal = document.getElementById('product-modal');
+        document.getElementById('modal-product-image').src = imagem;
+        document.getElementById('modal-product-title').innerText = nome;
+        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
+        document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
+        document.getElementById('modal-product-desc').innerText = descricao || "Excelente produto Dynamix.";
+        
+        const starsContainer = document.getElementById('modal-product-stars');
+        if (starsContainer) {
+            let starsHTML = '';
+            const nota = parseInt(rating) || 5;
+            for(let i=0; i<5; i++) {
+                starsHTML += (i < nota) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+            }
+            starsContainer.innerHTML = starsHTML;
+        }
+
+        const oldPriceEl = document.getElementById('modal-product-old-price');
+        if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
+            oldPriceEl.innerText = 'R$ ' + precoAntigo;
+            oldPriceEl.classList.remove('hidden');
+        } else {
+            oldPriceEl.classList.add('hidden');
+        }
+
+        const btnCart = document.getElementById('modal-btn-add-cart');
+        const btnBuy = document.getElementById('modal-btn-buy-now');
+
+        // Clona para remover listeners antigos
+        const newBtnCart = btnCart.cloneNode(true);
+        btnCart.parentNode.replaceChild(newBtnCart, btnCart);
+        const newBtnBuy = btnBuy.cloneNode(true);
+        btnBuy.parentNode.replaceChild(newBtnBuy, btnBuy);
+
+        newBtnCart.onclick = () => {
+            window.safeAddToCart(nome, preco, imagem);
+            window.closeProductModal();
+        };
+
+        newBtnBuy.onclick = () => {
+            const msg = `Gostaria de comprar: *${nome}* por R$ ${preco.toFixed(2)}`;
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        modal.classList.replace('hidden', 'flex');
+    };
+
+    window.closeProductModal = () => {
+        document.getElementById('product-modal').classList.replace('flex', 'hidden');
+    };
+
+    window.removeFromCart = async (index) => {
+        if(!auth.currentUser) return;
+        cart.splice(index, 1); updateCartUI();
+        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
+    };
+
+    window.checkout = async () => {
+        if (!auth.currentUser) { window.openModal(); return; }
+        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+        if (!freteSelecionado) {
+            alert("Por favor, calcule e selecione um frete.");
+            if(!document.getElementById('cart-sidebar').classList.contains('open')) toggleCart();
+            return;
+        }
+
+        // Monta endereço
+        let enderecoFinal = {};
+        if (window.addressMode === 'profile') {
+            if (!currentUserData.street || !currentUserData.number) {
+                 alert("Complete seu cadastro no perfil ou use outro endereço.");
+                 switchView('profile-view'); toggleCart(); return;
+            }
+            enderecoFinal = {
+                rua: currentUserData.street,
+                numero: currentUserData.number,
+                bairro: currentUserData.neighborhood,
+                cidade: currentUserData.city,
+                estado: currentUserData.state,
+                cep: currentUserData.cep,
+                complemento: currentUserData.complement || ''
             };
-            await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
-            statusMsg.innerText = "Atualizado!";
-            setTimeout(() => { statusMsg.innerText = ""; }, 3000);
-        } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
+        } else {
+            // Address mode Other
+            const rua = document.getElementById('cart-rua').value;
+            const num = document.getElementById('cart-numero').value;
+            const bai = document.getElementById('cart-bairro').value;
+            const cid = document.getElementById('cart-cidade').value;
+            const uf = document.getElementById('cart-uf').value;
+            const cep = document.getElementById('cart-cep-input').value;
+            
+            if(!rua || !num || !bai || !cid || !uf || !cep) {
+                alert("Preencha o endereço de entrega completo.");
+                return;
+            }
+            enderecoFinal = { rua, numero: num, bairro: bai, cidade: cid, estado: uf, cep, complemento: document.getElementById('cart-comp').value };
+        }
+
+        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+        const txt = btnCheckout.innerHTML;
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+        btnCheckout.disabled = true;
+
+        const items = cart.map(i => ({ title: i.name, quantity: 1, currency_id: 'BRL', unit_price: parseFloat(i.price) }));
+        const payer = { email: currentUserData.email, name: currentUserData.fullName };
+
+        try {
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ items, payer, shipment_cost: freteSelecionado.preco })
+            });
+            const data = await response.json();
+            if (data.init_point) {
+                const totalComFrete = cart.reduce((s, i) => s + i.price, 0) + freteSelecionado.preco;
+                localStorage.setItem('pedido_pendente', JSON.stringify({
+                    items: cart, total: totalComFrete, frete: freteSelecionado, entrega: enderecoFinal, data: new Date().toISOString()
+                }));
+                window.location.href = data.init_point;
+            } else { throw new Error("Erro no link"); }
+        } catch (error) {
+            console.error(error); alert("Erro ao conectar.");
+        } finally {
+            btnCheckout.innerHTML = txt;
+            btnCheckout.disabled = false;
+        }
     };
 
     window.showDialog = (type, title, msg) => {
@@ -1100,443 +1392,29 @@
         });
     };
 
-    const deleteBtn = document.getElementById('delete-account-btn');
-    if(deleteBtn) deleteBtn.onclick = async () => {
-        const user = auth.currentUser; if(!user) return;
-        if(await window.showDialog('confirm', 'Excluir Conta?', 'Tem certeza?')) {
+    if(document.getElementById('profile-form')) {
+        document.getElementById('profile-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const statusMsg = document.getElementById('profile-status');
+            if (!auth.currentUser) return;
+            statusMsg.innerText = "Salvando...";
             try {
-                if (user.providerData[0].providerId === 'google.com') {
-                    await window.showDialog('alert', 'Confirmação', 'Faça login com Google novamente.');
-                    await reauthenticateWithPopup(user, new GoogleAuthProvider());
-                } else {
-                    const pass = await window.showDialog('password', 'Senha', 'Digite sua senha:');
-                    if(!pass) return;
-                    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, pass));
-                }
-                await deleteDoc(doc(db, "users", user.uid));
-                await deleteUser(user);
-                window.location.reload();
-            } catch(e) { window.showDialog('alert', 'Erro', e.message); }
-        }
-    };
-
-    let freteSelecionado = null; 
-
-    function updateCartUI() {
-        const container = document.getElementById('cart-items');
-        const totalEl = document.getElementById('cart-total');
-        const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
-        
-        // Atualiza contadores
-        countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
-        
-        // Calcula subtotal dos produtos
-        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-        
-        // Calcula Total Final (Produtos + Frete)
-        const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
-        const totalFinal = subtotal + valorFrete;
-
-        totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        
-        if (cart.length === 0) { 
-            container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; // Reseta frete se esvaziar
-            return; 
-        }
-
-        // HTML dos itens
-        let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-            </div>`).join('');
-
-        // --- NOVO: ÁREA DE CÁLCULO DE FRETE ---
-        html += `
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
-                <div class="flex gap-2">
-                    <input type="text" id="cart-cep-input" placeholder="Seu CEP" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
-                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold">OK</button>
-                </div>
-                <div id="frete-opcoes" class="mt-3 space-y-2">
-                    ${freteSelecionado ? 
-                        `<div class="flex justify-between text-sm bg-blue-50 p-2 rounded text-blue-800 border border-blue-200">
-                            <span>${freteSelecionado.nome} (${freteSelecionado.prazo} dias)</span>
-                            <span class="font-bold">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
-                         </div>` 
-                    : ''}
-                </div>
-            </div>
-        `;
-        
-        container.innerHTML = html;
+                const newData = {
+                    phone: document.getElementById('profile-phone').value.trim(),
+                    cep: document.getElementById('profile-cep').value.trim(),
+                    street: document.getElementById('profile-street').value.trim(),
+                    number: document.getElementById('profile-number').value.trim(),
+                    neighborhood: document.getElementById('profile-neighborhood').value.trim(),
+                    city: document.getElementById('profile-city').value.trim(),
+                    state: document.getElementById('profile-state').value.trim(),
+                    complement: document.getElementById('profile-complement').value.trim()
+                };
+                await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+                statusMsg.innerText = "Atualizado!";
+                setTimeout(() => { statusMsg.innerText = ""; }, 3000);
+            } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
+        };
     }
-
-    // --- NOVA FUNÇÃO PARA CALCULAR O FRETE ---
-    window.calcularFreteCarrinho = async () => {
-        const cepInput = document.getElementById('cart-cep-input');
-        const opcoesDiv = document.getElementById('frete-opcoes');
-        const cep = cepInput.value;
-
-        if (cep.length < 8) { alert("CEP incompleto."); return; }
-
-        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Consultando BrasilAPI...</p>';
-
-        try {
-            const response = await fetch('/api/frete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cepDestino: cep })
-            });
-
-            const dados = await response.json();
-
-            // SE DER ERRO, VAI MOSTRAR AQUI O MOTIVO REAL
-            if (dados.error || !response.ok) {
-                if (dados.fallback) {
-                    // Se você quiser ativar o fallback fixo depois, descomente aqui.
-                    // Por enquanto, vamos mostrar o erro para corrigir.
-                    console.log("Erro backend:", dados.error);
-                }
-                throw new Error(dados.error || "Erro desconhecido");
-            }
-
-            let htmlOpcoes = '';
-            dados.forEach((op) => {
-                htmlOpcoes += `
-                    <label class="flex items-center justify-between border p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-2">
-                            <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
-                            <span class="text-sm text-gray-700">${op.nome} <span class="text-xs text-gray-400">(${op.prazo} dias)</span></span>
-                        </div>
-                        <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
-                    </label>
-                `;
-            });
-            opcoesDiv.innerHTML = htmlOpcoes;
-
-        } catch (e) {
-            console.error(e);
-            // Aqui vai aparecer o erro vermelho na tela para você ler
-            opcoesDiv.innerHTML = `<p class="text-xs text-red-500 text-center font-bold">${e.message}</p>`;
-        }
-    };
-    window.selecionarFrete = (opcao) => {
-        freteSelecionado = opcao;
-        updateCartUI(); // Recarrega o carrinho para somar o total visualmente
-    };
-
-    // --- FUNÇÕES GLOBAIS ---
-    window.safeAddToCart = async (name, price, image) => {
-        if(!auth.currentUser) { openModal(); return; }
-        cart.push({name, price, image}); updateCartUI(); toggleCart();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
-        catch(e) { cart.pop(); updateCartUI(); }
-    };
-
-    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
-        // --- CÓDIGO NOVO: Salvar no Histórico ---
-        try {
-            let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
-            // Remove se já existir para adicionar no topo
-            recentes = recentes.filter(p => p.nome !== nome);
-            // Adiciona no início
-            recentes.unshift({ nome, preco, imagem, categoria, rating });
-            // Mantém apenas os últimos 6
-            if(recentes.length > 6) recentes.pop();
-            localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
-        } catch(e) { console.log('Erro ao salvar histórico'); }
-        // ----------------------------------------
-
-        const modal = document.getElementById('product-modal');
-        
-        document.getElementById('modal-product-image').src = imagem;
-        document.getElementById('modal-product-title').innerText = nome;
-        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
-        document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
-        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas.";
-        
-        const starsContainer = document.getElementById('modal-product-stars');
-        if (starsContainer) {
-            let starsHTML = '';
-            const nota = parseInt(rating) || 5;
-            for(let i=0; i<5; i++) {
-                if(i < nota) starsHTML += '<i class="fas fa-star"></i>';
-                else starsHTML += '<i class="far fa-star"></i>';
-            }
-            starsContainer.innerHTML = starsHTML;
-        }
-
-        const oldPriceEl = document.getElementById('modal-product-old-price');
-        if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
-            oldPriceEl.innerText = 'R$ ' + precoAntigo;
-            oldPriceEl.classList.remove('hidden');
-        } else {
-            oldPriceEl.classList.add('hidden');
-        }
-
-        const btnCart = document.getElementById('modal-btn-add-cart');
-        const btnBuy = document.getElementById('modal-btn-buy-now');
-
-        btnCart.onclick = () => {
-            window.safeAddToCart(nome, preco, imagem);
-            if(window.closeProductModal) window.closeProductModal();
-            else modal.classList.replace('flex', 'hidden'); 
-        };
-
-        btnBuy.onclick = () => {
-            const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-        };
-
-        modal.classList.replace('hidden', 'flex');
-    };
-
-    window.closeProductModal = () => {
-        document.getElementById('product-modal').classList.replace('flex', 'hidden');
-    };
-
-    window.removeFromCart = async (index) => {
-        if(!auth.currentUser) return;
-        cart.splice(index, 1); updateCartUI();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
-    };
-
-    window.checkout = async () => {
-        if (!auth.currentUser) { openModal(); return; }
-        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        
-        // --- VALIDAÇÃO DE FRETE ---
-        if (!freteSelecionado) {
-            alert("Por favor, calcule e selecione um frete antes de finalizar.");
-            // Abre o carrinho se estiver fechado
-            const sidebar = document.getElementById('cart-sidebar');
-            if (!sidebar.classList.contains('open')) toggleCart();
-            // Foca no input
-            setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
-            return;
-        }
-        // --------------------------
-
-        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-        const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
-        btnCheckout.disabled = true;
-
-        const items = cart.map(item => ({
-            title: item.name,
-            quantity: 1,
-            currency_id: 'BRL',
-            unit_price: parseFloat(item.price)
-        }));
-
-        const payer = {
-            email: currentUserData.email || "email@cliente.com",
-            name: currentUserData.fullName || "Cliente",
-        };
-
-        try {
-            const response = await fetch('/api/pagamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    items, 
-                    payer,
-                    shipment_cost: freteSelecionado.preco // ENVIA O VALOR DO FRETE
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.init_point) {
-                // Salva rascunho com o total INCLUINDO frete
-                const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
-                
-                localStorage.setItem('pedido_pendente', JSON.stringify({
-                    items: cart,
-                    total: totalComFrete,
-                    frete: freteSelecionado, // Salva info do frete
-                    data: new Date().toISOString()
-                }));
-                
-                window.location.href = data.init_point;
-            } else {
-                throw new Error("Erro ao gerar link.");
-            }
-
-        } catch (error) {
-            console.error(error);
-            alert("Erro na conexão. Finalizando pelo WhatsApp!");
-            
-            // Fallback WhatsApp com Frete
-            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\n`;
-            msg += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
-            cart.forEach(i => msg += `- ${i.name}\n`);
-            const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
-            msg += `\n*Total Final: R$ ${total.toFixed(2)}*`;
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-        } finally {
-            btnCheckout.innerHTML = textoOriginal;
-            btnCheckout.disabled = false;
-        }
-    };
-    window.openDashboardModal = async (type) => {
-        const modal = document.getElementById('dashboard-modal');
-        const titleEl = document.getElementById('dash-modal-title');
-        const contentEl = document.getElementById('dash-modal-content');
-        
-        // Abre o modal e mostra um "carregando"
-        modal.classList.replace('hidden', 'flex');
-        contentEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-[var(--primary-color)]"></i></div>';
-
-        // --- ABA DE PEDIDOS ---
-        if (type === 'orders') {
-            titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
-            
-            if (!auth.currentUser) {
-                contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
-                return;
-            }
-
-            try {
-                // Busca a coleção "orders" dentro do usuário atual, ordenado por data
-                const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
-                const querySnapshot = await getDocs(q);
-                
-                if (querySnapshot.empty) {
-                    contentEl.innerHTML = `
-                        <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                            <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
-                            <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
-                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
-                        </div>`;
-                } else {
-                    let html = '<div class="space-y-4">';
-                    querySnapshot.forEach((doc) => {
-                        const pedido = doc.data();
-                        
-                        // Formata a data do Firebase para pt-BR
-                        let dataFormatada = 'Data desconhecida';
-                        if (pedido.data && pedido.data.toDate) {
-                            dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        }
-                        
-                        // Cria uma string simples com os nomes dos produtos
-                        const resumoItens = pedido.items ? pedido.items.map(i => i.name).join(', ') : 'Itens variados';
-
-                        let corStatus = pedido.status === 'Pago' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-
-html += `
-<div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-    <div class="flex justify-between items-start mb-2">
-        <div>
-            <span class="${corStatus} text-xs font-bold px-2 py-1 rounded uppercase">${pedido.status}</span>
-            <h4 class="font-bold text-gray-800 mt-1">Pedido #${doc.id.slice(0,6).toUpperCase()}</h4>
-            <p class="text-xs text-gray-500">${dataFormatada}</p>
-        </div>
-        <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
-    </div>
-    <div class="flex gap-2 mt-3">
-        ${pedido.status !== 'Pago' ? 
-          `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors">
-             <i class="fas fa-sync-alt"></i> Atualizar Pagamento
-           </button>` : ''}
-        <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
-            Ajuda
-        </button>
-    </div>
-</div>`;
-                    });
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("Erro ao buscar pedidos:", error);
-                contentEl.innerHTML = '<p class="text-center text-red-500 mt-4">Erro ao carregar seu histórico de pedidos.</p>';
-            }
-
-        // --- ABA DE HISTÓRICO (Vistos Recentemente) ---
-        } else if (type === 'history') {
-            titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
-            
-            const recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
-            
-            if (recentes.length === 0) {
-                contentEl.innerHTML = `
-                    <div class="text-center py-10">
-                        <i class="far fa-eye-slash text-gray-300 text-5xl mb-3"></i>
-                        <p class="text-gray-500">Você ainda não visualizou nenhum produto.</p>
-                        <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-4 bg-[var(--primary-color)] text-black px-6 py-2 rounded-lg font-bold text-sm">Explorar Produtos</button>
-                    </div>
-                `;
-            } else {
-                let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
-                recentes.forEach(prod => {
-                    html += `
-                        <div class="flex items-center gap-3 bg-white border border-gray-100 p-2 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer" onclick="window.openProductModal('${prod.nome}', ${prod.preco}, '${prod.imagem}')">
-                            <img src="${prod.imagem}" class="w-16 h-16 object-cover rounded-md bg-gray-100">
-                            <div class="flex-grow min-w-0">
-                                <h4 class="font-bold text-sm text-gray-800 truncate">${prod.nome}</h4>
-                                <div class="flex items-center gap-1 text-xs text-yellow-400 mb-1"><i class="fas fa-star"></i> <span>${prod.rating || 5}.0</span></div>
-                                <span class="font-bold text-[var(--accent2-color)] text-sm">R$ ${prod.preco.toFixed(2).replace('.',',')}</span>
-                            </div>
-                            <button class="text-[var(--accent-color)] hover:scale-110 transition-transform"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                html += '<div class="mt-4 text-center"><button onclick="localStorage.removeItem(\'dynamix_recentes\'); openDashboardModal(\'history\')" class="text-xs text-red-400 underline">Limpar Histórico</button></div>';
-                contentEl.innerHTML = html;
-            }
-
-        // --- ABA DE SUPORTE ---
-        } else if (type === 'support') {
-            titleEl.innerHTML = '<i class="fas fa-headset text-green-600"></i> Central de Ajuda';
-            contentEl.innerHTML = `
-                <div class="text-center space-y-4">
-                    <img src="https://cdn-icons-png.flaticon.com/512/4961/4961759.png" class="w-24 mx-auto opacity-80">
-                    <h4 class="text-lg font-bold text-gray-800">Como podemos ajudar?</h4>
-                    <p class="text-sm text-gray-500 px-4">Nossa equipe de suporte está disponível para resolver dúvidas sobre pedidos, pagamentos ou produtos.</p>
-                    
-                    <div class="grid gap-3 mt-6">
-                        <a href="https://wa.me/5511916658264?text=Olá,%20preciso%20de%20ajuda%20com%20um%20pedido" target="_blank" class="flex items-center justify-center gap-3 bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all transform hover:scale-105">
-                            <i class="fab fa-whatsapp text-2xl"></i> Falar no WhatsApp
-                        </a>
-                        <a href="mailto:contato@dynamix.com.br" class="flex items-center justify-center gap-3 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all">
-                            <i class="far fa-envelope text-xl"></i> Enviar E-mail
-                        </a>
-                    </div>
-                    <p class="text-xs text-gray-400 mt-4">Horário de atendimento: Seg a Sex, 09h às 18h.</p>
-                </div>
-            `;
-        }
-    };
-    window.verificarStatusManual = async (paymentId, docId) => {
-        if(!paymentId || paymentId === 'MP') { alert("Pagamento manual ou antigo."); return; }
-        
-        try {
-            const btn = event.target;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-            
-            const response = await fetch(`/api/verificar?id=${]paymentId}`);
-            const data = await response.json();
-            
-            if(data.status === 'approved') {
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { status: 'Pago' });
-                alert("Pagamento confirmado! O status foi atualizado.");
-                openDashboardModal('orders'); // Recarrega a lista
-            } else {
-                alert(`O banco informou: ${data.status_detail || 'Ainda pendente'}. Tente novamente em instantes.`);
-            }
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Pagamento';
-        } catch(e) {
-            alert("Erro ao verificar.");
-        }
-    };
   </script>
 </body>
 </html>
