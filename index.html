@@ -627,6 +627,8 @@
 
     let currentUserData = null;
     let cart = [];
+    let addressMode = 'profile'; // 'profile' ou 'other'
+    let freteSelecionado = null;
 
     // --- CARREGAMENTO DE PRODUTOS ---
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
@@ -740,7 +742,37 @@
             }
         });
     }
+window.setAddressMode = (mode) => {
+        addressMode = mode;
+        freteSelecionado = null; // Reseta o frete ao trocar o modo
+        updateCartUI();
+    };
 
+    // Busca CEP específica para o formulário do carrinho
+    window.buscarCepCart = async (valor) => {
+        const cep = valor.replace(/\D/g, '');
+        if (cep.length !== 8) return;
+        
+        // Feedback visual simples
+        document.getElementById('cart-rua').value = "...";
+        
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+            if (!data.erro) {
+                document.getElementById('cart-rua').value = data.logradouro;
+                document.getElementById('cart-bairro').value = data.bairro;
+                document.getElementById('cart-cidade').value = data.localidade;
+                document.getElementById('cart-uf').value = data.uf;
+                document.getElementById('cart-numero').focus();
+            } else {
+                alert("CEP não encontrado.");
+                document.getElementById('cart-rua').value = "";
+            }
+        } catch (e) {
+            document.getElementById('cart-rua').value = "";
+        }
+    };
     window.buscarCep = async (valor, prefixo) => {
         const cep = valor.replace(/\D/g, '');
         if (cep.length !== 8) return;
@@ -1130,89 +1162,171 @@
         // Atualiza contadores
         countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
         
-        // Calcula subtotal dos produtos
+        // Calcula subtotal
         const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-        
-        // Calcula Total Final (Produtos + Frete)
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         const totalFinal = subtotal + valorFrete;
 
         totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         
         if (cart.length === 0) { 
-            container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; // Reseta frete se esvaziar
+            container.innerHTML = `<div class="flex flex-col items-center justify-center h-64 text-gray-400">
+                <i class="fas fa-shopping-basket text-6xl mb-4 opacity-20"></i>
+                <p>Seu carrinho está vazio.</p>
+            </div>`; 
+            freteSelecionado = null;
             return; 
         }
 
         // HTML dos itens
         let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+            <div class="flex items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-3 relative group">
+                <img src="${item.image}" class="w-16 h-16 object-cover rounded-lg bg-gray-50">
+                <div class="flex-grow pr-8">
+                    <h4 class="font-bold text-sm text-gray-800 line-clamp-2 leading-tight">${item.name}</h4>
+                    <p class="text-sm font-bold text-[var(--accent2-color)] mt-1">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                </div>
+                <button onclick="window.removeFromCart(${index})" class="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors p-1">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
             </div>`).join('');
 
-        // --- NOVO: ÁREA DE CÁLCULO DE FRETE ---
-        html += `
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
-                <div class="flex gap-2">
-                    <input type="text" id="cart-cep-input" placeholder="Seu CEP" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
-                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold">OK</button>
+        // --- LÓGICA DE ENDEREÇO ELEGANTE ---
+        const temEnderecoPerfil = currentUserData && currentUserData.cep && currentUserData.street;
+        
+        // Seção de Endereço e Frete
+        const addressSection = `
+            <div class="mt-6 pt-6 border-t border-gray-100">
+                <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> Entrega
+                </h3>
+
+                <div onclick="window.setAddressMode('profile')" class="cursor-pointer mb-3 border-2 ${addressMode === 'profile' ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-100 bg-white'} rounded-xl p-3 relative transition-all hover:border-orange-200">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-1">
+                            <i class="fas ${addressMode === 'profile' ? 'fa-check-circle text-[var(--accent-color)]' : 'fa-circle text-gray-200'}"></i>
+                        </div>
+                        <div class="flex-grow">
+                            <span class="font-bold text-sm text-gray-800">Usar Endereço Cadastrado</span>
+                            ${temEnderecoPerfil ? 
+                                `<p class="text-xs text-gray-500 mt-1 leading-relaxed">${currentUserData.street}, ${currentUserData.number} - ${currentUserData.neighborhood}<br>${currentUserData.city}/${currentUserData.state} - CEP: ${currentUserData.cep}</p>` 
+                                : 
+                                `<div class="mt-2">
+                                    <p class="text-xs text-red-500 mb-2 font-bold"><i class="fas fa-exclamation-circle"></i> Endereço incompleto.</p>
+                                    <button onclick="event.stopPropagation(); switchView('profile-view'); toggleCart();" class="text-xs bg-gray-800 text-white px-3 py-1.5 rounded-md font-bold hover:bg-black transition">Cadastrar Agora</button>
+                                 </div>`
+                            }
+                        </div>
+                    </div>
                 </div>
-                <div id="frete-opcoes" class="mt-3 space-y-2">
+
+                <div onclick="window.setAddressMode('other')" class="cursor-pointer border-2 ${addressMode === 'other' ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-100 bg-white'} rounded-xl p-3 transition-all hover:border-orange-200">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div>
+                            <i class="fas ${addressMode === 'other' ? 'fa-check-circle text-[var(--accent-color)]' : 'fa-circle text-gray-200'}"></i>
+                        </div>
+                        <span class="font-bold text-sm text-gray-800">Enviar para outro endereço</span>
+                    </div>
+                    
+                    <div id="form-outro-endereco" class="${addressMode === 'other' ? 'block' : 'hidden'} mt-2 pl-2 space-y-2 animate-[fadeIn_0.3s]">
+                        <div class="flex gap-2">
+                             <input type="text" id="cart-cep-input" placeholder="CEP" onblur="window.buscarCepCart(this.value)" class="w-1/3 border border-gray-300 rounded px-2 py-1.5 text-sm focus:ring-1 focus:ring-[var(--accent-color)] outline-none" maxlength="9">
+                             <a href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" class="text-[10px] text-gray-400 underline flex items-center">Não sei o CEP</a>
+                        </div>
+                        <input type="text" id="cart-rua" placeholder="Rua / Avenida" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm bg-gray-50">
+                        <div class="flex gap-2">
+                            <input type="text" id="cart-numero" placeholder="Número" class="w-1/3 border border-gray-300 rounded px-2 py-1.5 text-sm">
+                            <input type="text" id="cart-bairro" placeholder="Bairro" class="w-2/3 border border-gray-300 rounded px-2 py-1.5 text-sm bg-gray-50">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="cart-cidade" placeholder="Cidade" class="w-2/3 border border-gray-300 rounded px-2 py-1.5 text-sm bg-gray-50">
+                            <input type="text" id="cart-uf" placeholder="UF" class="w-1/3 border border-gray-300 rounded px-2 py-1.5 text-sm bg-gray-50">
+                        </div>
+                        <input type="text" id="cart-comp" placeholder="Complemento (Opcional)" class="w-full border border-gray-300 rounded px-2 py-1.5 text-sm">
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button onclick="calcularFreteCarrinho()" class="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition flex justify-center items-center gap-2">
+                        <i class="fas fa-calculator"></i> Calcular Frete
+                    </button>
+                </div>
+
+                <div id="frete-opcoes" class="mt-4 space-y-2">
                     ${freteSelecionado ? 
-                        `<div class="flex justify-between text-sm bg-blue-50 p-2 rounded text-blue-800 border border-blue-200">
-                            <span>${freteSelecionado.nome} (${freteSelecionado.prazo} dias)</span>
-                            <span class="font-bold">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
-                         </div>` 
+                        `<div class="flex justify-between items-center text-sm bg-green-50 p-3 rounded-xl border border-green-200 animate-[fadeIn_0.3s]">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600"><i class="fas fa-box"></i></div>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-gray-800">${freteSelecionado.nome}</span>
+                                    <span class="text-xs text-gray-500">Chega em até ${freteSelecionado.prazo} dias</span>
+                                </div>
+                            </div>
+                            <span class="font-bold text-green-700 text-lg">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
+                         </div>
+                         <button onclick="freteSelecionado=null; updateCartUI()" class="text-xs text-gray-400 underline mt-1 w-full text-center hover:text-red-400">Limpar frete</button>` 
                     : ''}
                 </div>
             </div>
         `;
         
-        container.innerHTML = html;
+        container.innerHTML = html + addressSection;
     }
 
     // --- NOVA FUNÇÃO PARA CALCULAR O FRETE ---
     window.calcularFreteCarrinho = async () => {
-        const cepInput = document.getElementById('cart-cep-input');
         const opcoesDiv = document.getElementById('frete-opcoes');
-        const cep = cepInput.value;
+        let cepParaCalculo = '';
 
-        if (cep.length < 8) { alert("CEP incompleto."); return; }
+        // 1. Determina qual CEP usar
+        if (addressMode === 'profile') {
+            if (!currentUserData || !currentUserData.cep) {
+                alert("Você não possui um endereço cadastrado. Por favor, complete seu cadastro ou escolha 'Enviar para outro endereço'.");
+                return;
+            }
+            cepParaCalculo = currentUserData.cep;
+        } else {
+            // Modo Outro Endereço
+            const inputCep = document.getElementById('cart-cep-input');
+            if(!inputCep || inputCep.value.length < 8) {
+                alert("Por favor, digite um CEP válido para o novo endereço.");
+                return;
+            }
+            cepParaCalculo = inputCep.value;
+        }
 
-        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Consultando BrasilAPI...</p>';
+        // Limpa formatação
+        cepParaCalculo = cepParaCalculo.replace(/\D/g, '');
+
+        opcoesDiv.innerHTML = '<div class="flex items-center justify-center py-4 text-gray-500 gap-2"><i class="fas fa-spinner fa-spin text-[var(--accent-color)]"></i> Calculando...</div>';
 
         try {
             const response = await fetch('/api/frete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cepDestino: cep })
+                body: JSON.stringify({ cepDestino: cepParaCalculo })
             });
 
             const dados = await response.json();
 
-            // SE DER ERRO, VAI MOSTRAR AQUI O MOTIVO REAL
             if (dados.error || !response.ok) {
-                if (dados.fallback) {
-                    // Se você quiser ativar o fallback fixo depois, descomente aqui.
-                    // Por enquanto, vamos mostrar o erro para corrigir.
-                    console.log("Erro backend:", dados.error);
-                }
-                throw new Error(dados.error || "Erro desconhecido");
+                throw new Error(dados.error || "Erro ao calcular frete");
             }
 
             let htmlOpcoes = '';
             dados.forEach((op) => {
                 htmlOpcoes += `
-                    <label class="flex items-center justify-between border p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-2">
-                            <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
-                            <span class="text-sm text-gray-700">${op.nome} <span class="text-xs text-gray-400">(${op.prazo} dias)</span></span>
+                    <label class="flex items-center justify-between border border-gray-200 p-3 rounded-xl cursor-pointer hover:border-[var(--accent-color)] hover:bg-orange-50 transition-all bg-white group">
+                        <div class="flex items-center gap-3">
+                            <div class="relative flex items-center justify-center">
+                                <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})' class="peer appearance-none w-5 h-5 border-2 border-gray-300 rounded-full checked:border-[var(--accent-color)] checked:border-4 transition-all">
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-gray-700 group-hover:text-black">${op.nome}</span>
+                                <span class="text-xs text-gray-400 group-hover:text-gray-500">Entrega em ${op.prazo} dias úteis</span>
+                            </div>
                         </div>
-                        <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
+                        <span class="text-base font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
                     </label>
                 `;
             });
@@ -1220,8 +1334,10 @@
 
         } catch (e) {
             console.error(e);
-            // Aqui vai aparecer o erro vermelho na tela para você ler
-            opcoesDiv.innerHTML = `<p class="text-xs text-red-500 text-center font-bold">${e.message}</p>`;
+            opcoesDiv.innerHTML = `
+                <div class="bg-red-50 p-3 rounded-lg border border-red-100 text-center">
+                    <p class="text-xs text-red-500 font-bold"><i class="fas fa-exclamation-triangle"></i> ${e.message}</p>
+                </div>`;
         }
     };
     window.selecionarFrete = (opcao) => {
@@ -1309,18 +1425,61 @@
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         
-        // --- VALIDAÇÃO DE FRETE ---
+        // Validação de Frete
         if (!freteSelecionado) {
-            alert("Por favor, calcule e selecione um frete antes de finalizar.");
-            // Abre o carrinho se estiver fechado
+            alert("Por favor, calcule e selecione uma opção de frete.");
             const sidebar = document.getElementById('cart-sidebar');
             if (!sidebar.classList.contains('open')) toggleCart();
-            // Foca no input
-            setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
             return;
         }
-        // --------------------------
 
+        // --- CAPTURA E VALIDAÇÃO DO ENDEREÇO COMPLETO ---
+        let enderecoFinal = {};
+
+        if (addressMode === 'profile') {
+            // Usa dados do perfil
+            if (!currentUserData.street || !currentUserData.number || !currentUserData.cep) {
+                alert("Seu endereço de cadastro está incompleto. Atualize seu perfil ou escolha outro endereço.");
+                switchView('profile-view');
+                toggleCart();
+                return;
+            }
+            enderecoFinal = {
+                rua: currentUserData.street,
+                numero: currentUserData.number,
+                bairro: currentUserData.neighborhood,
+                cidade: currentUserData.city,
+                estado: currentUserData.state,
+                cep: currentUserData.cep,
+                complemento: currentUserData.complement || ''
+            };
+        } else {
+            // Usa dados do formulário do carrinho
+            const rua = document.getElementById('cart-rua').value;
+            const numero = document.getElementById('cart-numero').value;
+            const bairro = document.getElementById('cart-bairro').value;
+            const cidade = document.getElementById('cart-cidade').value;
+            const uf = document.getElementById('cart-uf').value;
+            const cep = document.getElementById('cart-cep-input').value;
+            const comp = document.getElementById('cart-comp').value;
+
+            if (!rua || !numero || !bairro || !cidade || !uf || !cep) {
+                alert("Por favor, preencha todos os campos do endereço de entrega.");
+                return;
+            }
+
+            enderecoFinal = {
+                rua: rua,
+                numero: numero,
+                bairro: bairro,
+                cidade: cidade,
+                estado: uf,
+                cep: cep,
+                complemento: comp
+            };
+        }
+
+        // Feedback Visual no botão
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
         btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
@@ -1345,20 +1504,21 @@
                 body: JSON.stringify({ 
                     items, 
                     payer,
-                    shipment_cost: freteSelecionado.preco // ENVIA O VALOR DO FRETE
+                    shipment_cost: freteSelecionado.preco
                 })
             });
 
             const data = await response.json();
 
             if (data.init_point) {
-                // Salva rascunho com o total INCLUINDO frete
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
+                // SALVA O PEDIDO COM O ENDEREÇO CORRETO
                 localStorage.setItem('pedido_pendente', JSON.stringify({
                     items: cart,
                     total: totalComFrete,
-                    frete: freteSelecionado, // Salva info do frete
+                    frete: freteSelecionado,
+                    entrega: enderecoFinal, // AQUI VAI O ENDEREÇO COMPLETO SELECIONADO
                     data: new Date().toISOString()
                 }));
                 
@@ -1369,16 +1529,7 @@
 
         } catch (error) {
             console.error(error);
-            alert("Erro na conexão. Finalizando pelo WhatsApp!");
-            
-            // Fallback WhatsApp com Frete
-            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\n`;
-            msg += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
-            cart.forEach(i => msg += `- ${i.name}\n`);
-            const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
-            msg += `\n*Total Final: R$ ${total.toFixed(2)}*`;
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+            alert("Erro na conexão. Tente novamente.");
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
