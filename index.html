@@ -630,54 +630,7 @@
 
     // --- CARREGAMENTO DE PRODUTOS ---
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
-function selecionarEnderecoEnvio(tipo) {
-    enderecoEnvioSelecionado = tipo; // null = cadastro | objeto = alternativo
-    document.getElementById('endereco-alternativo-fields')?.classList.add('hidden');
-    freteSelecionado = null; // Reseta frete quando muda endereço
-    updateCartUI();
-}
 
-function toggleEnderecoAlternativo(mostrar) {
-    const fields = document.getElementById('endereco-alternativo-fields');
-    if (fields) {
-        fields.classList.toggle('hidden', !mostrar);
-        if (mostrar) {
-            // Preenche com valores atuais se já tiver alternativo
-            if (enderecoEnvioSelecionado) {
-                document.getElementById('alt-cep').value = enderecoEnvioSelecionado.cep || '';
-                document.getElementById('alt-street').value = enderecoEnvioSelecionado.street || '';
-                document.getElementById('alt-number').value = enderecoEnvioSelecionado.number || '';
-                document.getElementById('alt-neighborhood').value = enderecoEnvioSelecionado.neighborhood || '';
-                document.getElementById('alt-city').value = enderecoEnvioSelecionado.city || '';
-                document.getElementById('alt-state').value = enderecoEnvioSelecionado.state || '';
-                document.getElementById('alt-complement').value = enderecoEnvioSelecionado.complement || '';
-            }
-        }
-    }
-}
-
-function confirmarEnderecoAlternativo() {
-    const cep = document.getElementById('alt-cep')?.value.trim();
-    const street = document.getElementById('alt-street')?.value.trim();
-    const number = document.getElementById('alt-number')?.value.trim();
-    const neighborhood = document.getElementById('alt-neighborhood')?.value.trim();
-    const city = document.getElementById('alt-city')?.value.trim();
-    const state = document.getElementById('alt-state')?.value.trim().toUpperCase();
-    const complement = document.getElementById('alt-complement')?.value.trim();
-
-    if (!cep || cep.length < 8 || !street || !number || !neighborhood || !city || !state) {
-        alert("Preencha todos os campos obrigatórios do endereço alternativo.");
-        return;
-    }
-
-    enderecoEnvioSelecionado = {
-        cep, street, number, neighborhood, city, state, complement
-    };
-
-    freteSelecionado = null; // Reseta frete
-    updateCartUI();
-    alert("Endereço alternativo confirmado! Agora calcule o frete com este CEP.");
-}
     function carregarProdutos() {
         if(typeof Papa === 'undefined') return;
         Papa.parse(LINK_DA_PLANILHA, {
@@ -1168,7 +1121,7 @@ function confirmarEnderecoAlternativo() {
     };
 
     let freteSelecionado = null; 
-let enderecoEnvioSelecionado = null;
+
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
@@ -1202,124 +1155,24 @@ let enderecoEnvioSelecionado = null;
 
         // --- NOVO: ÁREA DE CÁLCULO DE FRETE ---
         html += `
-    <div class="mt-6 pt-5 border-t border-gray-200">
-        <p class="text-sm font-bold text-gray-800 mb-3">Endereço de Envio</p>
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
+                <div class="flex gap-2">
+                    <input type="text" id="cart-cep-input" placeholder="Seu CEP" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
+                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold">OK</button>
+                </div>
+                <div id="frete-opcoes" class="mt-3 space-y-2">
+                    ${freteSelecionado ? 
+                        `<div class="flex justify-between text-sm bg-blue-50 p-2 rounded text-blue-800 border border-blue-200">
+                            <span>${freteSelecionado.nome} (${freteSelecionado.prazo} dias)</span>
+                            <span class="font-bold">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
+                         </div>` 
+                    : ''}
+                </div>
+            </div>
+        `;
         
-        <!-- Opção 1: Usar endereço do cadastro -->
-        <label class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 mb-3 transition-colors ${!currentUserData?.cep ? 'opacity-50 pointer-events-none' : ''}">
-            <input type="radio" name="enderecoEnvio" 
-                   ${enderecoEnvioSelecionado === null ? 'checked' : ''} 
-                   onchange="selecionarEnderecoEnvio(null)"
-                   class="mt-1 text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
-            <div class="flex-1">
-                <p class="font-medium text-sm">Usar endereço do cadastro</p>
-                ${currentUserData?.cep ? `
-                    <p class="text-xs text-gray-600 mt-1">
-                        ${currentUserData.street || 'Sem rua'}, ${currentUserData.number || 'S/N'}<br>
-                        ${currentUserData.neighborhood || ''} - ${currentUserData.city || ''}/${currentUserData.state || ''}<br>
-                        CEP: ${currentUserData.cep || 'Não informado'}
-                    </p>
-                ` : `
-                    <p class="text-xs text-red-600 mt-1 font-medium">
-                        Você ainda não possui endereço cadastrado
-                    </p>
-                `}
-            </div>
-        </label>
-
-        <!-- Opção 2: Endereço alternativo -->
-        <div class="border rounded-lg overflow-hidden">
-            <label class="flex items-center justify-between p-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors">
-                <div class="flex items-center gap-3">
-                    <input type="radio" name="enderecoEnvio" 
-                           ${enderecoEnvioSelecionado !== null ? 'checked' : ''} 
-                           onchange="toggleEnderecoAlternativo(true)"
-                           class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
-                    <span class="font-medium text-sm">Enviar para outro endereço</span>
-                </div>
-            </label>
-            
-            <div id="endereco-alternativo-fields" class="${enderecoEnvioSelecionado !== null ? '' : 'hidden'} p-4 bg-white border-t">
-                <div class="grid grid-cols-3 gap-3 mb-3">
-                    <div class="col-span-1">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">CEP *</label>
-                        <input type="text" id="alt-cep" maxlength="9" 
-                               onblur="buscarCep(this.value, 'alt')"
-                               oninput="this.value=this.value.replace(/\D/g,'').replace(/^(\d{5})(\d{3})$/,'$1-$3')"
-                               class="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--accent-color)]">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Rua *</label>
-                        <input type="text" id="alt-street" class="w-full border rounded px-3 py-2 text-sm bg-gray-50">
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Número *</label>
-                        <input type="text" id="alt-number" class="w-full border rounded px-3 py-2 text-sm">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Complemento</label>
-                        <input type="text" id="alt-complement" class="w-full border rounded px-3 py-2 text-sm">
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-3 gap-3 mb-3">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Bairro *</label>
-                        <input type="text" id="alt-neighborhood" class="w-full border rounded px-3 py-2 text-sm bg-gray-50">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">UF *</label>
-                        <input type="text" id="alt-state" maxlength="2" class="w-full border rounded px-3 py-2 text-sm bg-gray-50 uppercase">
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Cidade *</label>
-                        <input type="text" id="alt-city" class="w-full border rounded px-3 py-2 text-sm bg-gray-50">
-                    </div>
-                </div>
-                
-                <button onclick="confirmarEnderecoAlternativo()" 
-                        class="mt-4 w-full bg-[var(--accent-color)] hover:bg-[var(--accent2-color)] text-black font-bold py-2 px-4 rounded transition-colors text-sm">
-                    Confirmar este endereço
-                </button>
-            </div>
-        </div>
-
-        <!-- Área de frete (mantida) -->
-        <div class="mt-6 pt-4 border-t border-gray-200">
-            <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
-            <div class="flex gap-2 mb-3">
-                <input type="text" id="cart-cep-input" placeholder="CEP para cálculo" 
-                       class="w-full border rounded px-3 py-2 text-sm" maxlength="9"
-                       oninput="this.value=this.value.replace(/\D/g,'')">
-                <button onclick="calcularFreteCarrinho()" 
-                        class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-sm font-bold transition">
-                    Calcular
-                </button>
-            </div>
-            <div id="frete-opcoes" class="space-y-2 min-h-[60px]">
-                ${freteSelecionado ? `
-                    <div class="flex justify-between items-center p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-                        <div>
-                            <span class="font-medium">${freteSelecionado.nome}</span>
-                            <span class="text-gray-600 text-xs"> • ${freteSelecionado.prazo} dias</span>
-                        </div>
-                        <span class="font-bold text-[var(--accent2-color)]">
-                            R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}
-                        </span>
-                    </div>
-                ` : '<p class="text-xs text-gray-500 text-center py-2">Calcule o frete acima</p>'}
-            </div>
-        </div>
-    </div>
-`;
-
-container.innerHTML = html;
+        container.innerHTML = html;
     }
 
     // --- NOVA FUNÇÃO PARA CALCULAR O FRETE ---
@@ -1453,136 +1306,84 @@ container.innerHTML = html;
     };
 
     window.checkout = async () => {
-    if (!auth.currentUser) { 
-        openModal(); 
-        return; 
-    }
-    if (cart.length === 0) { 
-        alert("Carrinho vazio!"); 
-        return; 
-    }
-    
-    // Validação obrigatória do frete
-    if (!freteSelecionado) {
-        alert("Por favor, calcule e selecione um frete antes de finalizar.");
-        const sidebar = document.getElementById('cart-sidebar');
-        if (!sidebar.classList.contains('open')) toggleCart();
-        setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
-        return;
-    }
-
-    const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-    const textoOriginal = btnCheckout.innerHTML;
-    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
-    btnCheckout.disabled = true;
-
-    const items = cart.map(item => ({
-        title: item.name,
-        quantity: 1,
-        currency_id: 'BRL',
-        unit_price: parseFloat(item.price)
-    }));
-
-    const payer = {
-        email: currentUserData?.email || "cliente@exemplo.com",
-        name: currentUserData?.fullName || "Cliente",
-    };
-
-    // =============================================
-    // DEFINIR ENDEREÇO DE ENVIO ESCOLHIDO
-    // =============================================
-    let enderecoFinal = null;
-
-    if (enderecoEnvioSelecionado === null) {
-        // Usando endereço do cadastro
-        if (!currentUserData?.cep || !currentUserData?.street || !currentUserData?.number) {
-            alert("Você não possui endereço completo cadastrado.\nPor favor, cadastre um endereço na sua conta antes de continuar.");
-            switchView('profile-view');
-            toggleCart();
-            btnCheckout.innerHTML = textoOriginal;
-            btnCheckout.disabled = false;
+        if (!auth.currentUser) { openModal(); return; }
+        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+        
+        // --- VALIDAÇÃO DE FRETE ---
+        if (!freteSelecionado) {
+            alert("Por favor, calcule e selecione um frete antes de finalizar.");
+            // Abre o carrinho se estiver fechado
+            const sidebar = document.getElementById('cart-sidebar');
+            if (!sidebar.classList.contains('open')) toggleCart();
+            // Foca no input
+            setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
             return;
         }
+        // --------------------------
 
-        enderecoFinal = {
-            cep: currentUserData.cep,
-            street: currentUserData.street,
-            number: currentUserData.number || "S/N",
-            neighborhood: currentUserData.neighborhood || "",
-            city: currentUserData.city || "",
-            state: currentUserData.state || "",
-            complement: currentUserData.complement || ""
+        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+        const textoOriginal = btnCheckout.innerHTML;
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+        btnCheckout.disabled = true;
+
+        const items = cart.map(item => ({
+            title: item.name,
+            quantity: 1,
+            currency_id: 'BRL',
+            unit_price: parseFloat(item.price)
+        }));
+
+        const payer = {
+            email: currentUserData.email || "email@cliente.com",
+            name: currentUserData.fullName || "Cliente",
         };
-    } else {
-        // Usando endereço alternativo
-        enderecoFinal = enderecoEnvioSelecionado;
 
-        if (!enderecoFinal.cep || !enderecoFinal.street || !enderecoFinal.number) {
-            alert("O endereço alternativo está incompleto.\nPor favor, confirme ou corrija o endereço alternativo no carrinho.");
+        try {
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    items, 
+                    payer,
+                    shipment_cost: freteSelecionado.preco // ENVIA O VALOR DO FRETE
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.init_point) {
+                // Salva rascunho com o total INCLUINDO frete
+                const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
+                
+                localStorage.setItem('pedido_pendente', JSON.stringify({
+                    items: cart,
+                    total: totalComFrete,
+                    frete: freteSelecionado, // Salva info do frete
+                    data: new Date().toISOString()
+                }));
+                
+                window.location.href = data.init_point;
+            } else {
+                throw new Error("Erro ao gerar link.");
+            }
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro na conexão. Finalizando pelo WhatsApp!");
+            
+            // Fallback WhatsApp com Frete
+            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\n`;
+            msg += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
+            cart.forEach(i => msg += `- ${i.name}\n`);
+            const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
+            msg += `\n*Total Final: R$ ${total.toFixed(2)}*`;
+            
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+        } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
-            return;
         }
-    }
-
-    try {
-        const response = await fetch('/api/pagamento', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                items,
-                payer,
-                shipment_cost: freteSelecionado.preco,
-                // Opcional: se sua API quiser usar o endereço completo
-                // enderecoEnvio: enderecoFinal
-            })
-        });
-
-        const data = await response.json();
-
-        if (data.init_point) {
-            const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
-
-            localStorage.setItem('pedido_pendente', JSON.stringify({
-                items: cart,
-                total: totalComFrete,
-                frete: freteSelecionado,
-                endereco: enderecoFinal,           // Salva o endereço escolhido
-                data: new Date().toISOString()
-            }));
-
-            window.location.href = data.init_point;
-        } else {
-            throw new Error("Erro ao gerar link de pagamento.");
-        }
-    } catch (error) {
-        console.error("Erro no checkout:", error);
-        alert("Erro na conexão com o gateway. Finalizando pedido pelo WhatsApp...");
-
-        // Fallback WhatsApp com endereço completo
-        let msg = `*PEDIDO VIA SITE*\n\n`;
-        msg += `Cliente: ${currentUserData?.fullName || "Cliente"}\n`;
-        msg += `E-mail: ${currentUserData?.email || "Não informado"}\n\n`;
-        
-        msg += `**ENDEREÇO DE ENVIO**:\n`;
-        msg += `${enderecoFinal.street}, ${enderecoFinal.number} ${enderecoFinal.complement ? ` - ${enderecoFinal.complement}` : ''}\n`;
-        msg += `${enderecoFinal.neighborhood} - ${enderecoFinal.city}/${enderecoFinal.state}\n`;
-        msg += `CEP: ${enderecoFinal.cep}\n\n`;
-
-        msg += `**FRETE**: ${freteSelecionado.nome} (${freteSelecionado.prazo} dias) - R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}\n\n`;
-        
-        msg += `**ITENS**:\n`;
-        cart.forEach(i => msg += `- ${i.name} (R$ ${i.price.toFixed(2).replace('.',',')})\n`);
-        
-        const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
-        msg += `\n*Total Final: R$ ${total.toFixed(2).replace('.',',')}*`;
-
-        window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-    } finally {
-        btnCheckout.innerHTML = textoOriginal;
-        btnCheckout.disabled = false;
-    }
-};
+    };
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
         const titleEl = document.getElementById('dash-modal-title');
@@ -1721,7 +1522,7 @@ html += `
             const btn = event.target;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
             
-            const response = await fetch(`/api/verificar?id=${paymentId}`);
+            const response = await fetch(`/api/verificar?id=${]paymentId}`);
             const data = await response.json();
             
             if(data.status === 'approved') {
