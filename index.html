@@ -1522,7 +1522,7 @@ html += `
             const btn = event.target;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
             
-            const response = await fetch(`/api/verificar?id=${]paymentId}`);
+            const response = await fetch(`/api/verificar?id=${paymentId}`);
             const data = await response.json();
             
             if(data.status === 'approved') {
