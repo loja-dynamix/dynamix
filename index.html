@@ -627,12 +627,22 @@
 
     let currentUserData = null;
     let cart = [];
+    
+    // --- VARIÁVEIS DO FRETE AUTOMÁTICO ---
+    let freteSelecionado = null; 
+    let opcoesFreteCache = null; 
+    let cepCache = null; 
 
-    // --- CARREGAMENTO DE PRODUTOS ---
+    // --- CARREGAMENTO DE PRODUTOS (CORRIGIDO) ---
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
 
     function carregarProdutos() {
-        if(typeof Papa === 'undefined') return;
+        // Correção: Se o Papa não estiver pronto, tenta de novo em 100ms
+        if(typeof Papa === 'undefined') {
+            setTimeout(carregarProdutos, 100);
+            return;
+        }
+        
         Papa.parse(LINK_DA_PLANILHA, {
             download: true,
             header: true,
@@ -641,7 +651,7 @@
             },
             error: function(err) {
                 const container = document.getElementById('products-container');
-                if(container) container.innerHTML = '<p class="text-center text-red-500">Erro ao carregar produtos.</p>';
+                if(container) container.innerHTML = '<p class="text-center text-red-500">Erro ao carregar produtos. Verifique a planilha.</p>';
             }
         });
     }
@@ -651,8 +661,14 @@
         if(!container) return;
         
         container.innerHTML = "";
+        // Filtra linhas vazias ou inválidas
         const produtosValidos = produtos.filter(p => p.nome && p.preco_por);
         
+        if (produtosValidos.length === 0) {
+            container.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum produto encontrado na planilha.</p>';
+            return;
+        }
+
         // Na Home, mostra apenas os primeiros 10
         const listaFinal = produtosValidos.slice(0, 10);
 
@@ -673,7 +689,8 @@
 
             const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
             
-            const safeNome = produto.nome.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            // Tratamento de strings para evitar erros no HTML
+            const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
             const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
@@ -718,6 +735,7 @@
         });
     }
     
+    // Inicia o carregamento com a proteção de espera
     carregarProdutos();
 
     // --- Sincronização Auth e Carrinho ---
@@ -736,6 +754,8 @@
                         phone: data.phone, cep: data.cep, street: data.street, number: data.number,
                         neighborhood: data.neighborhood, city: data.city, state: data.state, complement: data.complement
                     });
+                    // Se o usuário logou e tem itens no carrinho, atualiza o frete
+                    if(cart.length > 0) updateCartUI();
                 }
             }
         });
@@ -776,7 +796,6 @@
     const backToLoginBtn = document.getElementById('back-to-login-btn');
     const socialSection = document.getElementById('social-login-section');
     const modalTitle = document.getElementById('modal-title');
-    const modalSubtitle = document.getElementById('modal-subtitle');
     const forgotLinkContainer = document.getElementById('forgot-link-container');
 
     let isLogin = true;
@@ -870,46 +889,32 @@
         }
     };
 
-    // --- LÓGICA DE RECUPERAÇÃO DE SENHA (CORRIGIDA E SEPARADA) ---
+    // --- LÓGICA DE RECUPERAÇÃO DE SENHA ---
     if (recoverForm) {
         recoverForm.onsubmit = async (e) => {
-            e.preventDefault(); // IMPEDE A PÁGINA DE REINICIAR
-            
+            e.preventDefault();
             const email = document.getElementById('recover-email').value;
             const msgBox = document.getElementById('recover-message');
             const btn = document.getElementById('send-recover-btn');
-
-            // Feedback visual
-            btn.disabled = true;
-            btn.innerText = "Enviando...";
+            
+            btn.disabled = true; btn.innerText = "Enviando...";
             msgBox.classList.add('hidden');
             msgBox.className = "text-sm text-center font-bold p-2 rounded hidden"; 
 
             try {
-                // Tenta enviar o e-mail
                 await sendPasswordResetEmail(auth, email);
-                
-                // Sucesso
                 msgBox.innerText = "Link enviado! Verifique seu e-mail.";
                 msgBox.classList.remove('hidden');
                 msgBox.classList.add('text-green-600', 'bg-green-50', 'border', 'border-green-200');
                 document.getElementById('recover-email').value = ""; 
-                
             } catch (error) {
-                // Erro
                 let mensagemErro = "Erro ao enviar.";
-                console.error(error.code); 
-
                 if (error.code === 'auth/user-not-found') mensagemErro = "Este e-mail não possui cadastro.";
-                if (error.code === 'auth/invalid-email') mensagemErro = "E-mail inválido.";
-                if (error.code === 'auth/too-many-requests') mensagemErro = "Muitas tentativas. Tente mais tarde.";
-
                 msgBox.innerText = mensagemErro;
                 msgBox.classList.remove('hidden');
                 msgBox.classList.add('text-red-600', 'bg-red-50', 'border', 'border-red-200');
             } finally {
-                btn.disabled = false;
-                btn.innerText = "Enviar Link de Recuperação";
+                btn.disabled = false; btn.innerText = "Enviar Link de Recuperação";
             }
         };
     }
@@ -949,14 +954,12 @@
             const docSnap = await getDoc(doc(db, "users", user.uid));
             
             if (!docSnap.exists() || !docSnap.data().cpf) {
-                // ... Lógica de cadastro incompleto (mantém igual) ...
                 modal.classList.replace('hidden','flex');
                 document.getElementById('email-input').value = user.email;
                 document.getElementById('register-fields').classList.remove('hidden');
                 return;
             }
-
-            // Login Sucesso
+            
             closeBtn.style.display = 'block';
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
@@ -965,76 +968,66 @@
             cart = currentUserData.cart || [];
             updateCartUI();
 
-            // Preenche dados do perfil (Código resumido aqui, mas mantenha o preenchimento dos inputs)
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
-            // ... (mantenha os outros campos do profile aqui) ...
+            document.getElementById('profile-cpf').value = currentUserData.cpf || "";
+            document.getElementById('profile-phone').value = currentUserData.phone || "";
+            document.getElementById('profile-cep').value = currentUserData.cep || "";
+            document.getElementById('profile-street').value = currentUserData.street || "";
+            document.getElementById('profile-number').value = currentUserData.number || "";
+            document.getElementById('profile-neighborhood').value = currentUserData.neighborhood || "";
+            document.getElementById('profile-city').value = currentUserData.city || "";
+            document.getElementById('profile-state').value = currentUserData.state || "";
+            document.getElementById('profile-complement').value = currentUserData.complement || "";
 
-            // ============================================================
-            // NOVA LÓGICA: DETECTAR RETORNO E CONSULTAR API REAL
-            // ============================================================
+            // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
-            const paymentId = urlParams.get('payment_id'); // ID oficial do MP
-            const statusURL = urlParams.get('collection_status'); // Status da URL (pode estar desatualizado)
-
-            // Se tiver um ID de pagamento na URL e tivermos um pedido pendente na memória
+            const paymentId = urlParams.get('payment_id'); 
+            const statusURL = urlParams.get('collection_status'); 
             const pendente = localStorage.getItem('pedido_pendente');
             
             if (paymentId && pendente) {
                 try {
-                    // 1. Antes de salvar, vamos perguntar ao Mercado Pago o status REAL
-                    // Mostra um loading rápido
                     window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento com o banco.');
                     
                     const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
                     const checkData = await checkResponse.json();
                     
-                    const statusReal = checkData.status || statusURL; // Usa o da API, se falhar usa da URL
-
+                    const statusReal = checkData.status || statusURL; 
                     const pedidoData = JSON.parse(pendente);
                     
-                    // Define o status bonito para exibir
                     let statusFinal = 'Pendente';
                     if (statusReal === 'approved') statusFinal = 'Pago';
                     if (statusReal === 'rejected') statusFinal = 'Cancelado';
                     if (statusReal === 'in_process') statusFinal = 'Em Análise';
-
-                    // 2. Salvar no Banco de Dados (Independente se aprovou ou não!)
+                    
                     await addDoc(collection(db, "users", user.uid, "orders"), {
                         items: pedidoData.items,
                         total: pedidoData.total,
                         data: new Date(),
-                        status: statusFinal, // Salva o status real
+                        status: statusFinal,
                         id_pagamento: paymentId,
                         metodo: checkData.payment_type || 'MP'
                     });
-
-                    // 3. Limpar carrinho e memória
+                    
                     await updateDoc(doc(db, "users", user.uid), { cart: [] });
                     cart = [];
                     updateCartUI();
                     localStorage.removeItem('pedido_pendente');
-
-                    // 4. Feedback ao Cliente
-                    document.getElementById('custom-dialog').classList.add('hidden'); // Fecha o loading
+                    
+                    document.getElementById('custom-dialog').classList.add('hidden');
                     if (statusReal === 'approved') {
                         alert(`Sucesso! Seu pagamento foi confirmado.`);
                     } else {
-                        alert(`Pedido Registrado! Status atual: ${statusFinal}. Se você pagou via Pix, aguarde alguns minutos que atualizará automático.`);
+                        alert(`Pedido Registrado! Status atual: ${statusFinal}.`);
                     }
-
-                    // 5. Limpa a URL
                     window.history.replaceState({}, document.title, window.location.pathname);
-
                 } catch (e) {
                     console.error("Erro ao verificar/salvar:", e);
                     alert("Erro ao confirmar status, mas seu pedido foi salvo para análise.");
                 }
             }
-            // ============================================================
-
         } else {
-            // Logout logic...
             currentUserData = null;
             cart = [];
             updateCartUI();
@@ -1062,6 +1055,11 @@
                 complement: document.getElementById('profile-complement').value.trim()
             };
             await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
+            
+            // Se houver alteração, atualiza o usuário local e o carrinho para recalcular frete
+            Object.assign(currentUserData, newData);
+            updateCartUI();
+
             statusMsg.innerText = "Atualizado!";
             setTimeout(() => { statusMsg.innerText = ""; }, 3000);
         } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
@@ -1120,20 +1118,15 @@
         }
     };
 
-    let freteSelecionado = null; 
-
+    // --- LÓGICA DO CARRINHO COM FRETE AUTOMÁTICO ---
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
         const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
         
-        // Atualiza contadores
         countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
         
-        // Calcula subtotal dos produtos
         const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-        
-        // Calcula Total Final (Produtos + Frete)
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         const totalFinal = subtotal + valorFrete;
 
@@ -1141,92 +1134,104 @@
         
         if (cart.length === 0) { 
             container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; // Reseta frete se esvaziar
+            freteSelecionado = null; 
+            opcoesFreteCache = null;
+            cepCache = null;
             return; 
         }
 
-        // HTML dos itens
         let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
                 <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
                 <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
                 <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
             </div>`).join('');
 
-        // --- NOVO: ÁREA DE CÁLCULO DE FRETE ---
-        html += `
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <p class="text-sm font-bold text-gray-700 mb-2">Calcular Frete:</p>
-                <div class="flex gap-2">
-                    <input type="text" id="cart-cep-input" placeholder="Seu CEP" class="w-full border rounded px-2 py-1 text-sm" maxlength="9" oninput="this.value = this.value.replace(/\\D/g,'')">
-                    <button onclick="calcularFreteCarrinho()" class="bg-gray-800 text-white px-3 py-1 rounded text-sm font-bold">OK</button>
-                </div>
-                <div id="frete-opcoes" class="mt-3 space-y-2">
-                    ${freteSelecionado ? 
-                        `<div class="flex justify-between text-sm bg-blue-50 p-2 rounded text-blue-800 border border-blue-200">
-                            <span>${freteSelecionado.nome} (${freteSelecionado.prazo} dias)</span>
-                            <span class="font-bold">R$ ${freteSelecionado.preco.toFixed(2).replace('.',',')}</span>
-                         </div>` 
-                    : ''}
-                </div>
-            </div>
-        `;
+        let addressBlock = '';
         
-        container.innerHTML = html;
+        // Verifica se o usuário tem CEP e Rua cadastrados no perfil
+        if (currentUserData && currentUserData.cep && currentUserData.street) {
+             addressBlock = `
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <div class="flex justify-between items-center mb-2">
+                        <p class="text-xs font-bold text-gray-700">
+                            <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> 
+                            Enviar para: <span class="font-normal text-gray-500">${currentUserData.street}, ${currentUserData.number}</span>
+                        </p>
+                        <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar Endereço</button>
+                    </div>
+                    <div id="frete-auto-container" class="space-y-2">
+                        <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculando frete...</div>
+                    </div>
+                </div>
+            `;
+            // Dispara o cálculo
+            setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
+        } else {
+             // Caso não tenha endereço, mostra botão para cadastrar
+             addressBlock = `
+                <div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-4 rounded-lg">
+                    <p class="text-xs text-red-600 mb-2 font-bold">Endereço de entrega não encontrado.</p>
+                    <button onclick="switchView('profile-view'); toggleCart()" class="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold w-full hover:bg-black transition">Cadastrar Endereço</button>
+                </div>
+            `;
+            freteSelecionado = null;
+        }
+
+        container.innerHTML = html + addressBlock;
     }
 
-    // --- NOVA FUNÇÃO PARA CALCULAR O FRETE ---
-    window.calcularFreteCarrinho = async () => {
-        const cepInput = document.getElementById('cart-cep-input');
-        const opcoesDiv = document.getElementById('frete-opcoes');
-        const cep = cepInput.value;
-
-        if (cep.length < 8) { alert("CEP incompleto."); return; }
-
-        opcoesDiv.innerHTML = '<p class="text-xs text-gray-500 text-center"><i class="fas fa-spinner fa-spin"></i> Consultando BrasilAPI...</p>';
+    // Função que busca o frete sem input manual
+    window.calcularFreteAutomatico = async (cep) => {
+        const container = document.getElementById('frete-auto-container');
+        if(!container || (cep === cepCache && opcoesFreteCache)) {
+            if(container && opcoesFreteCache) renderizarOpcoesFrete(container);
+            return;
+        }
 
         try {
             const response = await fetch('/api/frete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cepDestino: cep })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cepDestino: cep.replace(/\D/g, '') })
             });
-
             const dados = await response.json();
 
-            // SE DER ERRO, VAI MOSTRAR AQUI O MOTIVO REAL
-            if (dados.error || !response.ok) {
-                if (dados.fallback) {
-                    // Se você quiser ativar o fallback fixo depois, descomente aqui.
-                    // Por enquanto, vamos mostrar o erro para corrigir.
-                    console.log("Erro backend:", dados.error);
-                }
-                throw new Error(dados.error || "Erro desconhecido");
-            }
+            if (dados.error || !response.ok) throw new Error();
 
-            let htmlOpcoes = '';
-            dados.forEach((op) => {
-                htmlOpcoes += `
-                    <label class="flex items-center justify-between border p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors">
-                        <div class="flex items-center gap-2">
-                            <input type="radio" name="frete" onchange='selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
-                            <span class="text-sm text-gray-700">${op.nome} <span class="text-xs text-gray-400">(${op.prazo} dias)</span></span>
-                        </div>
-                        <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
-                    </label>
-                `;
-            });
-            opcoesDiv.innerHTML = htmlOpcoes;
-
+            cepCache = cep;
+            opcoesFreteCache = dados;
+            renderizarOpcoesFrete(container);
         } catch (e) {
-            console.error(e);
-            // Aqui vai aparecer o erro vermelho na tela para você ler
-            opcoesDiv.innerHTML = `<p class="text-xs text-red-500 text-center font-bold">${e.message}</p>`;
+            if(container) container.innerHTML = `<p class="text-[10px] text-red-500 text-center font-bold">Erro ao calcular frete. Verifique o CEP no perfil.</p>`;
         }
     };
+
+    function renderizarOpcoesFrete(container) {
+        if (!opcoesFreteCache) return;
+        let html = '';
+        
+        opcoesFreteCache.forEach((op) => {
+            const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
+            
+            html += `
+                <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50">
+                    <div class="flex items-center gap-3">
+                        <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)] h-4 w-4">
+                        <div class="flex flex-col">
+                            <span class="text-xs text-gray-800 font-bold">${op.nome}</span>
+                            <span class="text-[10px] text-gray-500">Prazo: ${op.prazo} dias</span>
+                        </div>
+                    </div>
+                    <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
+                </label>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
     window.selecionarFrete = (opcao) => {
         freteSelecionado = opcao;
-        updateCartUI(); // Recarrega o carrinho para somar o total visualmente
+        updateCartUI(); 
     };
 
     // --- FUNÇÕES GLOBAIS ---
@@ -1238,26 +1243,20 @@
     };
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
-        // --- CÓDIGO NOVO: Salvar no Histórico ---
         try {
             let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
-            // Remove se já existir para adicionar no topo
             recentes = recentes.filter(p => p.nome !== nome);
-            // Adiciona no início
             recentes.unshift({ nome, preco, imagem, categoria, rating });
-            // Mantém apenas os últimos 6
             if(recentes.length > 6) recentes.pop();
             localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
         } catch(e) { console.log('Erro ao salvar histórico'); }
-        // ----------------------------------------
 
         const modal = document.getElementById('product-modal');
-        
         document.getElementById('modal-product-image').src = imagem;
         document.getElementById('modal-product-title').innerText = nome;
         document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
-        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix. Aproveite nossas ofertas exclusivas.";
+        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix.";
         
         const starsContainer = document.getElementById('modal-product-stars');
         if (starsContainer) {
@@ -1309,17 +1308,18 @@
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         
-        // --- VALIDAÇÃO DE FRETE ---
+        // --- VALIDAÇÃO DE FRETE OBRIGATÓRIA ---
         if (!freteSelecionado) {
-            alert("Por favor, calcule e selecione um frete antes de finalizar.");
-            // Abre o carrinho se estiver fechado
-            const sidebar = document.getElementById('cart-sidebar');
-            if (!sidebar.classList.contains('open')) toggleCart();
-            // Foca no input
-            setTimeout(() => document.getElementById('cart-cep-input').focus(), 300);
+            if(!currentUserData || !currentUserData.street || !currentUserData.cep) {
+                alert("Para finalizar, precisamos do seu endereço de entrega. Por favor, complete seu cadastro.");
+                switchView('profile-view'); 
+                toggleCart(); 
+            } else {
+                alert("Por favor, selecione uma das opções de frete (Expresso ou Econômica) para continuar.");
+            }
             return;
         }
-        // --------------------------
+        // ---------------------------------------
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
@@ -1345,20 +1345,19 @@
                 body: JSON.stringify({ 
                     items, 
                     payer,
-                    shipment_cost: freteSelecionado.preco // ENVIA O VALOR DO FRETE
+                    shipment_cost: freteSelecionado.preco 
                 })
             });
 
             const data = await response.json();
 
             if (data.init_point) {
-                // Salva rascunho com o total INCLUINDO frete
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
                 localStorage.setItem('pedido_pendente', JSON.stringify({
                     items: cart,
                     total: totalComFrete,
-                    frete: freteSelecionado, // Salva info do frete
+                    frete: freteSelecionado,
                     data: new Date().toISOString()
                 }));
                 
@@ -1371,8 +1370,8 @@
             console.error(error);
             alert("Erro na conexão. Finalizando pelo WhatsApp!");
             
-            // Fallback WhatsApp com Frete
             let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\n`;
+            msg += `Endereço: ${currentUserData.street}, ${currentUserData.number}\n`;
             msg += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
             cart.forEach(i => msg += `- ${i.name}\n`);
             const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
@@ -1384,29 +1383,25 @@
             btnCheckout.disabled = false;
         }
     };
+
+    // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
         const titleEl = document.getElementById('dash-modal-title');
         const contentEl = document.getElementById('dash-modal-content');
         
-        // Abre o modal e mostra um "carregando"
         modal.classList.replace('hidden', 'flex');
         contentEl.innerHTML = '<div class="text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-[var(--primary-color)]"></i></div>';
 
-        // --- ABA DE PEDIDOS ---
         if (type === 'orders') {
             titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
-            
             if (!auth.currentUser) {
                 contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
                 return;
             }
-
             try {
-                // Busca a coleção "orders" dentro do usuário atual, ordenado por data
                 const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
                 const querySnapshot = await getDocs(q);
-                
                 if (querySnapshot.empty) {
                     contentEl.innerHTML = `
                         <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
@@ -1418,61 +1413,48 @@
                     let html = '<div class="space-y-4">';
                     querySnapshot.forEach((doc) => {
                         const pedido = doc.data();
-                        
-                        // Formata a data do Firebase para pt-BR
                         let dataFormatada = 'Data desconhecida';
                         if (pedido.data && pedido.data.toDate) {
                             dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
                         }
-                        
-                        // Cria uma string simples com os nomes dos produtos
-                        const resumoItens = pedido.items ? pedido.items.map(i => i.name).join(', ') : 'Itens variados';
-
                         let corStatus = pedido.status === 'Pago' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
-
-html += `
-<div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-    <div class="flex justify-between items-start mb-2">
-        <div>
-            <span class="${corStatus} text-xs font-bold px-2 py-1 rounded uppercase">${pedido.status}</span>
-            <h4 class="font-bold text-gray-800 mt-1">Pedido #${doc.id.slice(0,6).toUpperCase()}</h4>
-            <p class="text-xs text-gray-500">${dataFormatada}</p>
-        </div>
-        <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
-    </div>
-    <div class="flex gap-2 mt-3">
-        ${pedido.status !== 'Pago' ? 
-          `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors">
-             <i class="fas fa-sync-alt"></i> Atualizar Pagamento
-           </button>` : ''}
-        <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
-            Ajuda
-        </button>
-    </div>
-</div>`;
+                        html += `
+                        <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <span class="${corStatus} text-xs font-bold px-2 py-1 rounded uppercase">${pedido.status}</span>
+                                    <h4 class="font-bold text-gray-800 mt-1">Pedido #${doc.id.slice(0,6).toUpperCase()}</h4>
+                                    <p class="text-xs text-gray-500">${dataFormatada}</p>
+                                </div>
+                                <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
+                            </div>
+                            <div class="flex gap-2 mt-3">
+                                ${pedido.status !== 'Pago' ? 
+                                `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors">
+                                    <i class="fas fa-sync-alt"></i> Atualizar Pagamento
+                                </button>` : ''}
+                                <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
+                                    Ajuda
+                                </button>
+                            </div>
+                        </div>`;
                     });
                     html += '</div>';
                     contentEl.innerHTML = html;
                 }
             } catch (error) {
-                console.error("Erro ao buscar pedidos:", error);
                 contentEl.innerHTML = '<p class="text-center text-red-500 mt-4">Erro ao carregar seu histórico de pedidos.</p>';
             }
-
-        // --- ABA DE HISTÓRICO (Vistos Recentemente) ---
         } else if (type === 'history') {
             titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
-            
             const recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
-            
             if (recentes.length === 0) {
                 contentEl.innerHTML = `
                     <div class="text-center py-10">
                         <i class="far fa-eye-slash text-gray-300 text-5xl mb-3"></i>
                         <p class="text-gray-500">Você ainda não visualizou nenhum produto.</p>
                         <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-4 bg-[var(--primary-color)] text-black px-6 py-2 rounded-lg font-bold text-sm">Explorar Produtos</button>
-                    </div>
-                `;
+                    </div>`;
             } else {
                 let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
                 recentes.forEach(prod => {
@@ -1485,23 +1467,18 @@ html += `
                                 <span class="font-bold text-[var(--accent2-color)] text-sm">R$ ${prod.preco.toFixed(2).replace('.',',')}</span>
                             </div>
                             <button class="text-[var(--accent-color)] hover:scale-110 transition-transform"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                    `;
+                        </div>`;
                 });
                 html += '</div>';
                 html += '<div class="mt-4 text-center"><button onclick="localStorage.removeItem(\'dynamix_recentes\'); openDashboardModal(\'history\')" class="text-xs text-red-400 underline">Limpar Histórico</button></div>';
                 contentEl.innerHTML = html;
             }
-
-        // --- ABA DE SUPORTE ---
         } else if (type === 'support') {
             titleEl.innerHTML = '<i class="fas fa-headset text-green-600"></i> Central de Ajuda';
             contentEl.innerHTML = `
                 <div class="text-center space-y-4">
                     <img src="https://cdn-icons-png.flaticon.com/512/4961/4961759.png" class="w-24 mx-auto opacity-80">
                     <h4 class="text-lg font-bold text-gray-800">Como podemos ajudar?</h4>
-                    <p class="text-sm text-gray-500 px-4">Nossa equipe de suporte está disponível para resolver dúvidas sobre pedidos, pagamentos ou produtos.</p>
-                    
                     <div class="grid gap-3 mt-6">
                         <a href="https://wa.me/5511916658264?text=Olá,%20preciso%20de%20ajuda%20com%20um%20pedido" target="_blank" class="flex items-center justify-center gap-3 bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-green-600 transition-all transform hover:scale-105">
                             <i class="fab fa-whatsapp text-2xl"></i> Falar no WhatsApp
@@ -1510,25 +1487,20 @@ html += `
                             <i class="far fa-envelope text-xl"></i> Enviar E-mail
                         </a>
                     </div>
-                    <p class="text-xs text-gray-400 mt-4">Horário de atendimento: Seg a Sex, 09h às 18h.</p>
-                </div>
-            `;
+                </div>`;
         }
     };
     window.verificarStatusManual = async (paymentId, docId) => {
         if(!paymentId || paymentId === 'MP') { alert("Pagamento manual ou antigo."); return; }
-        
         try {
             const btn = event.target;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-            
             const response = await fetch(`/api/verificar?id=${paymentId}`);
             const data = await response.json();
-            
             if(data.status === 'approved') {
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { status: 'Pago' });
                 alert("Pagamento confirmado! O status foi atualizado.");
-                openDashboardModal('orders'); // Recarrega a lista
+                openDashboardModal('orders');
             } else {
                 alert(`O banco informou: ${data.status_detail || 'Ainda pendente'}. Tente novamente em instantes.`);
             }
