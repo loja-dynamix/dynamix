@@ -944,10 +944,11 @@
         } catch (err) { console.error(err); }
     };
 
-    onAuthStateChanged(auth, async (user) => {
+   onAuthStateChanged(auth, async (user) => {
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
         const nameDisplay = document.getElementById('user-name-display');
+        const verifyWarning = document.getElementById('verify-warning');
         
         if (user) {
             syncUserData(user.uid); 
@@ -963,11 +964,13 @@
             closeBtn.style.display = 'block';
             loginTrigger.classList.add('hidden');
             userMenu.classList.replace('hidden', 'flex');
+            
             currentUserData = docSnap.data();
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
             cart = currentUserData.cart || [];
             updateCartUI();
 
+            // Preenche formulário de perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -980,60 +983,27 @@
             document.getElementById('profile-state').value = currentUserData.state || "";
             document.getElementById('profile-complement').value = currentUserData.complement || "";
 
-            // --- Verificação de Pagamento (Mantida) ---
+            if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
+
+            // APENAS AVISA SE VOLTOU DO PAGAMENTO COM SUCESSO
+            // (O pedido já foi salvo na hora do checkout)
             const urlParams = new URLSearchParams(window.location.search);
-            const paymentId = urlParams.get('payment_id'); 
-            const statusURL = urlParams.get('collection_status'); 
-            const pendente = localStorage.getItem('pedido_pendente');
+            const statusURL = urlParams.get('collection_status');
             
-            if (paymentId && pendente) {
-                try {
-                    window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento com o banco.');
-                    
-                    const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
-                    const checkData = await checkResponse.json();
-                    
-                    const statusReal = checkData.status || statusURL; 
-                    const pedidoData = JSON.parse(pendente);
-                    
-                    let statusFinal = 'Pendente';
-                    if (statusReal === 'approved') statusFinal = 'Pago';
-                    if (statusReal === 'rejected') statusFinal = 'Cancelado';
-                    if (statusReal === 'in_process') statusFinal = 'Em Análise';
-                    
-                    await addDoc(collection(db, "users", user.uid, "orders"), {
-                        items: pedidoData.items,
-                        total: pedidoData.total,
-                        data: new Date(),
-                        status: statusFinal,
-                        id_pagamento: paymentId,
-                        link_pagamento: pedidoData.link || '#', // <--- SALVA O LINK NO BANCO
-                        metodo: checkData.payment_type || 'MP'
-                    });
-                    
-                    await updateDoc(doc(db, "users", user.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    localStorage.removeItem('pedido_pendente');
-                    
-                    document.getElementById('custom-dialog').classList.add('hidden');
-                    if (statusReal === 'approved') {
-                        alert(`Sucesso! Seu pagamento foi confirmado.`);
-                    } else {
-                        alert(`Pedido Registrado! Status atual: ${statusFinal}.`);
-                    }
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error("Erro ao verificar/salvar:", e);
-                    alert("Erro ao confirmar status, mas seu pedido foi salvo para análise.");
-                }
+            if (statusURL === 'approved') {
+                alert("Pagamento Aprovado! Seu pedido será processado.");
+                // Limpa a URL para não mostrar o alerta de novo
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Opcional: Atualizar o status do pedido mais recente para 'Pago' aqui se desejar
             }
+
         } else {
             currentUserData = null;
             cart = [];
             updateCartUI();
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
+            if (verifyWarning) verifyWarning.classList.add('hidden');
         }
     });
 
@@ -1309,18 +1279,17 @@
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         
-        // --- VALIDAÇÃO DE FRETE OBRIGATÓRIA ---
+        // Validação Frete
         if (!freteSelecionado) {
             if(!currentUserData || !currentUserData.street || !currentUserData.cep) {
-                alert("Para finalizar, precisamos do seu endereço de entrega. Por favor, complete seu cadastro.");
+                alert("Para finalizar, precisamos do seu endereço de entrega.");
                 switchView('profile-view'); 
                 toggleCart(); 
             } else {
-                alert("Por favor, selecione uma das opções de frete (Expresso ou Econômica) para continuar.");
+                alert("Por favor, selecione uma das opções de frete.");
             }
             return;
         }
-        // ---------------------------------------
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
@@ -1340,6 +1309,7 @@
         };
 
         try {
+            // 1. Gera o Link de Pagamento
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1355,15 +1325,23 @@
             if (data.init_point) {
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
-                // SALVA O LINK DENTRO DO PEDIDO PENDENTE
-                localStorage.setItem('pedido_pendente', JSON.stringify({
+                // 2. SALVA O PEDIDO NO BANCO AGORA (Como Pendente)
+                await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
                     items: cart,
                     total: totalComFrete,
-                    frete: freteSelecionado,
-                    link: data.init_point, // <--- ADICIONADO AQUI
-                    data: new Date().toISOString()
-                }));
-                
+                    data: new Date(),
+                    status: 'Pendente',
+                    link_pagamento: data.init_point, // Link para pagar depois se quiser
+                    id_pagamento: data.id, // ID da preferência
+                    metodo: 'MP'
+                });
+
+                // 3. LIMPA O CARRINHO NO BANCO E NA TELA
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+                cart = [];
+                updateCartUI();
+
+                // 4. REDIRECIONA PARA O PAGAMENTO
                 window.location.href = data.init_point;
             } else {
                 throw new Error("Erro ao gerar link.");
@@ -1371,16 +1349,7 @@
 
         } catch (error) {
             console.error(error);
-            alert("Erro na conexão. Finalizando pelo WhatsApp!");
-            
-            let msg = `*PEDIDO*\nCliente: ${currentUserData.fullName}\n`;
-            msg += `Endereço: ${currentUserData.street}, ${currentUserData.number}\n`;
-            msg += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
-            cart.forEach(i => msg += `- ${i.name}\n`);
-            const total = cart.reduce((sum, item) => sum + item.price, 0) + freteSelecionado.preco;
-            msg += `\n*Total Final: R$ ${total.toFixed(2)}*`;
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
+            alert("Erro ao processar pedido. Tente novamente.");
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
