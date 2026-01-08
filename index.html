@@ -1007,6 +1007,7 @@
                         data: new Date(),
                         status: statusFinal,
                         id_pagamento: paymentId,
+                        link_pagamento: pedidoData.link || '#', // <--- SALVA O LINK NO BANCO
                         metodo: checkData.payment_type || 'MP'
                     });
                     
@@ -1354,10 +1355,12 @@
             if (data.init_point) {
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
+                // SALVA O LINK DENTRO DO PEDIDO PENDENTE
                 localStorage.setItem('pedido_pendente', JSON.stringify({
                     items: cart,
                     total: totalComFrete,
                     frete: freteSelecionado,
+                    link: data.init_point, // <--- ADICIONADO AQUI
                     data: new Date().toISOString()
                 }));
                 
@@ -1428,13 +1431,24 @@
                                 </div>
                                 <span class="font-bold text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
                             </div>
-                            <div class="flex gap-2 mt-3">
+                            
+                            <div class="grid grid-cols-2 gap-2 mt-3">
                                 ${pedido.status !== 'Pago' ? 
-                                `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="flex-1 bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors">
-                                    <i class="fas fa-sync-alt"></i> Atualizar Pagamento
-                                </button>` : ''}
-                                <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="flex-1 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
-                                    Ajuda
+                                  // Botão de Atualizar Status
+                                  `<button onclick="verificarStatusManual('${pedido.id_pagamento}', '${doc.id}')" class="bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors flex items-center justify-center gap-1">
+                                     <i class="fas fa-sync-alt"></i> Atualizar
+                                   </button>
+                                   
+                                   ${pedido.link_pagamento ? 
+                                     // Botão de Pagar Novamente (Se tiver link)
+                                     `<a href="${pedido.link_pagamento}" class="bg-green-500 text-white py-2 rounded-lg font-bold text-xs hover:bg-green-600 transition-colors flex items-center justify-center gap-1 text-center decoration-0">
+                                        <i class="fas fa-credit-card"></i> Pagar Agora
+                                      </a>` 
+                                     : ''}
+                                  ` : ''}
+                                
+                                <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${doc.id}', '_blank')" class="bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors col-span-2">
+                                    Preciso de Ajuda
                                 </button>
                             </div>
                         </div>`;
