@@ -14,7 +14,7 @@
   <style>
     :root {
       --accent-color: #f3a712;
-      --accent2-color: #ff8600;
+      --accent2-color: #ff8600;Q
       --accent3-color: #155d9a;
       --accent4-color: #125186;
       --primary-color: #ffc30d;
@@ -1366,9 +1366,10 @@
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         
+        // --- VALIDAÇÃO DE FRETE ---
         if (!freteSelecionado) {
             if(!currentUserData || !currentUserData.street || !currentUserData.cep) {
-                alert("Para finalizar, precisamos do seu endereço de entrega.");
+                alert("Para finalizar, precisamos do seu endereço de entrega. Por favor, complete seu cadastro.");
                 switchView('profile-view'); 
                 toggleCart(); 
             } else {
@@ -1381,6 +1382,10 @@
         const textoOriginal = btnCheckout.innerHTML;
         btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         btnCheckout.disabled = true;
+
+        // Prepara os dados do cálculo
+        const totalProdutos = cart.reduce((sum, i) => sum + i.price, 0);
+        const totalFinal = totalProdutos + freteSelecionado.preco;
 
         const items = cart.map(item => ({
             title: item.name,
@@ -1395,7 +1400,20 @@
         };
 
         try {
-            // 1. Gera Link
+            // 1. PASSO IMPORTANTE: SALVA O PEDIDO NO BANCO *ANTES* DE TENTAR PAGAR
+            // Assim, se a conexão falhar depois, o pedido já existe!
+            const docRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
+                items: cart,
+                total: totalFinal,
+                frete_escolhido: freteSelecionado,
+                data: new Date(),
+                status: 'Processando...', // Status temporário
+                metodo: 'Pendente',
+                link_pagamento: '#'
+            });
+
+            // 2. TENTA GERAR O LINK DE PAGAMENTO (BACKEND)
+            // Se der erro aqui (conexão), vai para o CATCH, mas o pedido já está salvo (docRef)
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1406,36 +1424,54 @@
                 })
             });
 
+            if (!response.ok) throw new Error(`Erro API: ${response.status}`);
+            
             const data = await response.json();
 
             if (data.init_point) {
-                const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
-                
-                // 2. Salva Pedido (Pendente)
-                await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
-                    items: cart,
-                    total: totalComFrete,
-                    data: new Date(),
+                // 3. SUCESSO: Atualiza o pedido com o link e limpa o carrinho
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docRef.id), {
                     status: 'Pendente',
                     link_pagamento: data.init_point,
                     id_pagamento: data.id,
-                    metodo: 'MP'
+                    metodo: 'Mercado Pago'
                 });
 
-                // 3. Limpa Carrinho
+                // Limpa carrinho
                 await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
                 cart = [];
                 updateCartUI();
-
-                // 4. Redireciona
+                
+                // Redireciona
                 window.location.href = data.init_point;
             } else {
-                throw new Error("Erro ao gerar link.");
+                throw new Error("Link de pagamento não gerado.");
             }
+
         } catch (error) {
-            console.error(error);
-            alert("Erro na conexão. Tente novamente.");
-        } finally {
+            console.error("Erro no checkout:", error);
+            
+            // 4. FALHA NO MERCADO PAGO? FALLBACK PARA WHATSAPP
+            // Se cair aqui, é porque a API falhou. Vamos atualizar o pedido para "A Combinar"
+            // Para não perder a venda.
+            
+            // Tenta recuperar o ID do documento se foi criado no passo 1
+            // (Nota: se o erro foi no passo 1, docRef não existe, mas assumindo erro de conexão na API)
+            
+            let msgErro = "Houve um erro na conexão com o banco, mas geramos seu pedido via WhatsApp!";
+            
+            // Monta mensagem do Zap
+            let msgZap = `*PEDIDO (Erro no Site)*\nCliente: ${currentUserData.fullName}\n`;
+            msgZap += `Endereço: ${currentUserData.street}, ${currentUserData.number}\n`;
+            msgZap += `Frete: ${freteSelecionado.nome} (R$ ${freteSelecionado.preco.toFixed(2)})\nItens:\n`;
+            cart.forEach(i => msgZap += `- ${i.name}\n`);
+            msgZap += `\n*Total Final: R$ ${totalFinal.toFixed(2)}*`;
+            msgZap += `\n\n(O sistema de pagamento automático falhou, desejo pagar via Pix/Transferência)`;
+
+            alert(msgErro);
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msgZap)}`, '_blank');
+            
+            // Limpa o botão
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
         }
