@@ -539,19 +539,22 @@
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
 
+    // --- VARIÁVEIS GLOBAIS ---
     let currentUserData = null;
     let cart = [];
     
-    // --- VARIÁVEIS DO FRETE AUTOMÁTICO ---
-    let freteSelecionado = null; 
-    let opcoesFreteCache = null; 
-    let cepCache = null; 
+    // Variáveis de Frete
+    let freteSelecionado = null;
+    let opcoesFreteCache = null;
+    let cepCache = null;
 
-    // --- CARREGAMENTO DE PRODUTOS (CORRIGIDO) ---
+    // Variáveis de Produtos/Filtros
+    let todosProdutos = [];
+    let categoriasUnicas = new Set();
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
 
+    // --- CARREGAMENTO DE PRODUTOS E CATEGORIAS ---
     function carregarProdutos() {
-        // Correção: Se o Papa não estiver pronto, tenta de novo em 100ms
         if(typeof Papa === 'undefined') {
             setTimeout(carregarProdutos, 100);
             return;
@@ -561,32 +564,158 @@
             download: true,
             header: true,
             complete: function(results) {
-                renderizarProdutos(results.data);
+                // 1. Processa todos os produtos
+                todosProdutos = results.data.filter(p => p.nome && p.preco_por).map(p => ({
+                    ...p,
+                    precoNumerico: parseFloat(p.preco_por.replace(',', '.')) || 0,
+                    categoriaNormalizada: p.categoria ? p.categoria.trim() : 'Outros'
+                }));
+                
+                // 2. Extrai categorias únicas para o filtro
+                categoriasUnicas = new Set();
+                todosProdutos.forEach(p => categoriasUnicas.add(p.categoriaNormalizada));
+                
+                // 3. Gera o HTML do filtro lateral
+                gerarFiltrosCategorias();
+                
+                // 4. Verifica se tem filtro na URL (ex: ?categoria=Treino)
+                verificarParametrosURL();
             },
             error: function(err) {
                 const container = document.getElementById('products-container');
-                if(container) container.innerHTML = '<p class="text-center text-red-500">Erro ao carregar produtos. Verifique a planilha.</p>';
+                if(container) container.innerHTML = '<p class="col-span-full text-center text-red-500">Erro ao carregar produtos. Verifique a planilha.</p>';
             }
         });
     }
 
-    function renderizarProdutos(produtos) {
+    // --- LÓGICA DE FILTROS ---
+    function verificarParametrosURL() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const categoriaURL = urlParams.get('categoria');
+
+        if (categoriaURL) {
+            // Desmarca "Todos"
+            const catAll = document.getElementById('cat-all');
+            if(catAll) catAll.checked = false;
+
+            // Marca a categoria correta
+            const checkboxes = document.querySelectorAll('.cat-checkbox');
+            let encontrou = false;
+            checkboxes.forEach(cb => {
+                if (cb.value.toLowerCase() === categoriaURL.toLowerCase()) {
+                    cb.checked = true;
+                    encontrou = true;
+                }
+            });
+            if (!encontrou && catAll) catAll.checked = true;
+        }
+        aplicarFiltros();
+    }
+
+    function gerarFiltrosCategorias() {
+        const listaCat = document.getElementById('category-list');
+        if(!listaCat) return;
+        
+        listaCat.innerHTML = `
+            <li class="flex items-center gap-2">
+                <input type="checkbox" id="cat-all" class="rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]" checked>
+                <label for="cat-all" class="cursor-pointer hover:text-[var(--accent2-color)]">Todos os Produtos</label>
+            </li>
+        `;
+        
+        categoriasUnicas.forEach(cat => {
+            const li = document.createElement('li');
+            li.className = "flex items-center gap-2";
+            li.innerHTML = `
+                <input type="checkbox" value="${cat}" class="cat-checkbox rounded text-[var(--accent2-color)] focus:ring-[var(--accent-color)]">
+                <label class="cursor-pointer hover:text-[var(--accent2-color)] capitalize">${cat}</label>
+            `;
+            
+            // Eventos de clique
+            const checkbox = li.querySelector('input');
+            const label = li.querySelector('label');
+
+            checkbox.addEventListener('change', function() {
+                const allCheck = document.getElementById('cat-all');
+                if(this.checked) allCheck.checked = false; 
+                aplicarFiltros();
+            });
+
+            label.addEventListener('click', function() {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            });
+
+            listaCat.appendChild(li);
+        });
+
+        // Evento do botão "Todos"
+        document.getElementById('cat-all')?.addEventListener('change', function() {
+            if(this.checked) {
+                document.querySelectorAll('.cat-checkbox').forEach(cb => cb.checked = false);
+            } else {
+                // Se desmarcar "todos" e nada mais estiver marcado, remarca "todos"
+                const anyChecked = document.querySelector('.cat-checkbox:checked');
+                if(!anyChecked) this.checked = true;
+            }
+            aplicarFiltros();
+        });
+    }
+
+    function aplicarFiltros() {
+        let filtrados = [...todosProdutos];
+
+        // Busca por texto
+        const searchInput = document.getElementById('search-input');
+        if(searchInput && searchInput.value) {
+            const termo = searchInput.value.toLowerCase();
+            filtrados = filtrados.filter(p => p.nome.toLowerCase().includes(termo));
+        }
+
+        // Filtro de Categoria
+        const catAll = document.getElementById('cat-all');
+        if(catAll && !catAll.checked) {
+            const catsSelecionadas = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
+            if(catsSelecionadas.length > 0) {
+                filtrados = filtrados.filter(p => catsSelecionadas.includes(p.categoriaNormalizada));
+            }
+        }
+
+        // Filtro de Preço
+        const minPrice = parseFloat(document.getElementById('price-min')?.value) || 0;
+        const maxPrice = parseFloat(document.getElementById('price-max')?.value) || Infinity;
+        filtrados = filtrados.filter(p => p.precoNumerico >= minPrice && p.precoNumerico <= maxPrice);
+
+        // Ordenação
+        const sortSelect = document.getElementById('sort-select');
+        if(sortSelect) {
+            const sortType = sortSelect.value;
+            if(sortType === 'price-asc') filtrados.sort((a, b) => a.precoNumerico - b.precoNumerico);
+            if(sortType === 'price-desc') filtrados.sort((a, b) => b.precoNumerico - a.precoNumerico);
+            if(sortType === 'name-asc') filtrados.sort((a, b) => a.nome.localeCompare(b.nome));
+        }
+
+        // Atualiza contadores
+        const countShown = document.getElementById('count-shown');
+        const countTotal = document.getElementById('count-total');
+        if(countShown) countShown.innerText = filtrados.length;
+        if(countTotal) countTotal.innerText = todosProdutos.length;
+
+        renderizarGrid(filtrados);
+    }
+
+    function renderizarGrid(produtos) {
         const container = document.getElementById('products-container');
         if(!container) return;
-        
         container.innerHTML = "";
-        // Filtra linhas vazias ou inválidas
-        const produtosValidos = produtos.filter(p => p.nome && p.preco_por);
-        
-        if (produtosValidos.length === 0) {
-            container.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum produto encontrado na planilha.</p>';
+
+        if(produtos.length === 0) {
+            container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Nenhum produto encontrado com esses filtros.</div>';
             return;
         }
 
-        // Na Home, mostra apenas os primeiros 10
-        const listaFinal = produtosValidos.slice(0, 10);
-
-        listaFinal.forEach(produto => {
+        produtos.forEach(produto => {
+            // Estrelas
             let estrelasHTML = '';
             const rating = parseInt(produto.rating) || 5;
             for(let i=0; i<5; i++) {
@@ -594,16 +723,15 @@
                 else estrelasHTML += '<i class="far fa-star text-yellow-400 text-xs"></i>';
             }
 
+            // Tag
             let tagHTML = '';
             if(produto.tag) {
                 let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
                 if(produto.tag.toLowerCase().includes('novo')) corTag = 'bg-blue-500';
-                tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm">${produto.tag}</span>`;
+                tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
             }
 
-            const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
-            
-            // Tratamento de strings para evitar erros no HTML
+            // Sanitização
             const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
@@ -611,8 +739,8 @@
             const safePrecoAntigo = produto.preco_de || '';
 
             const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating})" 
-                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
+            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating})" 
+                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
                 
                 <div class="relative overflow-hidden shrink-0">
                     <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
@@ -627,7 +755,7 @@
                 <div class="p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
                         <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2 group-hover:text-[var(--accent-color)] transition-colors">${produto.nome}</h3>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2" title="${produto.nome}">${produto.nome}</h3>
                         <div class="flex mb-3">${estrelasHTML}</div>
                     </div>
                     <div class="mt-auto pt-3 border-t border-gray-50">
@@ -636,7 +764,7 @@
                                 ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
                                 <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
                             </div>
-                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
+                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${produto.precoNumerico}, '${safeImg}')" 
                                 class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95">
                                 <i class="fas fa-shopping-cart"></i>
                             </button>
@@ -648,11 +776,19 @@
             container.innerHTML += htmlDoCard;
         });
     }
+
+    // Inicializa Filtros e Carregamento
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+    const priceFilterBtn = document.getElementById('apply-price-filter');
     
-    // Inicia o carregamento com a proteção de espera
+    if(searchInput) searchInput.addEventListener('input', aplicarFiltros);
+    if(sortSelect) sortSelect.addEventListener('change', aplicarFiltros);
+    if(priceFilterBtn) priceFilterBtn.addEventListener('click', aplicarFiltros);
+
     carregarProdutos();
 
-    // --- Sincronização Auth e Carrinho ---
+    // --- SINCRONIZAÇÃO AUTH ---
     if (auth.currentUser) syncUserData(auth.currentUser.uid);
 
     function syncUserData(uid) {
@@ -668,7 +804,7 @@
                         phone: data.phone, cep: data.cep, street: data.street, number: data.number,
                         neighborhood: data.neighborhood, city: data.city, state: data.state, complement: data.complement
                     });
-                    // Se o usuário logou e tem itens no carrinho, atualiza o frete
+                    // Atualiza o carrinho se já estiver aberto para recalcular frete
                     if(cart.length > 0) updateCartUI();
                 }
             }
@@ -697,7 +833,7 @@
         }
     };
 
-    // --- UI Logic ---
+    // --- UI Logic (Modal, Login, etc) ---
     const modal = document.getElementById('auth-modal');
     const authForm = document.getElementById('auth-form');
     const loginBtn = document.getElementById('login-trigger-btn');
@@ -751,7 +887,7 @@
         socialSection.classList.remove('hidden'); modalTitle.innerText = "Bem-vindo";
     };
 
-    // --- LÓGICA DE LOGIN / CADASTRO ---
+    // --- AUTH ACTIONS ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('email-input').value;
@@ -803,10 +939,9 @@
         }
     };
 
-    // --- LÓGICA DE RECUPERAÇÃO DE SENHA ---
     if (recoverForm) {
         recoverForm.onsubmit = async (e) => {
-            e.preventDefault();
+            e.preventDefault(); 
             const email = document.getElementById('recover-email').value;
             const msgBox = document.getElementById('recover-message');
             const btn = document.getElementById('send-recover-btn');
@@ -862,6 +997,7 @@
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
         const nameDisplay = document.getElementById('user-name-display');
+        const verifyWarning = document.getElementById('verify-warning');
         
         if (user) {
             syncUserData(user.uid); 
@@ -882,6 +1018,7 @@
             cart = currentUserData.cart || [];
             updateCartUI();
 
+            // Preenche perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
@@ -893,8 +1030,10 @@
             document.getElementById('profile-city').value = currentUserData.city || "";
             document.getElementById('profile-state').value = currentUserData.state || "";
             document.getElementById('profile-complement').value = currentUserData.complement || "";
+            
+            if (verifyWarning) verifyWarning.classList.toggle('hidden', user.emailVerified);
 
-            // --- Verificação de Pagamento (Mantida) ---
+            // Check Pagamento
             const urlParams = new URLSearchParams(window.location.search);
             const paymentId = urlParams.get('payment_id'); 
             const statusURL = urlParams.get('collection_status'); 
@@ -902,8 +1041,7 @@
             
             if (paymentId && pendente) {
                 try {
-                    window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento com o banco.');
-                    
+                    window.showDialog('alert', 'Processando...', 'Confirmando pagamento...');
                     const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
                     const checkData = await checkResponse.json();
                     
@@ -928,13 +1066,11 @@
                     cart = [];
                     updateCartUI();
                     localStorage.removeItem('pedido_pendente');
+                    document.getElementById('custom-dialog').classList.add('hidden'); 
                     
-                    document.getElementById('custom-dialog').classList.add('hidden');
-                    if (statusReal === 'approved') {
-                        alert(`Sucesso! Seu pagamento foi confirmado.`);
-                    } else {
-                        alert(`Pedido Registrado! Status atual: ${statusFinal}.`);
-                    }
+                    if (statusReal === 'approved') alert(`Sucesso! Pagamento confirmado.`);
+                    else alert(`Pedido registrado: ${statusFinal}.`);
+                    
                     window.history.replaceState({}, document.title, window.location.pathname);
                 } catch (e) {
                     console.error("Erro ao verificar/salvar:", e);
@@ -947,6 +1083,7 @@
             updateCartUI();
             loginTrigger.classList.remove('hidden');
             userMenu.classList.replace('flex', 'hidden');
+            if (verifyWarning) verifyWarning.classList.add('hidden');
         }
     });
 
@@ -969,11 +1106,8 @@
                 complement: document.getElementById('profile-complement').value.trim()
             };
             await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
-            
-            // Se houver alteração, atualiza o usuário local e o carrinho para recalcular frete
-            Object.assign(currentUserData, newData);
-            updateCartUI();
-
+            Object.assign(currentUserData, newData); // Atualiza local
+            updateCartUI(); // Recalcula frete se mudou o endereço
             statusMsg.innerText = "Atualizado!";
             setTimeout(() => { statusMsg.innerText = ""; }, 3000);
         } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
@@ -1032,7 +1166,7 @@
         }
     };
 
-    // --- LÓGICA DO CARRINHO COM FRETE AUTOMÁTICO ---
+    // --- LÓGICA DE FRETE AUTOMÁTICO E CARRINHO ---
     function updateCartUI() {
         const container = document.getElementById('cart-items');
         const totalEl = document.getElementById('cart-total');
@@ -1061,9 +1195,8 @@
                 <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
             </div>`).join('');
 
+        // BLOCO DE FRETE
         let addressBlock = '';
-        
-        // Verifica se o usuário tem CEP e Rua cadastrados no perfil
         if (currentUserData && currentUserData.cep && currentUserData.street) {
              addressBlock = `
                 <div class="mt-4 pt-4 border-t border-gray-200">
@@ -1079,10 +1212,8 @@
                     </div>
                 </div>
             `;
-            // Dispara o cálculo
             setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
         } else {
-             // Caso não tenha endereço, mostra botão para cadastrar
              addressBlock = `
                 <div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-4 rounded-lg">
                     <p class="text-xs text-red-600 mb-2 font-bold">Endereço de entrega não encontrado.</p>
@@ -1095,7 +1226,6 @@
         container.innerHTML = html + addressBlock;
     }
 
-    // Função que busca o frete sem input manual
     window.calcularFreteAutomatico = async (cep) => {
         const container = document.getElementById('frete-auto-container');
         if(!container || (cep === cepCache && opcoesFreteCache)) {
@@ -1109,24 +1239,21 @@
                 body: JSON.stringify({ cepDestino: cep.replace(/\D/g, '') })
             });
             const dados = await response.json();
-
             if (dados.error || !response.ok) throw new Error();
 
             cepCache = cep;
             opcoesFreteCache = dados;
             renderizarOpcoesFrete(container);
         } catch (e) {
-            if(container) container.innerHTML = `<p class="text-[10px] text-red-500 text-center font-bold">Erro ao calcular frete. Verifique o CEP no perfil.</p>`;
+            if(container) container.innerHTML = `<p class="text-[10px] text-red-500 text-center font-bold">Erro ao calcular frete.</p>`;
         }
     };
 
     function renderizarOpcoesFrete(container) {
         if (!opcoesFreteCache) return;
         let html = '';
-        
         opcoesFreteCache.forEach((op) => {
             const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
-            
             html += `
                 <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50">
                     <div class="flex items-center gap-3">
@@ -1222,18 +1349,17 @@
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         
-        // --- VALIDAÇÃO DE FRETE OBRIGATÓRIA ---
+        // Validação Frete
         if (!freteSelecionado) {
             if(!currentUserData || !currentUserData.street || !currentUserData.cep) {
-                alert("Para finalizar, precisamos do seu endereço de entrega. Por favor, complete seu cadastro.");
+                alert("Para finalizar, precisamos do seu endereço de entrega.");
                 switchView('profile-view'); 
                 toggleCart(); 
             } else {
-                alert("Por favor, selecione uma das opções de frete (Expresso ou Econômica) para continuar.");
+                alert("Por favor, selecione uma das opções de frete.");
             }
             return;
         }
-        // ---------------------------------------
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
@@ -1298,7 +1424,7 @@
         }
     };
 
-    // (Funções auxiliares do Dashboard mantidas iguais)
+    // --- DASHBOARD ---
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
         const titleEl = document.getElementById('dash-modal-title');
