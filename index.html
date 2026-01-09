@@ -1100,51 +1100,49 @@ const checkPendingOrders = async () => {
         checkPendingOrders();
             // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
-            const paymentId = urlParams.get('payment_id'); 
-            const statusURL = urlParams.get('collection_status'); 
-            const pendente = localStorage.getItem('pedido_pendente');
+const paymentId = urlParams.get('payment_id'); // ID REAL DO PAGAMENTO
+const statusURL = urlParams.get('collection_status'); 
+
+if (paymentId) {
+    try {
+        // 1. Verifica o status real na sua API da Vercel
+        const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
+        const checkData = await checkResponse.json();
+        
+        const statusReal = checkData.status || statusURL;
+        let statusFinal = 'Aguardando Pagamento';
+        if (statusReal === 'approved') statusFinal = 'Pago';
+        if (statusReal === 'in_process') statusFinal = 'Em Análise';
+        if (statusReal === 'rejected') statusFinal = 'Cancelado';
+
+        // 2. Procura se existe um pedido recente "pendente" para atualizar com o ID real
+        const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
+        const snap = await getDocs(q);
+        
+        if (!snap.empty) {
+            // Pega o pedido mais recente que ainda não tem o ID de transação real
+            const ultimoPedido = snap.docs[0];
+            const pData = ultimoPedido.data();
             
-            if (paymentId && pendente) {
-                try {
-                    window.showDialog('alert', 'Processando...', 'Estamos confirmando seu pagamento com o banco.');
-                    
-                    const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
-                    const checkData = await checkResponse.json();
-                    
-                    const statusReal = checkData.status || statusURL; 
-                    const pedidoData = JSON.parse(pendente);
-                    
-                    let statusFinal = 'Pendente';
-                    if (statusReal === 'approved') statusFinal = 'Pago';
-                    if (statusReal === 'rejected') statusFinal = 'Cancelado';
-                    if (statusReal === 'in_process') statusFinal = 'Em Análise';
-                    
-                    await addDoc(collection(db, "users", user.uid, "orders"), {
-                        items: pedidoData.items,
-                        total: pedidoData.total,
-                        data: new Date(),
-                        status: statusFinal,
-                        id_pagamento: paymentId,
-                        metodo: checkData.payment_type || 'MP'
-                    });
-                    
-                    await updateDoc(doc(db, "users", user.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    localStorage.removeItem('pedido_pendente');
-                    
-                    document.getElementById('custom-dialog').classList.add('hidden');
-                    if (statusReal === 'approved') {
-                        alert(`Sucesso! Seu pagamento foi confirmado.`);
-                    } else {
-                        alert(`Pedido Registrado! Status atual: ${statusFinal}.`);
-                    }
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error("Erro ao verificar/salvar:", e);
-                    alert("Erro ao confirmar status, mas seu pedido foi salvo para análise.");
+            if (pData.id_pagamento !== paymentId) {
+                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
+                    id_pagamento: paymentId,
+                    status: statusFinal
+                });
+                
+                if (statusFinal === 'Pago') {
+                    window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
                 }
             }
+        }
+        
+        // Limpa a URL para não ficar processando toda vez que der F5
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+    } catch (e) {
+        console.error("Erro ao sincronizar pagamento:", e);
+    }
+}
         } else {
             currentUserData = null;
             cart = [];
