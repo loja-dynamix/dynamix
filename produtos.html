@@ -1152,44 +1152,41 @@ supForm.onsubmit = async (e) => {
             const statusURL = urlParams.get('collection_status'); 
             const pendente = localStorage.getItem('pedido_pendente');
             
-            if (paymentId && pendente) {
-                try {
-                    window.showDialog('alert', 'Processando...', 'Confirmando pagamento...');
-                    const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
-                    const checkData = await checkResponse.json();
-                    
-                    const statusReal = checkData.status || statusURL; 
-                    const pedidoData = JSON.parse(pendente);
-                    
-                    let statusFinal = 'Pendente';
-                    if (statusReal === 'approved') statusFinal = 'Pago';
-                    if (statusReal === 'rejected') statusFinal = 'Cancelado';
-                    if (statusReal === 'in_process') statusFinal = 'Em Análise';
-                    
-                    await addDoc(collection(db, "users", user.uid, "orders"), {
-                        items: pedidoData.items,
-                        total: pedidoData.total,
-                        data: new Date(),
-                        status: statusFinal,
-                        id_pagamento: paymentId,
-                        metodo: checkData.payment_type || 'MP'
-                    });
-                    
-                    await updateDoc(doc(db, "users", user.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    localStorage.removeItem('pedido_pendente');
-                    document.getElementById('custom-dialog').classList.add('hidden'); 
-                    
-                    if (statusReal === 'approved') alert(`Sucesso! Pagamento confirmado.`);
-                    else alert(`Pedido registrado: ${statusFinal}.`);
-                    
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.error("Erro ao verificar/salvar:", e);
-                    alert("Erro ao confirmar status, mas seu pedido foi salvo para análise.");
-                }
+            if (paymentId) {
+    try {
+        // 1. Consultamos a sua API para ver se esse ID já está aprovado
+        const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
+        const checkData = await checkResponse.json();
+        
+        const statusReal = checkData.status; 
+        let statusFinal = 'Aguardando Pagamento';
+        if (statusReal === 'approved') statusFinal = 'Pago';
+        if (statusReal === 'in_process') statusFinal = 'Em Análise';
+        if (statusReal === 'rejected') statusFinal = 'Cancelado';
+
+        // 2. Buscamos o pedido no Firebase para salvar o ID REAL e o STATUS
+        const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
+        const snap = await getDocs(q);
+        
+        if (!snap.empty) {
+            const ultimoPedidoDoc = snap.docs[0];
+            // Atualizamos o pedido com o ID que você testou e funcionou!
+            await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedidoDoc.id), {
+                id_pagamento: paymentId,
+                status: statusFinal
+            });
+            
+            if (statusFinal === 'Pago') {
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Seu Pix foi recebido com sucesso! Seu pedido já está em processamento.');
             }
+        }
+        
+        // Limpa a URL para o site ficar limpo
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } catch (e) {
+        console.error("Erro ao sincronizar:", e);
+    }
+}
         } else {
             currentUserData = null;
             cart = [];
