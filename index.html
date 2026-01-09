@@ -1653,24 +1653,44 @@ if (pedido.status === 'Aguardando Pagamento') {
         }
     };
     window.verificarStatusManual = async (paymentId, docId) => {
-        if(!paymentId || paymentId === 'MP') { alert("Pagamento manual ou antigo."); return; }
-        try {
-            const btn = event.target;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-            const response = await fetch(`/api/verificar?id=${paymentId}`);
-            const data = await response.json();
-            if(data.status === 'approved') {
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { status: 'Pago' });
-                alert("Pagamento confirmado! O status foi atualizado.");
-                openDashboardModal('orders');
-            } else {
-                alert(`O banco informou: ${data.status_detail || 'Ainda pendente'}. Tente novamente em instantes.`);
-            }
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Pagamento';
-        } catch(e) {
-            alert("Erro ao verificar.");
+    if(!paymentId || paymentId === 'MP' || paymentId === 'pendente') { 
+        alert("Aguardando geração do link ou pagamento manual."); 
+        return; 
+    }
+    
+    const btn = event.target;
+    const originalHTML = btn.innerHTML;
+    
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        
+        const response = await fetch(`/api/verificar?id=${paymentId}`);
+        const data = await response.json();
+        
+        // O Mercado Pago retorna 'approved' para pagamentos confirmados
+        if(data.status === 'approved') {
+            await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
+                status: 'Pago',
+                data_pagamento: new Date()
+            });
+            alert("✅ Sucesso! Pagamento confirmado. Seu pedido começará a ser preparado.");
+            openDashboardModal('orders');
+        } else {
+            // Se ainda não aprovou, detalha melhor o motivo
+            let motivo = "Ainda não detectamos o pagamento.";
+            if(data.status === 'in_process') motivo = "O pagamento está em análise pelo banco.";
+            if(data.status === 'rejected') motivo = "O pagamento foi recusado.";
+            
+            alert(`Status: ${motivo}\n\nSe você já pagou, aguarde 1 a 2 minutos e clique novamente.`);
         }
-    };
+    } catch(e) {
+        alert("Erro na comunicação com o servidor. Tente novamente.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+};
   </script>
 </body>
 </html>
