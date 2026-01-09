@@ -591,14 +591,23 @@
       appId: "1:752736250186:web:3787663031d273e9bd79b3",
       measurementId: "G-J06LSQSYYB"
     };
-window.abrirModalSuporte = () => {
+window.abrirModalSuporte = (assunto = "") => {
     document.getElementById('support-form-modal').classList.replace('hidden', 'flex');
     
-    // Auto-preenchimento se estiver logado
+    // Auto-preenchimento dos dados do usuário
     if (currentUserData) {
         document.getElementById('sup-name').value = currentUserData.fullName || "";
         document.getElementById('sup-email').value = currentUserData.email || "";
         document.getElementById('sup-phone').value = currentUserData.phone || "";
+    }
+
+    // Se houver um assunto (ex: ID do pedido), coloca na mensagem
+    const msgField = document.getElementById('sup-msg');
+    if (assunto) {
+        msgField.value = `Olá, preciso de suporte referente ao ${assunto}. \n\nDetalhes: `;
+        msgField.focus();
+    } else {
+        msgField.value = "";
     }
 };
 
@@ -1473,18 +1482,23 @@ if (pedido.status === 'Aguardando Pagamento') {
         </div>`;
 } else if (pedido.status === 'Pago') {
     botoesAcao = `
-        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-            <button onclick="window.open('https://rastreamento.correios.com.br/', '_blank')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mb-2">
+        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 space-y-2">
+            <button onclick="window.open('https://rastreamento.correios.com.br/', '_blank')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                 <i class="fas fa-truck"></i> ACOMPANHAR PEDIDO
             </button>
+            
+            <button onclick="window.abrirModalSuporte('Pedido #${docPedido.id.slice(0,6).toUpperCase()}')" class="w-full bg-white border border-blue-200 text-blue-600 py-2 rounded-lg font-bold text-xs hover:bg-blue-100 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-question-circle"></i> AJUDA COM ESTE PEDIDO
+            </button>
+
             <p class="text-[10px] text-blue-800 leading-tight text-center">
                 <i class="fas fa-info-circle"></i> Quando o pedido for postado, o código de rastreio será enviado via e-mail ou WhatsApp.
             </p>
         </div>`;
 } else {
     botoesAcao = `
-        <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${docPedido.id}', '_blank')" class="w-full mt-3 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
-            <i class="fab fa-whatsapp"></i> Preciso de Ajuda
+        <button onclick="window.abrirModalSuporte('Pedido #${docPedido.id.slice(0,6).toUpperCase()}')" class="w-full mt-3 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors flex items-center justify-center gap-2">
+            <i class="fas fa-headset"></i> PRECISO DE AJUDA
         </button>`;
 }
 
