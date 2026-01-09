@@ -983,20 +983,22 @@ const checkPendingOrders = async () => {
             if (!user) return;
             const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
             const snap = await getDocs(q);
+            
             snap.forEach(async (pedidoDoc) => {
                 const p = pedidoDoc.data();
-                // Verifica apenas pedidos pendentes que tenham ID de pagamento
+                // Só verifica se estiver aguardando e se tiver o ID salvo
                 if (p.status === 'Aguardando Pagamento' && p.id_pagamento && p.id_pagamento !== 'MP') {
                     try {
                         const res = await fetch(`/api/verificar?id=${p.id_pagamento}`);
                         const pStatus = await res.json();
+                        
                         if (pStatus.status === 'approved') {
                             await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Pago' });
-                        } else if (pStatus.status === 'rejected') {
+                        } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                             await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Cancelado' });
                         }
                     } catch (e) {
-                        console.log("Erro na verificação automática para o pedido:", pedidoDoc.id);
+                        console.log("Aguardando confirmação do banco...");
                     }
                 }
             });
@@ -1329,7 +1331,7 @@ const checkPendingOrders = async () => {
     window.checkout = async () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        if (!freteSelecionado) { alert("Selecione o frete!"); return; }
+        if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
@@ -1337,23 +1339,36 @@ const checkPendingOrders = async () => {
         btnCheckout.disabled = true;
 
         try {
-            // 1. CHAMAR API DE PAGAMENTO PRIMEIRO PARA OBTER O LINK
+            // 1. Prepara os dados para enviar ao seu servidor (Mercado Pago)
+            const dadosPagamento = {
+                items: cart.map(item => ({
+                    title: item.name,
+                    quantity: 1,
+                    unit_price: parseFloat(item.price)
+                })),
+                payer: {
+                    email: currentUserData.email,
+                    name: currentUserData.fullName
+                },
+                shipment_cost: parseFloat(freteSelecionado.preco)
+            };
+
+            // 2. Chama a sua API de pagamento
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
-                    payer: { email: currentUserData.email, name: currentUserData.fullName },
-                    shipment_cost: freteSelecionado.preco
-                })
+                body: JSON.stringify(dadosPagamento)
             });
+
+            if (!response.ok) throw new Error("Erro na comunicação com o servidor de pagamento.");
 
             const data = await response.json();
 
-            if (data.init_point) {
+            // 3. Verifica se o Mercado Pago devolveu o link (init_point) e o ID do pagamento
+            if (data.init_point && data.id) {
                 const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
                 
-                // 2. AGORA SALVA NO FIREBASE COM O LINK (init_point) E O ID (id)
+                // 4. SALVA NO FIREBASE SOMENTE APÓS O SUCESSO DA API
                 const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
                     items: cart,
                     total: totalComFrete,
@@ -1361,23 +1376,28 @@ const checkPendingOrders = async () => {
                     status: 'Aguardando Pagamento',
                     metodo: 'Mercado Pago',
                     frete: freteSelecionado,
-                    id_pagamento: data.id,        // ID para verificação oculta
-                    payment_url: data.init_point  // LINK para o botão "Pagar Novamente"
+                    id_pagamento: String(data.id), // ID para o sistema verificar o status depois
+                    payment_url: data.init_point   // Link para o botão "Pagar Novamente"
                 });
 
-                // Limpa o carrinho e redireciona
+                // 5. Limpa o carrinho e salva o ID para referência rápida
                 localStorage.setItem('ultimo_pedido_id', pedidoRef.id);
                 await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
                 cart = [];
                 updateCartUI();
                 
+                // 6. REDIRECIONA O CLIENTE
                 window.location.href = data.init_point;
             } else {
-                throw new Error("Erro ao gerar link de pagamento.");
+                throw new Error("O link de pagamento não foi gerado corretamente.");
             }
         } catch (error) {
-            alert("Erro ao processar pedido. Finalize pelo WhatsApp ou tente novamente.");
-            console.error(error);
+            console.error("Erro no Checkout:", error);
+            alert("Não foi possível gerar o pagamento automático. Você será direcionado para finalizar pelo WhatsApp.");
+            
+            // Caso falhe tudo, envia para o WhatsApp como fallback (segurança)
+            let msg = `*PEDIDO DYNAMIX*\nCliente: ${currentUserData.fullName}\nTotal: R$ ${(cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco).toFixed(2)}\n*Itens:* ` + cart.map(i => i.name).join(', ');
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
