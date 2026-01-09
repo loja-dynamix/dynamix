@@ -1088,6 +1088,32 @@ const checkPendingOrders = async () => {
                         
                         if (pStatus.status === 'approved') {
                             await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Pago' });
+                          async function enviarRelatorioVendedor(pedido) {
+    // Formata os itens para o e-mail
+    const itensTexto = pedido.items.map(i => `${i.name} (Qtd: ${i.quantity || 1})`).join('\n');
+    
+    const dadosParaVendedor = {
+        status_atualizacao: "NOVO PEDIDO PAGO",
+        cliente_nome: currentUserData.fullName,
+        cliente_whatsapp: currentUserData.phone,
+        endereco_completo: `${currentUserData.street}, ${currentUserData.number} - ${currentUserData.neighborhood}, ${currentUserData.city}/${currentUserData.state}`,
+        itens_do_pedido: itensTexto,
+        total_pago: `R$ ${pedido.total.toFixed(2)}`,
+        observacoes: document.getElementById('cart-observation')?.value || "Nenhuma",
+        link_pagamento: pedido.payment_url
+    };
+
+    try {
+        await fetch("https://formspree.io/f/xykznlnr", {
+            method: "POST",
+            body: JSON.stringify(dadosParaVendedor),
+            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+        });
+        console.log("Relatório enviado ao vendedor via Formspree");
+    } catch (e) {
+        console.error("Falha ao notificar vendedor", e);
+    }
+}
                         } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                             await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Cancelado' });
                         }
@@ -1238,67 +1264,94 @@ const checkPendingOrders = async () => {
 
     // --- LÓGICA DO CARRINHO COM FRETE AUTOMÁTICO ---
     function updateCartUI() {
-        const container = document.getElementById('cart-items');
-        const totalEl = document.getElementById('cart-total');
-        const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
-        
-        countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
-        
-        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
-        const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
-        const totalFinal = subtotal + valorFrete;
+    const container = document.getElementById('cart-items');
+    const totalEl = document.getElementById('cart-total');
+    const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
+    
+    // Calcula quantidade total de itens
+    const totalItens = cart.reduce((sum, i) => sum + (i.quantity || 1), 0);
+    countEls.forEach(el => { if(el) { el.innerText = totalItens; el.classList.toggle('hidden', totalItens === 0); } });
+    
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+    const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
+    const totalFinal = subtotal + valorFrete;
 
-        totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        
-        if (cart.length === 0) { 
-            container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; 
-            opcoesFreteCache = null;
-            cepCache = null;
-            return; 
-        }
-
-        let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-            </div>`).join('');
-
-        let addressBlock = '';
-        
-        // Verifica se o usuário tem CEP e Rua cadastrados no perfil
-        if (currentUserData && currentUserData.cep && currentUserData.street) {
-             addressBlock = `
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="text-xs font-bold text-gray-700">
-                            <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> 
-                            Enviar para: <span class="font-normal text-gray-500">${currentUserData.street}, ${currentUserData.number}</span>
-                        </p>
-                        <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar Endereço</button>
-                    </div>
-                    <div id="frete-auto-container" class="space-y-2">
-                        <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculando frete...</div>
-                    </div>
-                </div>
-            `;
-            // Dispara o cálculo
-            setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
-        } else {
-             // Caso não tenha endereço, mostra botão para cadastrar
-             addressBlock = `
-                <div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-4 rounded-lg">
-                    <p class="text-xs text-red-600 mb-2 font-bold">Endereço de entrega não encontrado.</p>
-                    <button onclick="switchView('profile-view'); toggleCart()" class="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold w-full hover:bg-black transition">Cadastrar Endereço</button>
-                </div>
-            `;
-            freteSelecionado = null;
-        }
-
-        container.innerHTML = html + addressBlock;
+    totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    
+    if (cart.length === 0) { 
+        container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
+        return; 
     }
 
+    // Renderiza itens com seletor de quantidade
+    let html = cart.map((item, index) => `
+        <div class="bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
+            <div class="flex items-center gap-4">
+                <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
+                <div class="flex-grow">
+                    <h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
+                    <p class="text-xs text-[var(--accent2-color)] font-bold">R$ ${item.price.toFixed(2)}</p>
+                </div>
+                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+            </div>
+            <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-50">
+                <span class="text-xs text-gray-500">Quantidade:</span>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.updateQty(${index}, -1)" class="w-6 h-6 bg-gray-100 rounded text-xs">-</button>
+                    <span class="font-bold text-sm">${item.quantity || 1}</span>
+                    <button onclick="window.updateQty(${index}, 1)" class="w-6 h-6 bg-gray-100 rounded text-xs">+</button>
+                </div>
+            </div>
+        </div>`).join('');
+
+    // Adiciona campo de Observação
+    html += `
+        <div class="mt-4">
+            <label class="block text-xs font-bold text-gray-600 mb-1">Observações do Pedido:</label>
+            <textarea id="cart-observation" placeholder="Ex: Preferência de sabor, ponto de referência..." class="w-full p-2 border border-gray-200 rounded-lg text-sm h-20 outline-none focus:ring-2 focus:ring-orange-300 transition-all"></textarea>
+        </div>
+    `;
+
+    let addressBlock = '';
+    if (currentUserData && currentUserData.cep && currentUserData.street) {
+        addressBlock = `
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-[10px] text-gray-500 mb-2">Entregar em: ${currentUserData.street}, ${currentUserData.number}</p>
+                <div id="frete-auto-container" class="space-y-2"></div>
+            </div>`;
+        setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
+    }
+
+    container.innerHTML = html + addressBlock;
+}
+window.updateQty = async (index, change) => {
+    const currentQty = cart[index].quantity || 1;
+    const newQty = currentQty + change;
+    if (newQty < 1) return;
+    
+    cart[index].quantity = newQty;
+    updateCartUI();
+    // Salva no Firebase
+    if (auth.currentUser) {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
+    }
+};
+
+// Modifique sua função safeAddToCart para incluir quantidade 1 inicial
+const originalAddToCart = window.safeAddToCart;
+window.safeAddToCart = async (name, price, image) => {
+    if(!auth.currentUser) { openModal(); return; }
+    // Verifica se já existe o produto
+    const existingIndex = cart.findIndex(item => item.name === name);
+    if(existingIndex > -1) {
+        cart[existingIndex].quantity = (cart[existingIndex].quantity || 1) + 1;
+    } else {
+        cart.push({name, price, image, quantity: 1});
+    }
+    updateCartUI();
+    toggleCart();
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
+};
     // Função que busca o frete sem input manual
     window.calcularFreteAutomatico = async (cep) => {
         const container = document.getElementById('frete-auto-container');
