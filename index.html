@@ -1456,22 +1456,32 @@ const checkPendingOrders = async () => {
 
                     // --- BOTÕES DE AÇÃO (O QUE VOCÊ BUSCAVA) ---
                     let botoesAcao = '';
-                    if (pedido.status === 'Aguardando Pagamento') {
-                        botoesAcao = `
-                            <div class="flex flex-col gap-2 w-full mt-3">
-                                <button onclick="window.location.href='${pedido.payment_url || '#'}'" class="w-full bg-orange-500 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-orange-600 transition-colors flex items-center justify-center gap-2">
-                                    <i class="fas fa-credit-card"></i> TENTAR PAGAR NOVAMENTE
-                                </button>
-                                <button onclick="window.verificarStatusManual('${pedido.id_pagamento}', '${docPedido.id}')" class="w-full bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-[10px] hover:bg-blue-100 transition-colors uppercase">
-                                    <i class="fas fa-sync-alt"></i> Já paguei, verificar agora
-                                </button>
-                            </div>`;
-                    } else {
-                        botoesAcao = `
-                            <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${docPedido.id}', '_blank')" class="w-full mt-3 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
-                                <i class="fab fa-whatsapp"></i> Preciso de Ajuda
-                            </button>`;
-                    }
+if (pedido.status === 'Aguardando Pagamento') {
+    botoesAcao = `
+        <div class="flex flex-col gap-2 w-full mt-3">
+            <button onclick="window.location.href='${pedido.payment_url || '#'}'" class="w-full bg-orange-500 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-orange-600 transition-colors flex items-center justify-center gap-2">
+                <i class="fas fa-credit-card"></i> TENTAR PAGAR NOVAMENTE
+            </button>
+            <button onclick="window.verificarStatusManual('${pedido.id_pagamento}', '${docPedido.id}')" class="w-full bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-[10px] hover:bg-blue-100 transition-colors uppercase">
+                <i class="fas fa-sync-alt"></i> Já paguei, verificar agora
+            </button>
+        </div>`;
+} else if (pedido.status === 'Pago') {
+    botoesAcao = `
+        <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <button onclick="window.open('https://rastreamento.correios.com.br/', '_blank')" class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 mb-2">
+                <i class="fas fa-truck"></i> ACOMPANHAR PEDIDO
+            </button>
+            <p class="text-[10px] text-blue-800 leading-tight text-center">
+                <i class="fas fa-info-circle"></i> Quando o pedido for postado, o código de rastreio será enviado via e-mail ou WhatsApp.
+            </p>
+        </div>`;
+} else {
+    botoesAcao = `
+        <button onclick="window.open('https://wa.me/5511916658264?text=Ajuda pedido ${docPedido.id}', '_blank')" class="w-full mt-3 bg-gray-50 text-gray-600 py-2 rounded-lg font-bold text-xs hover:bg-gray-100 transition-colors">
+            <i class="fab fa-whatsapp"></i> Preciso de Ajuda
+        </button>`;
+}
 
                     // --- MONTAGEM DO CARD ---
                     html += `
