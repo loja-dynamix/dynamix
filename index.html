@@ -1443,57 +1443,57 @@ if (paymentId) {
         try {
             const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
 
-            // --- PASSO 1: GERAR O PAGAMENTO PRIMEIRO ---
+            // Criamos uma referência de ID no Firebase antes para enviar à API
+            const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+
+            // --- PASSO 1: CHAMADA DA API ---
             const response = await fetch('/api/pagamento', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
+                    items: cart.map(i => ({
+                        title: i.name, 
+                        quantity: 1, 
+                        unit_price: Number(i.price)
+                    })), 
                     payer: { email: currentUserData.email, name: currentUserData.fullName },
-                    shipment_cost: freteSelecionado.preco
+                    shipment_cost: Number(freteSelecionado.preco),
+                    external_reference: tempOrderRef.id // Opcional: vincula os dois sistemas
                 })
             });
 
             const data = await response.json();
 
-            // Verifica se o Mercado Pago devolveu o ID com sucesso
+            // Agora 'data.id' virá preenchido da API
             if (!data.id || !data.init_point) {
-                throw new Error("Falha ao gerar link do Mercado Pago");
+                console.error("Dados incompletos da API:", data);
+                throw new Error("Erro na resposta do pagamento");
             }
 
-            // --- PASSO 2: SALVAR NO FIREBASE JÁ COM O ID EM MÃOS ---
-            const pedidoDados = {
+            // --- PASSO 2: SALVAR NO FIREBASE COM O ID RECUPERADO ---
+            await setDoc(tempOrderRef, {
                 items: cart,
                 total: totalComFrete,
                 data: new Date(),
                 status: 'Aguardando Pagamento',
                 metodo: 'Mercado Pago',
                 frete: freteSelecionado,
-                id_pagamento: String(data.id), // Aqui entra o ID do Mercado Pago (não será mais undefined)
+                id_pagamento: String(data.id), // ID DO MERCADO PAGO AQUI
                 payment_url: data.init_point,
+                pedidoId: tempOrderRef.id,
                 cliente_uid: auth.currentUser.uid
-            };
+            });
 
-            const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), pedidoDados);
-            
-            // Atualiza o documento com o próprio ID gerado pelo Firebase para referência futura
-            await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
-
-            // --- PASSO 3: LIMPAR CARRINHO E REDIRECIONAR ---
+            // --- PASSO 3: LIMPAR E REDIRECIONAR ---
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
             cart = [];
             updateCartUI();
 
-            // Redireciona para o Mercado Pago
             window.location.href = data.init_point;
 
         } catch (error) {
-            console.error("Erro crítico no Checkout:", error);
+            console.error("Erro no Checkout:", error);
             alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
-            
-            // Fallback para WhatsApp caso a API falhe totalmente
-            let msgZap = `Olá, tive um erro no checkout automático. Gostaria de fechar este pedido:\nTotal: R$ ${cart.reduce((sum, i) => sum + i.price, 0).toFixed(2)}`;
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msgZap)}`, '_blank');
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
