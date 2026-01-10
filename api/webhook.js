@@ -1,51 +1,72 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore, collectionGroup, query, where, getDocs, updateDoc, doc } from "firebase/firestore";
+import admin from 'firebase-admin';
 
-const firebaseConfig = { /* Suas configs permanecem iguais */ };
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-const db = getFirestore(app);
+// Inicializa o Admin se ainda não foi inicializado
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // O replace é necessário para tratar as quebras de linha da chave na Vercel
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      }),
+    });
+  } catch (error) {
+    console.error('Erro na inicialização do Firebase Admin:', error);
+  }
+}
+
+const db = admin.firestore();
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') return res.status(405).end();
+  // Mercado Pago envia POST
+  if (req.method !== 'POST') return res.status(405).send('Método não permitido');
 
-    const { type, data } = req.body;
+  const { type, data } = req.body;
 
-    if (type === "payment") {
-        const paymentId = data.id;
-        const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+  // Filtrar apenas notificações de pagamento
+  if (type === "payment") {
+    const paymentId = data.id;
 
-        try {
-            const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-                headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
-            });
-            const paymentData = await response.json();
-            const pedidoId = paymentData.external_reference; // ID que veio do addDoc no checkout
-            const statusReal = paymentData.status;
+    try {
+      // 1. Validar o pagamento com o Mercado Pago
+      const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` }
+      });
+      const paymentData = await mpResponse.json();
 
-            if (pedidoId && statusReal === "approved") {
-                // BUSCA GLOBAL: Procura o pedido em todas as subcoleções 'orders' de todos os usuários
-                const ordersRef = collectionGroup(db, 'orders');
-                const q = query(ordersRef, where('__name__', '==', pedidoId)); 
-                // Nota: __name__ refere-se ao ID do documento no Firestore
-                
-                const querySnapshot = await getDocs(q);
+      // Pegamos o ID do pedido que você salvou no addDoc (external_reference)
+      const pedidoId = paymentData.external_reference;
 
-                if (!querySnapshot.empty) {
-                    const pedidoDoc = querySnapshot.docs[0];
-                    await updateDoc(pedidoDoc.ref, {
-                        status: 'Pago',
-                        id_pagamento_real: paymentId,
-                        data_aprovacao: new Date()
-                    });
-                    console.log(`Sucesso: Pedido ${pedidoId} atualizado para Pago.`);
-                } else {
-                    console.log(`Erro: Pedido ${pedidoId} não encontrado no banco.`);
-                }
-            }
-        } catch (error) {
-            console.error("Erro processando webhook:", error);
-            return res.status(500).json({ error: error.message });
+      if (pedidoId && paymentData.status === "approved") {
+        // 2. Buscar o pedido em qualquer subcoleção 'orders' de qualquer usuário
+        const snapshot = await db.collectionGroup('orders')
+                                 .where(admin.firestore.FieldPath.documentId(), '==', pedidoId)
+                                 .get();
+
+        if (!snapshot.empty) {
+          const pedidoDoc = snapshot.docs[0];
+          
+          // 3. Atualizar o status (O Admin ignora suas regras de segurança)
+          await pedidoDoc.ref.update({
+            status: 'Pago',
+            id_pagamento_real: paymentId,
+            metodo_confirmacao: 'Webhook',
+            data_pagamento: admin.firestore.FieldValue.serverTimestamp()
+          });
+
+          console.log(`✅ Pedido ${pedidoId} aprovado via Webhook.`);
+          return res.status(200).json({ message: "Pedido atualizado" });
+        } else {
+          console.error(`❌ Pedido ${pedidoId} não encontrado no Firestore.`);
         }
+      }
+    } catch (error) {
+      console.error("Erro no processamento do webhook:", error);
+      return res.status(500).json({ error: "Erro interno no servidor" });
     }
-    return res.status(200).send("OK");
+  }
+
+  // Sempre retornar 200 para o Mercado Pago não ficar reenviando o mesmo webhook
+  res.status(200).send("OK");
 }
