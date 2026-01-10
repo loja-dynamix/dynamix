@@ -1443,69 +1443,52 @@ if (paymentId) {
         try {
             const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
 
-            // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO (Garantia de que você não perde a venda)
+            // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO (Para gerar o ID do Firebase)
             const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
-    items: cart,
-    total: totalComFrete,
-    data: new Date(),
-    status: 'Aguardando Pagamento',
-    pedidoId: "", // Criamos o campo vazio primeiro
+                items: cart,
+                total: totalComFrete,
+                data: new Date(),
+                status: 'Aguardando Pagamento',
                 metodo: 'Mercado Pago',
                 frete: freteSelecionado,
-                id_pagamento: 'pendente', // Será atualizado se a API responder
-                payment_url: '#'          // Será atualizado se a API responder
+                id_pagamento: 'pendente', 
+                pedidoId: "" 
             });
-await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
-            // 2. TENTAR GERAR O LINK DE PAGAMENTO
-            try {
-                const response = await fetch('/api/pagamento', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
-                        payer: { email: currentUserData.email, name: currentUserData.fullName },
-                        shipment_cost: freteSelecionado.preco,
-                        external_reference: pedidoRef.id // Vincula o ID do Firebase ao Mercado Pago
-                    })
+            
+            // Grava o ID do documento dentro dele mesmo (essencial para o Webhook/Verificar)
+            await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
+
+            // 2. CHAMAR A API PARA GERAR O PAGAMENTO
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
+                    payer: { email: currentUserData.email, name: currentUserData.fullName },
+                    shipment_cost: freteSelecionado.preco,
+                    external_reference: pedidoRef.id 
+                })
+            });
+
+            const data = await response.json();
+
+            // 3. ATUALIZAR O FIREBASE COM O ID REAL DO MERCADO PAGO
+            if (data.id) {
+                await updateDoc(pedidoRef, {
+                    id_pagamento: String(data.id), 
+                    payment_url: data.init_point
                 });
 
-                const data = await response.json();
+                // Limpa o carrinho no Firebase e localmente (mantendo sua lógica)
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+                cart = [];
+                updateCartUI();
 
-                if (data.init_point) {
-                    // 3. ATUALIZA O PEDIDO COM O LINK REAL
-                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", pedidoRef.id), {
-                        id_pagamento: String(data.id),
-                        payment_url: data.init_point
-                    });
-
-                    // Limpa o carrinho e redireciona
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    window.location.href = data.init_point;
-                    return; // Sucesso total
-                }
-            } catch (apiErr) {
-                console.error("Erro na API de pagamento:", apiErr);
-                // Se a API falhar, o pedido já está salvo no Firebase como 'Aguardando Pagamento'
+                // Redireciona
+                window.location.href = data.init_point;
+            } else {
+                throw new Error("ID do Mercado Pago não recebido");
             }
-
-            // 4. FALLBACK: SE O PAGAMENTO AUTOMÁTICO FALHAR, MANDA PARA O WHATSAPP
-            // Mas o pedido já foi registrado no seu sistema!
-            alert("O sistema de pagamento automático está instável. Finalize seu pedido pelo WhatsApp (seu pedido já foi registrado em nossa conta).");
-            
-            let msg = `*NOVO PEDIDO REGISTRADO (Aguardando Pagamento)*\n`;
-            msg += `ID do Pedido: ${pedidoRef.id}\n`;
-            msg += `Cliente: ${currentUserData.fullName}\n`;
-            msg += `Total: R$ ${totalComFrete.toFixed(2)}\n`;
-            msg += `*Itens:* ` + cart.map(i => i.name).join(', ');
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-            
-            // Limpa o carrinho mesmo assim, pois o pedido já está no banco de dados
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-            cart = [];
-            updateCartUI();
 
         } catch (error) {
             console.error("Erro crítico no Checkout:", error);
