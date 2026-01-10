@@ -1291,9 +1291,12 @@ if (paymentId) {
         const totalEl = document.getElementById('cart-total');
         const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
         
-        countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
+        // Calcula a quantidade total de itens para o ícone do carrinho
+        const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+        countEls.forEach(el => { if(el) { el.innerText = totalItems; el.classList.toggle('hidden', totalItems === 0); } });
         
-        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+        // Calcula o subtotal considerando a quantidade
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         const totalFinal = subtotal + valorFrete;
 
@@ -1309,14 +1312,20 @@ if (paymentId) {
 
         let html = cart.map((item, index) => `
             <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
+                <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
+                <div class="flex-grow">
+                    <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
+                    <p class="text-xs font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
+                        <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
+                        <button onclick="window.changeQty(${index}, 1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">+</button>
+                    </div>
+                </div>
+                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600 ml-2"><i class="fas fa-trash-alt"></i></button>
             </div>`).join('');
 
         let addressBlock = '';
-        
-        // Verifica se o usuário tem CEP e Rua cadastrados no perfil
         if (currentUserData && currentUserData.cep && currentUserData.street) {
              addressBlock = `
                 <div class="mt-4 pt-4 border-t border-gray-200">
@@ -1325,26 +1334,20 @@ if (paymentId) {
                             <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> 
                             Enviar para: <span class="font-normal text-gray-500">${currentUserData.street}, ${currentUserData.number}</span>
                         </p>
-                        <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar Endereço</button>
+                        <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar</button>
                     </div>
                     <div id="frete-auto-container" class="space-y-2">
-                        <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculando frete...</div>
+                        <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i></div>
                     </div>
-                </div>
-            `;
-            // Dispara o cálculo
+                </div>`;
             setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
         } else {
-             // Caso não tenha endereço, mostra botão para cadastrar
-             addressBlock = `
-                <div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-4 rounded-lg">
-                    <p class="text-xs text-red-600 mb-2 font-bold">Endereço de entrega não encontrado.</p>
-                    <button onclick="switchView('profile-view'); toggleCart()" class="bg-gray-800 text-white px-4 py-2 rounded text-xs font-bold w-full hover:bg-black transition">Cadastrar Endereço</button>
-                </div>
-            `;
+             addressBlock = `<div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-3 rounded-lg">
+                <p class="text-[10px] text-red-600 mb-1 font-bold">Endereço não encontrado.</p>
+                <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] font-bold underline">Cadastrar Agora</button>
+            </div>`;
             freteSelecionado = null;
         }
-
         container.innerHTML = html + addressBlock;
     }
 
@@ -1404,9 +1407,24 @@ if (paymentId) {
     // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
-        cart.push({name, price, image}); updateCartUI(); toggleCart();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
-        catch(e) { cart.pop(); updateCartUI(); }
+        
+        // Verifica se o produto já está no carrinho
+        const itemIndex = cart.findIndex(item => item.name === name);
+        
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
+        } else {
+            cart.push({name, price, image, quantity: 1});
+        }
+        
+        updateCartUI(); 
+        toggleCart();
+        
+        try { 
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+        } catch(e) { 
+            console.error("Erro ao salvar carrinho:", e);
+        }
     };
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
@@ -1470,7 +1488,26 @@ if (paymentId) {
         cart.splice(index, 1); updateCartUI();
         try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } catch(e) {}
     };
-
+window.changeQty = async (index, delta) => {
+        if(!auth.currentUser) return;
+        
+        const newQty = (cart[index].quantity || 1) + delta;
+        
+        if (newQty <= 0) {
+            // Se a quantidade chegar a zero, remove o item
+            window.removeFromCart(index);
+            return;
+        }
+        
+        cart[index].quantity = newQty;
+        updateCartUI();
+        
+        try { 
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+        } catch(e) { 
+            console.error("Erro ao atualizar quantidade:", e);
+        }
+    };
     window.checkout = async () => {
         if (!auth.currentUser) { openModal(); return; }
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
@@ -1494,9 +1531,9 @@ if (paymentId) {
                 body: JSON.stringify({ 
                     items: cart.map(i => ({
                         title: i.name, 
-                        quantity: 1, 
+                        quantity: i.quantity || 1, // Envia a quantidade real
                         unit_price: Number(i.price)
-                    })), 
+                    })),
                     payer: { email: currentUserData.email, name: currentUserData.fullName },
                     shipment_cost: Number(freteSelecionado.preco),
                     external_reference: tempOrderRef.id // Opcional: vincula os dois sistemas
