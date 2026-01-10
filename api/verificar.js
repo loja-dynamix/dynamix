@@ -1,36 +1,30 @@
-// api/verificar.js
 module.exports = async (req, res) => {
-  // Configuração padrão da Vercel
-  res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') { res.status(200).end(); return; }
-
-  const { id } = req.query; // Pega o ID do pagamento da URL
+  const { id, pedidoId } = req.query; 
   const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 
-  if (!id || !ACCESS_TOKEN) {
-    return res.status(400).json({ error: 'ID ou Token faltando' });
-  }
-
   try {
-    // PERGUNTA AO MERCADO PAGO O STATUS REAL EM TEMPO REAL
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${ACCESS_TOKEN}`
-      }
+    // TENTATIVA 1: Buscar pelo ID direto (funciona se for o ID da transação)
+    let response = await fetch(`https://api.mercadopago.com/v1/payments/${id}`, {
+      headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
     });
+    let data = await response.json();
 
-    const data = await response.json();
+    // TENTATIVA 2: Se a primeira falhou ou não achou, busca pelo ID do seu Pedido
+    if ((!data.status || data.status === 404) && pedidoId) {
+      const searchRes = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${pedidoId}`, {
+        headers: { 'Authorization': `Bearer ${ACCESS_TOKEN}` }
+      });
+      const searchData = await searchRes.json();
+      
+      if (searchData.results && searchData.results.length > 0) {
+        data = searchData.results[0]; // Pega o pagamento mais recente vinculado a esse pedido
+      }
+    }
 
-    // Retorna para o seu site o status oficial (approved, pending, rejected)
     return res.status(200).json({ 
-      status: data.status, 
-      status_detail: data.status_detail,
-      payment_type: data.payment_type_id
+      status: data.status, // approved, pending, etc
+      id_real: data.id      // O ID real da transação para você atualizar seu banco
     });
 
   } catch (error) {
