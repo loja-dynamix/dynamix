@@ -12,40 +12,43 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// No Node.js da Vercel para arquivos .js comuns, use module.exports
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).send('Método não permitido');
 
   const { type, data } = req.body;
+
   if (type === "payment") {
-    const paymentId = data.id;
     try {
-      const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+      const paymentId = data.id;
+      // Busca detalhes no Mercado Pago
+      const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` }
       });
-      const paymentData = await mpResponse.json();
+      const paymentData = await mpRes.json();
       const pedidoId = paymentData.external_reference;
 
       if (pedidoId && paymentData.status === "approved") {
-        // BUSCA POR COLLECTION GROUP
+        // Busca o pedido em qualquer subcoleção 'orders' usando o campo pedidoId
         const snapshot = await db.collectionGroup('orders')
-                         .where('pedidoId', '==', pedidoId)
-                         .get();
+                                 .where('pedidoId', '==', pedidoId)
+                                 .get();
 
         if (!snapshot.empty) {
-          await snapshot.docs[0].ref.update({
+          const docRef = snapshot.docs[0].ref;
+          await docRef.update({
             status: 'Pago',
             id_pagamento_real: String(paymentId),
-            data_pagamento: admin.firestore.FieldValue.serverTimestamp()
+            data_pagamento: admin.firestore.FieldValue.serverTimestamp(),
+            metodo_confirmacao: 'Webhook Automatizado'
           });
-          return res.status(200).json({ message: "Aprovado" });
+          console.log(`✅ Pedido ${pedidoId} aprovado com sucesso!`);
+          return res.status(200).json({ message: "Sucesso" });
         }
       }
     } catch (error) {
-      console.error("Erro Webhook:", error);
-      return res.status(500).send("Erro");
+      console.error("Erro no Webhook:", error.message);
+      return res.status(500).send("Erro Interno");
     }
   }
   res.status(200).send("OK");
 };
-
