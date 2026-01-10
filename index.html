@@ -1062,97 +1062,44 @@ supForm.onsubmit = async (e) => {
             cart = currentUserData.cart || [];
             updateCartUI();
 
-            document.getElementById('profile-email').value = user.email;
-            document.getElementById('profile-name').value = currentUserData.fullName || "";
-            document.getElementById('profile-cpf').value = currentUserData.cpf || "";
-            document.getElementById('profile-phone').value = currentUserData.phone || "";
-            document.getElementById('profile-cep').value = currentUserData.cep || "";
-            document.getElementById('profile-street').value = currentUserData.street || "";
-            document.getElementById('profile-number').value = currentUserData.number || "";
-            document.getElementById('profile-neighborhood').value = currentUserData.neighborhood || "";
-            document.getElementById('profile-city').value = currentUserData.city || "";
-            document.getElementById('profile-state').value = currentUserData.state || "";
-            document.getElementById('profile-complement').value = currentUserData.complement || "";
-const checkPendingOrders = async () => {
-    if (!user) return;
-    // Adicionei o limite de 5 pedidos para não sobrecarregar sua API
-    const q = query(
-        collection(db, "users", user.uid, "orders"), 
-        where("status", "==", "Aguardando Pagamento"),
-        limit(5) 
-    );
-    const snap = await getDocs(q);
-    
-    snap.forEach(async (pedidoDoc) => {
-        const p = pedidoDoc.data();
-        const docId = pedidoDoc.id; // ID do Firebase (external_reference)
-
-        try {
-            // Chamada corrigida: passa o ID da preferência E o ID do documento
-            const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${docId}`);
-            const pStatus = await res.json();
-            
-            if (pStatus.status === 'approved') {
-                await updateDoc(doc(db, "users", user.uid, "orders", docId), { 
-                    status: 'Pago',
-                    id_pagamento_real: pStatus.id_real || p.id_pagamento,
-                    data_confirmacao: new Date()
-                });
-                console.log("Pedido " + docId + " confirmado!");
-            } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
-                await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
-            }
-        } catch (e) {
-            console.log("Verificando pagamento do pedido " + docId + "...");
-        }
-    });
-};
-        checkPendingOrders();
-            // --- Verificação de Pagamento (Mantida) ---
-            const urlParams = new URLSearchParams(window.location.search);
-const paymentId = urlParams.get('payment_id'); // ID REAL DO PAGAMENTO
-const statusURL = urlParams.get('collection_status'); 
-
-if (paymentId) {
-    try {
-        // 1. Verifica o status real na sua API da Vercel
-        const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
-        const checkData = await checkResponse.json();
-        
-        const statusReal = checkData.status || statusURL;
-        let statusFinal = 'Aguardando Pagamento';
-        if (statusReal === 'approved') statusFinal = 'Pago';
-        if (statusReal === 'in_process') statusFinal = 'Em Análise';
-        if (statusReal === 'rejected') statusFinal = 'Cancelado';
-
-        // 2. Procura se existe um pedido recente "pendente" para atualizar com o ID real
-        const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
-        const snap = await getDocs(q);
-        
-        if (!snap.empty) {
-            // Pega o pedido mais recente que ainda não tem o ID de transação real
-            const ultimoPedido = snap.docs[0];
-            const pData = ultimoPedido.data();
-            
-            if (pData.id_pagamento !== paymentId) {
-                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
-                    id_pagamento: paymentId,
-                    status: statusFinal
-                });
-                
-                if (statusFinal === 'Pago') {
-                    window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
+            // --- SOLUÇÃO REAL-TIME PARA O WEBHOOK ---
+            // Escuta a coleção de pedidos do usuário logado
+            const qOrders = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
+            onSnapshot(qOrders, (snapshot) => {
+                // Se o status mudar no banco (pelo Webhook), atualiza a lista se o modal estiver aberto
+                if (document.getElementById('dashboard-modal').classList.contains('flex')) {
+                    openDashboardModal('orders');
                 }
+                
+                // Verifica automaticamente pedidos que ainda estão como 'Aguardando Pagamento'
+                snapshot.docs.forEach(async (pedidoDoc) => {
+                    const p = pedidoDoc.data();
+                    const docId = pedidoDoc.id;
+                    if (p.status === 'Aguardando Pagamento') {
+                        try {
+                            const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${docId}`);
+                            const data = await res.json();
+                            if (data.status === 'approved') {
+                                await updateDoc(doc(db, "users", user.uid, "orders", docId), { 
+                                    status: 'Pago',
+                                    id_pagamento_real: data.id_real || p.id_pagamento 
+                                });
+                            }
+                        } catch (e) { console.log("Sincronizando..."); }
+                    }
+                });
+            });
+
+            // --- TRATAMENTO DE RETORNO DO MERCADO PAGO ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentId = urlParams.get('payment_id');
+            if (paymentId) {
+                // Força a verificação imediata ao voltar pelo botão
+                window.verificarStatusManual(paymentId, 'pendente');
+                // Limpa a URL
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
-        }
-        
-        // Limpa a URL para não ficar processando toda vez que der F5
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-    } catch (e) {
-        console.error("Erro ao sincronizar pagamento:", e);
-    }
-}
+
         } else {
             currentUserData = null;
             cart = [];
