@@ -1437,79 +1437,63 @@ if (paymentId) {
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando Pedido...';
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
         btnCheckout.disabled = true;
 
         try {
             const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
 
-            // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO (Garantia de que você não perde a venda)
-            const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
-    items: cart,
-    total: totalComFrete,
-    data: new Date(),
-    status: 'Aguardando Pagamento',
-    pedidoId: "", // Criamos o campo vazio primeiro
-                metodo: 'Mercado Pago',
-                frete: freteSelecionado,
-                id_pagamento: 'pendente', // Será atualizado se a API responder
-                payment_url: '#'          // Será atualizado se a API responder
+            // --- PASSO 1: GERAR O PAGAMENTO PRIMEIRO ---
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
+                    payer: { email: currentUserData.email, name: currentUserData.fullName },
+                    shipment_cost: freteSelecionado.preco
+                })
             });
-await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
-            // 2. TENTAR GERAR O LINK DE PAGAMENTO
-            try {
-                const response = await fetch('/api/pagamento', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
-                        payer: { email: currentUserData.email, name: currentUserData.fullName },
-                        shipment_cost: freteSelecionado.preco,
-                        external_reference: pedidoRef.id // Vincula o ID do Firebase ao Mercado Pago
-                    })
-                });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (data.init_point) {
-                    // 3. ATUALIZA O PEDIDO COM O LINK REAL
-                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", pedidoRef.id), {
-                        id_pagamento: String(data.id),
-                        payment_url: data.init_point
-                    });
-
-                    // Limpa o carrinho e redireciona
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    window.location.href = data.init_point;
-                    return; // Sucesso total
-                }
-            } catch (apiErr) {
-                console.error("Erro na API de pagamento:", apiErr);
-                // Se a API falhar, o pedido já está salvo no Firebase como 'Aguardando Pagamento'
+            // Verifica se o Mercado Pago devolveu o ID com sucesso
+            if (!data.id || !data.init_point) {
+                throw new Error("Falha ao gerar link do Mercado Pago");
             }
 
-            // 4. FALLBACK: SE O PAGAMENTO AUTOMÁTICO FALHAR, MANDA PARA O WHATSAPP
-            // Mas o pedido já foi registrado no seu sistema!
-            alert("O sistema de pagamento automático está instável. Finalize seu pedido pelo WhatsApp (seu pedido já foi registrado em nossa conta).");
+            // --- PASSO 2: SALVAR NO FIREBASE JÁ COM O ID EM MÃOS ---
+            const pedidoDados = {
+                items: cart,
+                total: totalComFrete,
+                data: new Date(),
+                status: 'Aguardando Pagamento',
+                metodo: 'Mercado Pago',
+                frete: freteSelecionado,
+                id_pagamento: String(data.id), // Aqui entra o ID do Mercado Pago (não será mais undefined)
+                payment_url: data.init_point,
+                cliente_uid: auth.currentUser.uid
+            };
+
+            const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), pedidoDados);
             
-            let msg = `*NOVO PEDIDO REGISTRADO (Aguardando Pagamento)*\n`;
-            msg += `ID do Pedido: ${pedidoRef.id}\n`;
-            msg += `Cliente: ${currentUserData.fullName}\n`;
-            msg += `Total: R$ ${totalComFrete.toFixed(2)}\n`;
-            msg += `*Itens:* ` + cart.map(i => i.name).join(', ');
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-            
-            // Limpa o carrinho mesmo assim, pois o pedido já está no banco de dados
+            // Atualiza o documento com o próprio ID gerado pelo Firebase para referência futura
+            await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
+
+            // --- PASSO 3: LIMPAR CARRINHO E REDIRECIONAR ---
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
             cart = [];
             updateCartUI();
 
+            // Redireciona para o Mercado Pago
+            window.location.href = data.init_point;
+
         } catch (error) {
             console.error("Erro crítico no Checkout:", error);
-            alert("Erro ao processar. Tente novamente.");
+            alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
+            
+            // Fallback para WhatsApp caso a API falhe totalmente
+            let msgZap = `Olá, tive um erro no checkout automático. Gostaria de fechar este pedido:\nTotal: R$ ${cart.reduce((sum, i) => sum + i.price, 0).toFixed(2)}`;
+            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msgZap)}`, '_blank');
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
