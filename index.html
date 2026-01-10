@@ -1115,7 +1115,6 @@ supForm.onsubmit = async (e) => {
             document.getElementById('profile-complement').value = currentUserData.complement || "";
 const checkPendingOrders = async () => {
     if (!user) return;
-    // Adicionei o limite de 5 pedidos para não sobrecarregar sua API
     const q = query(
         collection(db, "users", user.uid, "orders"), 
         where("status", "==", "Aguardando Pagamento"),
@@ -1125,29 +1124,34 @@ const checkPendingOrders = async () => {
     
     snap.forEach(async (pedidoDoc) => {
         const p = pedidoDoc.data();
-        const docId = pedidoDoc.id; // ID do Firebase (external_reference)
+        const docId = pedidoDoc.id;
 
         try {
-            // Chamada corrigida: passa o ID da preferência E o ID do documento
             const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${docId}`);
             const pStatus = await res.json();
             
             if (pStatus.status === 'approved') {
-                await updateDoc(doc(db, "users", user.uid, "orders", docId), { 
+                // Atualiza o banco com a trava 'notificado'
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Pago',
                     id_pagamento_real: pStatus.id_real || p.id_pagamento,
-                    data_confirmacao: new Date()
+                    data_confirmacao: new Date(),
+                    notificado: true 
                 });
-              enviarNotificacaoVenda(p, docId);
+                
+                // Envia e-mail apenas se ainda não foi enviado
+                if (!p.notificado) {
+                    enviarNotificacaoVenda(p, docId);
+                }
                 console.log("Pedido " + docId + " confirmado!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                 await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
             }
         } catch (e) {
-            console.log("Verificando pagamento do pedido " + docId + "...");
+            console.log("Erro na verificação automática");
         }
-    });
-};
+    }); // Chave de fechamento do forEach
+}; // Chave de fechamento da função
         checkPendingOrders();
             // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1171,19 +1175,19 @@ if (paymentId) {
         const snap = await getDocs(q);
         
         if (!snap.empty) {
-            // Pega o pedido mais recente que ainda não tem o ID de transação real
             const ultimoPedido = snap.docs[0];
             const pData = ultimoPedido.data();
             
-            if (pData.id_pagamento !== paymentId) {
+            if (pData.id_pagamento !== paymentId || pData.status !== statusFinal) {
                 await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
                     id_pagamento: paymentId,
                     status: statusFinal
                 });
                 
-                if (statusFinal === 'Pago') {
+                if (statusFinal === 'Pago' && !pData.notificado) {
                     window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
-                  enviarNotificacaoVenda(pData, ultimoPedido.id);
+                    await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
+                    enviarNotificacaoVenda(pData, ultimoPedido.id);
                 }
             }
         }
@@ -1797,21 +1801,26 @@ window.changeQty = async (index, delta) => {
     };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
+        // Busca os dados do cliente usando o ID salvo no pedido para segurança total
+        const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+        if (!userDoc.exists()) return;
+        const userData = userDoc.data();
+
         const itensFormatados = pedidoData.items.map(item => 
             `${item.name} (Qtd: ${item.quantity || 1})`
         ).join(' | ');
 
         const dados = {
-            assunto: `NOVA VENDA: #${pedidoId.slice(0,6).toUpperCase()}`,
-            cliente: currentUserData.fullName,
-            email: currentUserData.email,
-            cpf: currentUserData.cpf,
-            whatsapp: currentUserData.phone,
-            endereco: `${currentUserData.street}, ${currentUserData.number} - ${currentUserData.neighborhood}`,
-            cidade: `${currentUserData.city}/${currentUserData.state}`,
-            cep: currentUserData.cep,
+            assunto: `✅ VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
+            cliente: userData.fullName,
+            email: userData.email,
+            cpf: userData.cpf,
+            whatsapp: userData.phone,
+            endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
+            cidade: `${userData.city}/${userData.state}`,
+            cep: userData.cep,
             produtos: itensFormatados,
-            frete: pedidoData.frete.nome,
+            frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
             total: `R$ ${pedidoData.total.toFixed(2)}`
         };
 
@@ -1820,7 +1829,7 @@ window.changeQty = async (index, delta) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(dados)
         });
-    } catch (e) { console.error("Erro Formspree:", e); }
+    } catch (e) { console.error("Erro no envio do e-mail:", e); }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
