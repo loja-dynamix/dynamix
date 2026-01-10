@@ -1647,18 +1647,27 @@ window.changeQty = async (index, delta) => {
                     const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
                     const valorFrete = pedido.frete ? pedido.frete.preco : 0;
                     
+                    // O total final já deve estar salvo corretamente no banco, 
+                    // mas recalculamos o subtotal para exibição correta.
+                    let subtotalCalculado = 0;
+                    if (pedido.items) {
+                        pedido.items.forEach(item => {
+                            subtotalCalculado += (item.price * (item.quantity || 1));
+                        });
+                    }
+
                     let resumoValoresHTML = `
                         <div class="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
                             <div class="flex justify-between text-[10px] text-gray-500">
                                 <span>Subtotal:</span>
-                                <span>R$ ${subtotalProdutos.toFixed(2).replace('.',',')}</span>
+                                <span>R$ ${subtotalCalculado.toFixed(2).replace('.',',')}</span>
                             </div>
                             <div class="flex justify-between text-[10px] text-gray-500">
                                 <span>${nomeFrete}:</span>
                                 <span>R$ ${valorFrete.toFixed(2).replace('.',',')}</span>
                             </div>
                             <div class="flex justify-between text-xs font-black text-gray-800 pt-1 border-t border-gray-200">
-                                <span>Total Pago:</span>
+                                <span>Total do Pedido:</span>
                                 <span class="text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
                             </div>
                         </div>
