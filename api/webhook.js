@@ -29,8 +29,8 @@ module.exports = async (req, res) => {
       if (pedidoId && paymentData.status === "approved") {
         // BUSCA POR COLLECTION GROUP
         const snapshot = await db.collectionGroup('orders')
-                                 .where(admin.firestore.FieldPath.documentId(), '==', pedidoId)
-                                 .get();
+                         .where('pedidoId', '==', pedidoId)
+                         .get();
 
         if (!snapshot.empty) {
           await snapshot.docs[0].ref.update({
@@ -48,3 +48,4 @@ module.exports = async (req, res) => {
   }
   res.status(200).send("OK");
 };
+
