@@ -796,35 +796,38 @@ supForm.onsubmit = async (e) => {
         if(!container) return;
         
         container.innerHTML = "";
-        // Filtra linhas vazias ou inválidas
         const produtosValidos = produtos.filter(p => p.nome && p.preco_por);
         
         if (produtosValidos.length === 0) {
-            container.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum produto encontrado na planilha.</p>';
+            container.innerHTML = '<p class="col-span-full text-center text-gray-500">Nenhum produto encontrado.</p>';
             return;
         }
 
-        // Na Home, mostra apenas os primeiros 10
         const listaFinal = produtosValidos.slice(0, 10);
 
         listaFinal.forEach(produto => {
             let estrelasHTML = '';
             const rating = parseInt(produto.rating) || 5;
             for(let i=0; i<5; i++) {
-                if(i < rating) estrelasHTML += '<i class="fas fa-star text-yellow-400 text-xs"></i>';
-                else estrelasHTML += '<i class="far fa-star text-yellow-400 text-xs"></i>';
+                estrelasHTML += i < rating ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : '<i class="far fa-star text-yellow-400 text-xs"></i>';
             }
 
             let tagHTML = '';
             if(produto.tag) {
                 let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
-                if(produto.tag.toLowerCase().includes('novo')) corTag = 'bg-blue-500';
                 tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm">${produto.tag}</span>`;
             }
 
             const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
             
-            // Tratamento de strings para evitar erros no HTML
+            // LÓGICA DE PARCELAS
+            const numParcelas = parseInt(produto.parcelas) || 1;
+            let parcelamentoHTML = '';
+            if(numParcelas > 1) {
+                const valorParcela = (precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
+            }
+
             const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
@@ -832,33 +835,29 @@ supForm.onsubmit = async (e) => {
             const safePrecoAntigo = produto.preco_de || '';
 
             const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating})" 
+            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})" 
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
                 <div class="relative overflow-hidden shrink-0">
                     <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
                     ${tagHTML}
-                    
-                    <div class="absolute bottom-3 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0">
-                        <span class="bg-white/90 backdrop-blur text-xs font-bold px-3 py-1 rounded-full shadow-lg text-gray-800">Ver Detalhes</span>
-                    </div>
                 </div>
 
                 <div class="p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
                         <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2 group-hover:text-[var(--accent-color)] transition-colors">${produto.nome}</h3>
-                        <div class="flex mb-3">${estrelasHTML}</div>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
+                        <div class="flex mb-2">${estrelasHTML}</div>
                     </div>
                     <div class="mt-auto pt-3 border-t border-gray-50">
                         <div class="flex items-center justify-between">
                             <div>
                                 ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
                                 <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
+                                ${parcelamentoHTML}
                             </div>
                             <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
-                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95">
+                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] transition-all flex items-center justify-center shadow-md">
                                 <i class="fas fa-shopping-cart"></i>
                             </button>
                         </div>
@@ -1427,29 +1426,43 @@ if (paymentId) {
         }
     };
 
-    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
+        // Histórico de vistos recentemente
         try {
             let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
             recentes = recentes.filter(p => p.nome !== nome);
             recentes.unshift({ nome, preco, imagem, categoria, rating });
             if(recentes.length > 6) recentes.pop();
             localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
-        } catch(e) { console.log('Erro ao salvar histórico'); }
+        } catch(e) {}
 
         const modal = document.getElementById('product-modal');
         document.getElementById('modal-product-image').src = imagem;
         document.getElementById('modal-product-title').innerText = nome;
         document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
-        document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix.";
+        document.getElementById('modal-product-desc').innerText = descricao || "Produto de excelente qualidade Dynamix.";
         
+        // Exibição de parcelas no Modal
+        const precoContainer = document.getElementById('modal-product-price').parentElement;
+        // Remove aviso de parcelas anterior se existir para não duplicar
+        const oldParcela = document.getElementById('modal-parcela-tag');
+        if(oldParcela) oldParcela.remove();
+
+        if(parcelas > 1) {
+            const valorP = (preco / parcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            const parcelaEl = document.createElement('p');
+            parcelaEl.id = 'modal-parcela-tag';
+            parcelaEl.className = 'text-sm text-green-600 font-bold mt-1';
+            parcelaEl.innerText = `Ou em até ${parcelas}x de ${valorP} sem juros`;
+            precoContainer.parentElement.appendChild(parcelaEl);
+        }
+
         const starsContainer = document.getElementById('modal-product-stars');
         if (starsContainer) {
             let starsHTML = '';
-            const nota = parseInt(rating) || 5;
             for(let i=0; i<5; i++) {
-                if(i < nota) starsHTML += '<i class="fas fa-star"></i>';
-                else starsHTML += '<i class="far fa-star"></i>';
+                starsHTML += i < (parseInt(rating) || 5) ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
             }
             starsContainer.innerHTML = starsHTML;
         }
@@ -1462,16 +1475,12 @@ if (paymentId) {
             oldPriceEl.classList.add('hidden');
         }
 
-        const btnCart = document.getElementById('modal-btn-add-cart');
-        const btnBuy = document.getElementById('modal-btn-buy-now');
-
-        btnCart.onclick = () => {
+        document.getElementById('modal-btn-add-cart').onclick = () => {
             window.safeAddToCart(nome, preco, imagem);
-            if(window.closeProductModal) window.closeProductModal();
-            else modal.classList.replace('flex', 'hidden'); 
+            window.closeProductModal();
         };
 
-        btnBuy.onclick = () => {
+        document.getElementById('modal-btn-buy-now').onclick = () => {
             const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
             window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
         };
