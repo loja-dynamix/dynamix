@@ -1064,31 +1064,22 @@ supForm.onsubmit = async (e) => {
 
             // --- SOLUÇÃO REAL-TIME PARA O WEBHOOK ---
             // Escuta a coleção de pedidos do usuário logado
-            const qOrders = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
-            onSnapshot(qOrders, (snapshot) => {
-                // Se o status mudar no banco (pelo Webhook), atualiza a lista se o modal estiver aberto
-                if (document.getElementById('dashboard-modal').classList.contains('flex')) {
-                    openDashboardModal('orders');
+            const qOrders = query(collection(db, "users", user.uid, "orders"), where("status", "==", "Aguardando Pagamento"), limit(5));
+onSnapshot(qOrders, (snapshot) => {
+    snapshot.docs.forEach(async (pedidoDoc) => {
+        const p = pedidoDoc.data();
+        // SÓ TENTA VERIFICAR SE O ID NÃO FOR UNDEFINED OU PENDENTE
+        if (p.id_pagamento && p.id_pagamento !== "undefined" && p.id_pagamento !== "pendente") {
+            try {
+                const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${pedidoDoc.id}`);
+                const data = await res.json();
+                if (data.status === 'approved') {
+                    await updateDoc(pedidoDoc.ref, { status: 'Pago' });
                 }
-                
-                // Verifica automaticamente pedidos que ainda estão como 'Aguardando Pagamento'
-                snapshot.docs.forEach(async (pedidoDoc) => {
-                    const p = pedidoDoc.data();
-                    const docId = pedidoDoc.id;
-                    if (p.status === 'Aguardando Pagamento') {
-                        try {
-                            const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${docId}`);
-                            const data = await res.json();
-                            if (data.status === 'approved') {
-                                await updateDoc(doc(db, "users", user.uid, "orders", docId), { 
-                                    status: 'Pago',
-                                    id_pagamento_real: data.id_real || p.id_pagamento 
-                                });
-                            }
-                        } catch (e) { console.log("Sincronizando..."); }
-                    }
-                });
-            });
+            } catch (e) { console.log("Aguardando..."); }
+        }
+    });
+});
 
             // --- TRATAMENTO DE RETORNO DO MERCADO PAGO ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -1378,90 +1369,66 @@ supForm.onsubmit = async (e) => {
     };
 
     window.checkout = async () => {
-        if (!auth.currentUser) { openModal(); return; }
-        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
+    if (!auth.currentUser) { openModal(); return; }
+    if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+    if (!freteSelecionado) { alert("Selecione o frete!"); return; }
 
-        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-        const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando Pedido...';
-        btnCheckout.disabled = true;
+    const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+    btnCheckout.disabled = true;
+    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pix...';
 
-        try {
-            const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
+    try {
+        const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
 
-            // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO (Garantia de que você não perde a venda)
-            const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
-    items: cart,
-    total: totalComFrete,
-    data: new Date(),
-    status: 'Aguardando Pagamento',
-    pedidoId: "", // Criamos o campo vazio primeiro
-                metodo: 'Mercado Pago',
-                frete: freteSelecionado,
-                id_pagamento: 'pendente', // Será atualizado se a API responder
-                payment_url: '#'          // Será atualizado se a API responder
+        // 1. Cria o pedido no Firebase
+        const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
+            items: cart,
+            total: totalComFrete,
+            data: new Date(),
+            status: 'Aguardando Pagamento',
+            pedidoId: "", // Será preenchido abaixo
+            id_pagamento: "pendente", 
+            metodo: 'Mercado Pago'
+        });
+        
+        // Salva o ID do próprio documento dentro dele (para o índice de grupo funcionar)
+        await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
+
+        // 2. Chama a sua API de pagamento
+        const response = await fetch('/api/pagamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
+                payer: { email: currentUserData.email, name: currentUserData.fullName },
+                shipment_cost: freteSelecionado.preco,
+                external_reference: pedidoRef.id 
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.id) {
+            // 3. AGORA SIM salvamos o ID real retornado pelo Mercado Pago
+            await updateDoc(pedidoRef, { 
+                id_pagamento: String(data.id), // Aqui o ID deixa de ser undefined
+                payment_url: data.init_point 
             });
-await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
-            // 2. TENTAR GERAR O LINK DE PAGAMENTO
-            try {
-                const response = await fetch('/api/pagamento', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
-                        payer: { email: currentUserData.email, name: currentUserData.fullName },
-                        shipment_cost: freteSelecionado.preco,
-                        external_reference: pedidoRef.id // Vincula o ID do Firebase ao Mercado Pago
-                    })
-                });
 
-                const data = await response.json();
-
-                if (data.init_point) {
-                    // 3. ATUALIZA O PEDIDO COM O LINK REAL
-                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", pedidoRef.id), {
-                        id_pagamento: String(data.id),
-                        payment_url: data.init_point
-                    });
-
-                    // Limpa o carrinho e redireciona
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    window.location.href = data.init_point;
-                    return; // Sucesso total
-                }
-            } catch (apiErr) {
-                console.error("Erro na API de pagamento:", apiErr);
-                // Se a API falhar, o pedido já está salvo no Firebase como 'Aguardando Pagamento'
-            }
-
-            // 4. FALLBACK: SE O PAGAMENTO AUTOMÁTICO FALHAR, MANDA PARA O WHATSAPP
-            // Mas o pedido já foi registrado no seu sistema!
-            alert("O sistema de pagamento automático está instável. Finalize seu pedido pelo WhatsApp (seu pedido já foi registrado em nossa conta).");
-            
-            let msg = `*NOVO PEDIDO REGISTRADO (Aguardando Pagamento)*\n`;
-            msg += `ID do Pedido: ${pedidoRef.id}\n`;
-            msg += `Cliente: ${currentUserData.fullName}\n`;
-            msg += `Total: R$ ${totalComFrete.toFixed(2)}\n`;
-            msg += `*Itens:* ` + cart.map(i => i.name).join(', ');
-            
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-            
-            // Limpa o carrinho mesmo assim, pois o pedido já está no banco de dados
+            // Limpa carrinho e redireciona
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-            cart = [];
-            updateCartUI();
-
-        } catch (error) {
-            console.error("Erro crítico no Checkout:", error);
-            alert("Erro ao processar. Tente novamente.");
-        } finally {
-            btnCheckout.innerHTML = textoOriginal;
-            btnCheckout.disabled = false;
+            window.location.href = data.init_point;
+        } else {
+            throw new Error("ID do Mercado Pago não gerado");
         }
-    };
+
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao gerar pagamento. Tente novamente.");
+        btnCheckout.disabled = false;
+        btnCheckout.innerHTML = 'Finalizar Compra';
+    }
+};
     // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
