@@ -1472,22 +1472,22 @@ if (paymentId) {
 
             const data = await response.json();
 
-            // 3. ATUALIZAR O FIREBASE COM O ID REAL DO MERCADO PAGO
+            // AQUI ESTÁ O SEGREDO: Verificamos se o ID existe antes de atualizar
             if (data.id) {
                 await updateDoc(pedidoRef, {
-                    id_pagamento: String(data.id), 
+                    id_pagamento: String(data.id), // Captura o ID da Preferência
                     payment_url: data.init_point
                 });
 
-                // Limpa o carrinho no Firebase e localmente (mantendo sua lógica)
+                // Limpa o carrinho e redireciona
                 await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
                 cart = [];
                 updateCartUI();
-
-                // Redireciona
                 window.location.href = data.init_point;
             } else {
-                throw new Error("ID do Mercado Pago não recebido");
+                // Se cair aqui, é porque a API não retornou o ID (o que gera o undefined)
+                console.error("Resposta da API sem ID:", data);
+                throw new Error("Falha ao obter ID do Mercado Pago");
             }
 
         } catch (error) {
