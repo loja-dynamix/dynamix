@@ -1374,27 +1374,30 @@ onSnapshot(qOrders, (snapshot) => {
     if (!freteSelecionado) { alert("Selecione o frete!"); return; }
 
     const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+    const originalText = btnCheckout.innerHTML;
     btnCheckout.disabled = true;
     btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pix...';
 
     try {
         const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
+        
+        // 1. Criar o pedido já com os dados iniciais
+        // Importante: Salvamos o ID manualmente dentro do objeto para facilitar a busca do Webhook
+        const novaOrdemRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+        const pedidoIdGerado = novaOrdemRef.id;
 
-        // 1. Cria o pedido no Firebase
-        const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
+        await setDoc(novaOrdemRef, {
+            pedidoId: pedidoIdGerado, // Campo essencial para o Índice de Grupo
             items: cart,
             total: totalComFrete,
             data: new Date(),
             status: 'Aguardando Pagamento',
-            pedidoId: "", // Será preenchido abaixo
-            id_pagamento: "pendente", 
-            metodo: 'Mercado Pago'
+            id_pagamento: "pendente",
+            metodo: 'Mercado Pago',
+            frete: freteSelecionado
         });
-        
-        // Salva o ID do próprio documento dentro dele (para o índice de grupo funcionar)
-        await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
 
-        // 2. Chama a sua API de pagamento
+        // 2. Chamar a API de pagamento passando o pedidoId como referência externa
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1402,16 +1405,16 @@ onSnapshot(qOrders, (snapshot) => {
                 items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
                 payer: { email: currentUserData.email, name: currentUserData.fullName },
                 shipment_cost: freteSelecionado.preco,
-                external_reference: pedidoRef.id 
+                external_reference: pedidoIdGerado // Vincula o Mercado Pago ao nosso ID do Firebase
             })
         });
 
         const data = await response.json();
 
         if (data.id) {
-            // 3. AGORA SIM salvamos o ID real retornado pelo Mercado Pago
-            await updateDoc(pedidoRef, { 
-                id_pagamento: String(data.id), // Aqui o ID deixa de ser undefined
+            // 3. Atualiza o pedido com os links do Mercado Pago
+            await updateDoc(novaOrdemRef, { 
+                id_pagamento: String(data.id),
                 payment_url: data.init_point 
             });
 
@@ -1419,14 +1422,14 @@ onSnapshot(qOrders, (snapshot) => {
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
             window.location.href = data.init_point;
         } else {
-            throw new Error("ID do Mercado Pago não gerado");
+            throw new Error("Mercado Pago não retornou ID");
         }
 
     } catch (error) {
-        console.error(error);
-        alert("Erro ao gerar pagamento. Tente novamente.");
+        console.error("Erro no Checkout:", error);
+        alert("Erro ao processar pedido. Verifique sua conexão e tente novamente.");
         btnCheckout.disabled = false;
-        btnCheckout.innerHTML = 'Finalizar Compra';
+        btnCheckout.innerHTML = originalText;
     }
 };
     // (Funções auxiliares do Dashboard mantidas iguais)
