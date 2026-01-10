@@ -1376,28 +1376,17 @@ onSnapshot(qOrders, (snapshot) => {
     const btnCheckout = document.querySelector('button[onclick="checkout()"]');
     const originalText = btnCheckout.innerHTML;
     btnCheckout.disabled = true;
-    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pix...';
+    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
 
     try {
         const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
         
-        // 1. Criar o pedido já com os dados iniciais
-        // Importante: Salvamos o ID manualmente dentro do objeto para facilitar a busca do Webhook
+        // 1. Gerar uma referência de documento vazia para obter o ID antecipadamente
         const novaOrdemRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
         const pedidoIdGerado = novaOrdemRef.id;
 
-        await setDoc(novaOrdemRef, {
-            pedidoId: pedidoIdGerado, // Campo essencial para o Índice de Grupo
-            items: cart,
-            total: totalComFrete,
-            data: new Date(),
-            status: 'Aguardando Pagamento',
-            id_pagamento: "pendente",
-            metodo: 'Mercado Pago',
-            frete: freteSelecionado
-        });
-
-        // 2. Chamar a API de pagamento passando o pedidoId como referência externa
+        // 2. Chamar a API de pagamento PRIMEIRO
+        // Enviamos o pedidoIdGerado como external_reference para o Mercado Pago
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1405,17 +1394,25 @@ onSnapshot(qOrders, (snapshot) => {
                 items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
                 payer: { email: currentUserData.email, name: currentUserData.fullName },
                 shipment_cost: freteSelecionado.preco,
-                external_reference: pedidoIdGerado // Vincula o Mercado Pago ao nosso ID do Firebase
+                external_reference: pedidoIdGerado 
             })
         });
 
+        if (!response.ok) throw new Error("Erro na API de Pagamento");
         const data = await response.json();
 
         if (data.id) {
-            // 3. Atualiza o pedido com os links do Mercado Pago
-            await updateDoc(novaOrdemRef, { 
+            // 3. SE a API respondeu com sucesso, salvamos no Firebase
+            await setDoc(novaOrdemRef, {
+                pedidoId: pedidoIdGerado,
+                items: cart,
+                total: totalComFrete,
+                data: new Date(),
+                status: 'Aguardando Pagamento',
                 id_pagamento: String(data.id),
-                payment_url: data.init_point 
+                payment_url: data.init_point,
+                metodo: 'Mercado Pago',
+                frete: freteSelecionado
             });
 
             // Limpa carrinho e redireciona
@@ -1427,7 +1424,7 @@ onSnapshot(qOrders, (snapshot) => {
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
-        alert("Erro ao processar pedido. Verifique sua conexão e tente novamente.");
+        alert("Ocorreu um problema ao gerar seu pagamento. Por favor, tente novamente.");
         btnCheckout.disabled = false;
         btnCheckout.innerHTML = originalText;
     }
