@@ -1293,7 +1293,7 @@ if (paymentId) {
         
         countEls.forEach(el => { if(el) { el.innerText = cart.length; el.classList.toggle('hidden', cart.length === 0); } });
         
-        const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+        const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         const totalFinal = subtotal + valorFrete;
 
@@ -1307,12 +1307,31 @@ if (paymentId) {
             return; 
         }
 
-        let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
-                <img src="${item.image}" class="w-16 h-16 object-cover rounded-md">
-                <div class="flex-grow"><h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4><p class="text-sm font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p></div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600"><i class="fas fa-trash"></i></button>
-            </div>`).join('');
+        let html = cart.map((item, index) => {
+            const qtd = item.quantity || 1;
+            const itemTotal = item.price * qtd;
+            
+            return `
+            <div class="flex items-center gap-4 bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-3">
+                <img src="${item.image}" class="w-16 h-16 object-cover rounded-lg">
+                <div class="flex-grow min-w-0">
+                    <h4 class="font-bold text-sm text-gray-800 line-clamp-1">${item.name}</h4>
+                    <p class="text-xs font-bold text-[var(--accent2-color)] mb-2">
+                        R$ ${item.price.toFixed(2).replace('.',',')} 
+                        <span class="text-gray-400 font-normal">total: R$ ${itemTotal.toFixed(2).replace('.',',')}</span>
+                    </p>
+                    
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden h-8">
+                            <button onclick="window.changeQuantity(${index}, -1)" class="px-2 bg-gray-50 hover:bg-gray-100 text-gray-600 transition">-</button>
+                            <span class="px-3 text-xs font-bold text-gray-800">${qtd}</span>
+                            <button onclick="window.changeQuantity(${index}, 1)" class="px-2 bg-gray-50 hover:bg-gray-100 text-gray-600 transition">+</button>
+                        </div>
+                        <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600 text-xs font-medium">Remover</button>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
 
         let addressBlock = '';
         
@@ -1404,11 +1423,42 @@ if (paymentId) {
     // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
         if(!auth.currentUser) { openModal(); return; }
-        cart.push({name, price, image}); updateCartUI(); toggleCart();
-        try { await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); } 
-        catch(e) { cart.pop(); updateCartUI(); }
+        
+        // Verifica se o item já existe no carrinho
+        const existingItemIndex = cart.findIndex(item => item.name === name);
+        
+        if (existingItemIndex > -1) {
+            // Se existe, aumenta a quantidade
+            cart[existingItemIndex].quantity += 1;
+        } else {
+            // Se não existe, adiciona novo objeto com quantity: 1
+            cart.push({ name, price, image, quantity: 1 });
+        }
+        
+        updateCartUI(); 
+        toggleCart();
+        
+        try { 
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+        } catch(e) { 
+            console.error("Erro ao salvar carrinho:", e);
+        }
     };
-
+window.changeQuantity = async (index, delta) => {
+        if(!auth.currentUser) return;
+        
+        cart[index].quantity += delta;
+        
+        // Se a quantidade for menor que 1, removemos o item
+        if (cart[index].quantity < 1) {
+            cart.splice(index, 1);
+        }
+        
+        updateCartUI();
+        try { 
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
+        } catch(e) {}
+    };
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
         try {
             let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
@@ -1493,10 +1543,10 @@ if (paymentId) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     items: cart.map(i => ({
-                        title: i.name, 
-                        quantity: 1, 
-                        unit_price: Number(i.price)
-                    })), 
+    title: i.name, 
+    quantity: i.quantity || 1, // <--- Agora enviamos a quantidade real
+    unit_price: Number(i.price)
+})),
                     payer: { email: currentUserData.email, name: currentUserData.fullName },
                     shipment_cost: Number(freteSelecionado.preco),
                     external_reference: tempOrderRef.id // Opcional: vincula os dois sistemas
