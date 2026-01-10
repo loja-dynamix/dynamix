@@ -1651,39 +1651,36 @@ if (pedido.status === 'Aguardando Pagamento') {
         }
     };
     window.verificarStatusManual = async (paymentId, docId) => {
-    if(!paymentId || paymentId === 'MP' || paymentId === 'pendente') { 
-        alert("Aguardando geração do link ou pagamento manual."); 
-        return; 
-    }
+    if(!docId) return;
     
     const btn = event.target;
     const originalHTML = btn.innerHTML;
     
     try {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando Banco Central...';
         
-        const response = await fetch(`/api/verificar?id=${paymentId}`);
+        // Chamamos a sua API passando tanto o ID do pagamento quanto o ID do pedido
+        // Isso garante que se um falhar, o outro encontra
+        const response = await fetch(`/api/verificar?id=${paymentId}&pedidoId=${docId}`);
         const data = await response.json();
         
-        // O Mercado Pago retorna 'approved' para pagamentos confirmados
-        if(data.status === 'approved') {
+        if(data.status === 'approved' || data.status === 'pago') {
             await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                 status: 'Pago',
-                data_pagamento: new Date()
+                data_confirmacao: new Date()
             });
-            alert("✅ Sucesso! Pagamento confirmado. Seu pedido começará a ser preparado.");
+            window.showDialog('alert', '✅ Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
             openDashboardModal('orders');
         } else {
-            // Se ainda não aprovou, detalha melhor o motivo
-            let motivo = "Ainda não detectamos o pagamento.";
-            if(data.status === 'in_process') motivo = "O pagamento está em análise pelo banco.";
-            if(data.status === 'rejected') motivo = "O pagamento foi recusado.";
+            let msg = "Ainda não identificamos o recebimento.";
+            if(data.status === 'in_process') msg = "Seu pagamento está em análise pelo Mercado Pago.";
+            if(data.status === 'rejected') msg = "O pagamento foi recusado pelo seu banco.";
             
-            alert(`Status: ${motivo}\n\nSe você já pagou, aguarde 1 a 2 minutos e clique novamente.`);
+            alert(`Status: ${msg}\n\nNota: Pix pode levar até 2 minutos para processar.`);
         }
     } catch(e) {
-        alert("Erro na comunicação com o servidor. Tente novamente.");
+        alert("Erro ao conectar com o Mercado Pago. Tente novamente em instantes.");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
