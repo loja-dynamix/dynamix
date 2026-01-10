@@ -5,9 +5,9 @@ module.exports = async (req, res) => {
 
   try {
     // Busca prioritária pelo external_reference (ID do Pedido)
-    const search = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${pedidoId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const searchRes = await fetch(`https://api.mercadopago.com/v1/payments/search?external_reference=${pedidoId}`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+});
     const searchData = await search.json();
 
     if (searchData.results && searchData.results.length > 0) {
@@ -26,3 +26,4 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: e.message });
   }
 };
+
