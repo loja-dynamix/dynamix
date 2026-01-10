@@ -1360,74 +1360,68 @@ const checkPendingOrders = async () => {
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando Pedido...';
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
         btnCheckout.disabled = true;
 
         try {
             const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
 
-            // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO
-            const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
+            // Criamos uma referência de ID no Firebase antes para enviar à API
+            const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+
+            // --- PASSO 1: CHAMADA DA API ---
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    items: cart.map(i => ({
+                        title: i.name, 
+                        quantity: 1, 
+                        unit_price: Number(i.price)
+                    })), 
+                    payer: { email: currentUserData.email, name: currentUserData.fullName },
+                    shipment_cost: Number(freteSelecionado.preco),
+                    external_reference: tempOrderRef.id // Opcional: vincula os dois sistemas
+                })
+            });
+
+            const data = await response.json();
+
+            // Agora 'data.id' virá preenchido da API
+            if (!data.id || !data.init_point) {
+                console.error("Dados incompletos da API:", data);
+                throw new Error("Erro na resposta do pagamento");
+            }
+
+            // --- PASSO 2: SALVAR NO FIREBASE COM O ID RECUPERADO ---
+            await setDoc(tempOrderRef, {
                 items: cart,
                 total: totalComFrete,
                 data: new Date(),
                 status: 'Aguardando Pagamento',
                 metodo: 'Mercado Pago',
                 frete: freteSelecionado,
-                id_pagamento: 'pendente',
-                payment_url: '#'
+                id_pagamento: String(data.id), // ID DO MERCADO PAGO AQUI
+                payment_url: data.init_point,
+                pedidoId: tempOrderRef.id,
+                cliente_uid: auth.currentUser.uid
             });
 
-            // 2. TENTAR GERAR O LINK DE PAGAMENTO
-            try {
-                const response = await fetch('/api/pagamento', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        items: cart.map(i => ({title: i.name, quantity: 1, unit_price: i.price})), 
-                        payer: { email: currentUserData.email, name: currentUserData.fullName },
-                        shipment_cost: freteSelecionado.preco,
-                        external_reference: pedidoRef.id 
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.init_point) {
-                    // 3. ATUALIZA O PEDIDO COM O LINK E ID REAIS
-                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", pedidoRef.id), {
-                        id_pagamento: String(data.id),
-                        payment_url: data.init_point
-                    });
-
-                    // Limpa carrinho e redireciona
-                    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-                    cart = [];
-                    updateCartUI();
-                    window.location.href = data.init_point;
-                    return;
-                }
-            } catch (apiErr) {
-                console.error("Erro na API:", apiErr);
-            }
-
-            // 4. FALLBACK WHATSAPP (Se a API falhar)
-            alert("O pagamento automático está instável. Finalize pelo WhatsApp (seu pedido já foi registrado).");
-            let msg = `*PEDIDO REGISTRADO (Pendente)*\nID: ${pedidoRef.id}\nCliente: ${currentUserData.fullName}\nTotal: R$ ${totalComFrete.toFixed(2)}`;
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-            
+            // --- PASSO 3: LIMPAR E REDIRECIONAR ---
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
             cart = [];
             updateCartUI();
 
+            window.location.href = data.init_point;
+
         } catch (error) {
-            alert("Erro ao processar pedido.");
+            console.error("Erro no Checkout:", error);
+            alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
         }
     };
-
     // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
