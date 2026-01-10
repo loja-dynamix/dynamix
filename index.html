@@ -1079,24 +1079,32 @@ const checkPendingOrders = async () => {
             const snap = await getDocs(q);
             
             snap.forEach(async (pedidoDoc) => {
-                const p = pedidoDoc.data();
-                // Só verifica se estiver aguardando e se tiver o ID salvo
-                if (p.status === 'Aguardando Pagamento' && p.id_pagamento && p.id_pagamento !== 'MP') {
-                    try {
-                        const res = await fetch(`/api/verificar?id=${p.id_pagamento}`);
-                        const pStatus = await res.json();
-                        
-                        if (pStatus.status === 'approved') {
-                            await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Pago' });
-                        } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
-                            await updateDoc(doc(db, "users", user.uid, "orders", pedidoDoc.id), { status: 'Cancelado' });
-                        }
-                    } catch (e) {
-                        console.log("Aguardando confirmação do banco...");
-                    }
-                }
-            });
-        };
+    const p = pedidoDoc.data();
+    const docId = pedidoDoc.id; // Este é o external_reference (ID do pedido no Firebase)
+
+    // Só verifica se o status no banco ainda for 'Aguardando Pagamento'
+    if (p.status === 'Aguardando Pagamento') {
+        try {
+            // ENVIAMOS OS DOIS IDs: o de pagamento (preferência) e o do pedido (external_reference)
+            const res = await fetch(`/api/verificar?id=${p.id_pagamento}&pedidoId=${docId}`);
+            const pStatus = await res.json();
+            
+            // Se a API retornar aprovado (seja pelo ID ou pela busca via pedidoId)
+            if (pStatus.status === 'approved') {
+                await updateDoc(doc(db, "users", user.uid, "orders", docId), { 
+                    status: 'Pago',
+                    id_pagamento_real: pStatus.id_real || p.id_pagamento, // Salva o ID real se houver
+                    data_confirmacao: new Date()
+                });
+                console.log(`Pedido ${docId} atualizado para Pago via auto-verificação.`);
+            } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
+                await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
+            }
+        } catch (e) {
+            console.log("Erro ao verificar status do pedido " + docId);
+        }
+    }
+});
         checkPendingOrders();
             // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
