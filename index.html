@@ -1138,6 +1138,7 @@ const checkPendingOrders = async () => {
                     id_pagamento_real: pStatus.id_real || p.id_pagamento,
                     data_confirmacao: new Date()
                 });
+              enviarNotificacaoVenda(p, docId);
                 console.log("Pedido " + docId + " confirmado!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                 await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
@@ -1182,6 +1183,7 @@ if (paymentId) {
                 
                 if (statusFinal === 'Pago') {
                     window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
+                  enviarNotificacaoVenda(pData, ultimoPedido.id);
                 }
             }
         }
@@ -1793,6 +1795,33 @@ window.changeQty = async (index, delta) => {
         </div>`;
         }
     };
+    const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
+    try {
+        const itensFormatados = pedidoData.items.map(item => 
+            `${item.name} (Qtd: ${item.quantity || 1})`
+        ).join(' | ');
+
+        const dados = {
+            assunto: `NOVA VENDA: #${pedidoId.slice(0,6).toUpperCase()}`,
+            cliente: currentUserData.fullName,
+            email: currentUserData.email,
+            cpf: currentUserData.cpf,
+            whatsapp: currentUserData.phone,
+            endereco: `${currentUserData.street}, ${currentUserData.number} - ${currentUserData.neighborhood}`,
+            cidade: `${currentUserData.city}/${currentUserData.state}`,
+            cep: currentUserData.cep,
+            produtos: itensFormatados,
+            frete: pedidoData.frete.nome,
+            total: `R$ ${pedidoData.total.toFixed(2)}`
+        };
+
+        await fetch("https://formspree.io/f/xykznlnr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dados)
+        });
+    } catch (e) { console.error("Erro Formspree:", e); }
+};
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
     
@@ -1813,6 +1842,8 @@ window.changeQty = async (index, delta) => {
                 status: 'Pago',
                 data_confirmacao: new Date()
             });
+          const snapParaEmail = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
+if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
             window.showDialog('alert', '✅ Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
             openDashboardModal('orders');
         } else {
