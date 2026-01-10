@@ -12,6 +12,57 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <style>
+    @keyframes gold-shimmer {
+  0% { left: -150%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}
+
+/* Animação suave de flutuação */
+@keyframes float-btn {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.btn-checkout-premium {
+  position: relative;
+  overflow: hidden;
+  /* Degradê luxuoso: do preto para um grafite profundo */
+  background: linear-gradient(135deg, #000000 0%, #262626 100%);
+  color: white;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: float-btn 3s infinite ease-in-out;
+  border: 1px solid rgba(255, 195, 13, 0.3); /* Borda sutil em dourado */
+}
+
+.btn-checkout-premium:hover {
+  transform: scale(1.03) translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 15px rgba(243, 167, 18, 0.2);
+  border-color: var(--primary-color);
+}
+
+/* O feixe de luz dourado */
+.btn-checkout-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 150%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 195, 13, 0.2), /* Brilho na cor do seu logo */
+    transparent
+  );
+  skewX: -45deg;
+  left: -150%;
+  transition: none;
+  animation: gold-shimmer 4s infinite linear;
+}
+
+.btn-checkout-premium:active {
+  transform: scale(0.97);
+}
     :root {
       --accent-color: #f3a712;
       --accent2-color: #ff8600;
@@ -495,9 +546,17 @@
       <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4"></div>
       <div class="p-6 border-t bg-gray-50">
           <div class="flex justify-between items-center mb-4"><span class="text-gray-600 font-bold">Total:</span><span id="cart-total" class="text-2xl font-bold text-[var(--accent2-color)]">R$ 0,00</span></div>
-          <button onclick="checkout()" class="w-full bg-green-500 text-white py-4 rounded-lg font-bold hover:bg-green-600 transition shadow-lg flex items-center justify-center gap-2"><i class="fab fa-whatsapp text-xl"></i> Finalizar Compra</button>
-      </div>
-  </div>
+          <button onclick="checkout()" class="w-full btn-checkout-premium py-5 rounded-xl font-bold text-base shadow-2xl flex items-center justify-center gap-3 uppercase tracking-[2px]">
+        <i class="fas fa-lock text-sm opacity-70"></i> 
+        <span>Finalizar Pagamento</span>
+        <i class="fas fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+    </button>
+    
+    <p class="text-center text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-2">
+        <i class="fas fa-shield-alt text-[var(--primary-color)]"></i>
+        Ambiente Seguro e Criptografado
+    </p>
+</div>
 
   <div id="custom-dialog" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative m-4 transform transition-all scale-100 border border-gray-100">
