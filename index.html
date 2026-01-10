@@ -1445,16 +1445,17 @@ if (paymentId) {
 
             // 1. SALVAR O PEDIDO NO FIREBASE PRIMEIRO (Garantia de que você não perde a venda)
             const pedidoRef = await addDoc(collection(db, "users", auth.currentUser.uid, "orders"), {
-                items: cart,
-                total: totalComFrete,
-                data: new Date(),
-                status: 'Aguardando Pagamento',
+    items: cart,
+    total: totalComFrete,
+    data: new Date(),
+    status: 'Aguardando Pagamento',
+    pedidoId: "", // Criamos o campo vazio primeiro
                 metodo: 'Mercado Pago',
                 frete: freteSelecionado,
                 id_pagamento: 'pendente', // Será atualizado se a API responder
                 payment_url: '#'          // Será atualizado se a API responder
             });
-
+await updateDoc(pedidoRef, { pedidoId: pedidoRef.id });
             // 2. TENTAR GERAR O LINK DE PAGAMENTO
             try {
                 const response = await fetch('/api/pagamento', {
