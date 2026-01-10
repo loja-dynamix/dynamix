@@ -1519,7 +1519,8 @@ window.changeQty = async (index, delta) => {
         btnCheckout.disabled = true;
 
         try {
-            const totalComFrete = cart.reduce((sum, i) => sum + i.price, 0) + freteSelecionado.preco;
+            const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
+            const totalComFrete = subtotalGeral + freteSelecionado.preco;
 
             // Criamos uma referência de ID no Firebase antes para enviar à API
             const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
@@ -1647,14 +1648,15 @@ window.changeQty = async (index, delta) => {
                     const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
                     const valorFrete = pedido.frete ? pedido.frete.preco : 0;
                     
-                    // O total final já deve estar salvo corretamente no banco, 
-                    // mas recalculamos o subtotal para exibição correta.
                     let subtotalCalculado = 0;
                     if (pedido.items) {
                         pedido.items.forEach(item => {
                             subtotalCalculado += (item.price * (item.quantity || 1));
                         });
                     }
+
+                    // O total final exibido será a soma real do que está na lista + frete
+                    const totalExibido = subtotalCalculado + valorFrete;
 
                     let resumoValoresHTML = `
                         <div class="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
@@ -1667,8 +1669,8 @@ window.changeQty = async (index, delta) => {
                                 <span>R$ ${valorFrete.toFixed(2).replace('.',',')}</span>
                             </div>
                             <div class="flex justify-between text-xs font-black text-gray-800 pt-1 border-t border-gray-200">
-                                <span>Total do Pedido:</span>
-                                <span class="text-[var(--accent2-color)]">R$ ${pedido.total.toFixed(2).replace('.',',')}</span>
+                                <span>Total Pago:</span>
+                                <span class="text-[var(--accent2-color)]">R$ ${totalExibido.toFixed(2).replace('.',',')}</span>
                             </div>
                         </div>
                     `;
