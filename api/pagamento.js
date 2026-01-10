@@ -11,8 +11,8 @@ module.exports = async (req, res) => {
     const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
     if (!ACCESS_TOKEN) return res.status(500).json({ error: 'Token ausente' });
   
-    // Agora recebemos o "shipment_cost" (custo do frete)
-    const { items, payer, shipment_cost } = req.body;
+    // Recebemos o external_reference (ID do pedido no Firebase)
+    const { items, payer, shipment_cost, external_reference } = req.body;
   
     try {
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -24,9 +24,9 @@ module.exports = async (req, res) => {
         body: JSON.stringify({
           items,
           payer,
-          // ADICIONA O CUSTO DO FRETE AQUI
+          external_reference: external_reference || "",
           shipments: {
-            cost: shipment_cost || 0,
+            cost: Number(shipment_cost) || 0,
             mode: 'not_specified'
           },
           back_urls: {
@@ -41,7 +41,11 @@ module.exports = async (req, res) => {
       const data = await response.json();
   
       if (data.init_point) {
-        return res.status(200).json({ init_point: data.init_point });
+        // MUDANÇA AQUI: Retornamos o ID e o Link de pagamento
+        return res.status(200).json({ 
+            id: data.id, 
+            init_point: data.init_point 
+        });
       } else {
         return res.status(400).json({ error: 'Erro MP', details: data });
       }
