@@ -1,26 +1,35 @@
 const admin = require('firebase-admin');
 
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-  });
+  try {
+    // Tratamento rigoroso da chave privada
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY
+      .replace(/\\n/g, '\n') // Converte caracteres \n em quebras reais
+      .trim();              // Remove espaços ou quebras no início/fim
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: privateKey,
+      }),
+    });
+    console.log("Firebase Admin conectado com sucesso.");
+  } catch (error) {
+    console.error("Erro na chave do Firebase:", error.message);
+  }
 }
 
 const db = admin.firestore();
 
 module.exports = async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).send('Método não permitido');
+  if (req.method !== 'POST') return res.status(405).send('Apenas POST');
 
   const { type, data } = req.body;
 
   if (type === "payment") {
     try {
       const paymentId = data.id;
-      // Busca detalhes no Mercado Pago
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
         headers: { 'Authorization': `Bearer ${process.env.MP_ACCESS_TOKEN}` }
       });
@@ -28,27 +37,27 @@ module.exports = async (req, res) => {
       const pedidoId = paymentData.external_reference;
 
       if (pedidoId && paymentData.status === "approved") {
-        // Busca o pedido em qualquer subcoleção 'orders' usando o campo pedidoId
+        // BUSCA PELO CAMPO pedidoId (Certifique-se que o índice existe no Firebase!)
         const snapshot = await db.collectionGroup('orders')
                                  .where('pedidoId', '==', pedidoId)
                                  .get();
 
         if (!snapshot.empty) {
-          const docRef = snapshot.docs[0].ref;
-          await docRef.update({
+          await snapshot.docs[0].ref.update({
             status: 'Pago',
             id_pagamento_real: String(paymentId),
-            data_pagamento: admin.firestore.FieldValue.serverTimestamp(),
-            metodo_confirmacao: 'Webhook Automatizado'
+            confirmacao: 'Webhook Automatizado',
+            data_pago: admin.firestore.FieldValue.serverTimestamp()
           });
-          console.log(`✅ Pedido ${pedidoId} aprovado com sucesso!`);
-          return res.status(200).json({ message: "Sucesso" });
+          console.log(`✅ Pedido ${pedidoId} ATUALIZADO NO BANCO!`);
+          return res.status(200).send("OK");
+        } else {
+          console.log(`❌ Pedido ${pedidoId} não achado no banco.`);
         }
       }
-    } catch (error) {
-      console.error("Erro no Webhook:", error.message);
-      return res.status(500).send("Erro Interno");
+    } catch (e) {
+      console.error("Erro processando:", e.message);
     }
   }
-  res.status(200).send("OK");
+  res.status(200).send("Recebido");
 };
