@@ -12,6 +12,29 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <style>
+   .carousel-slide img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Faz a imagem preencher o espaço sem distorcer */
+    object-position: center; /* Mantém o foco no centro da imagem */
+}
+
+/* Ajuste de altura para não ficar um banner gigante "puxado" verticalmente */
+.carousel-container-ajustado {
+    height: 300px; /* Altura padrão para telas médias */
+}
+
+@media (min-width: 1024px) {
+    .carousel-container-ajustado {
+        height: 450px; /* Altura para computadores */
+    }
+}
+
+@media (max-width: 640px) {
+    .carousel-container-ajustado {
+        height: 200px; /* Altura menor para celulares, evita esticar muito */
+    }
+}
     :root {
       --accent-color: #f3a712;
       --accent2-color: #ff8600;
@@ -144,49 +167,52 @@
   </header>
 
   <div id="home-view" class="view-section active">
-      <section class="code-section py-8 bg-gradient-to-b from-white to-[var(--light-background-color)]">
-        <div class="container mx-auto px-4">
-          <div class="relative h-[300px] sm:h-[400px] overflow-hidden rounded-2xl shadow-2xl">
-            <div id="banner-track" class="carousel-track h-full">
-              <div class="carousel-slide">
-                <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-60"></div>
-                <div class="absolute inset-0 flex items-center">
-                  <div class="container mx-auto px-4 text-white">
-                    <h3 class="text-3xl sm:text-5xl font-bold">Até 30% OFF em Emagrecimento</h3>
-                    <p class="text-xl mt-4">Queime gordura com os melhores termogênicos</p>
-                    <a href="/category/emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Comprar Agora</a>
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-slide">
-                <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-r from-[var(--accent3-color)] to-transparent opacity-70"></div>
-                <div class="absolute inset-0 flex items-center justify-end">
-                  <div class="container mx-auto px-4 text-white text-right">
-                    <h3 class="text-3xl sm:text-5xl font-bold">Potencialize Seu Treino</h3>
-                    <p class="text-xl mt-4">Whey, creatina e pré-treino com desconto</p>
-                    <a href="/category/treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold">Ver Ofertas</a>
-                  </div>
-                </div>
-              </div>
-              <div class="carousel-slide">
-                <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-l from-black to-transparent opacity-60"></div>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <div class="text-center text-white">
-                    <h3 class="text-3xl sm:text-5xl font-bold">Combos com até 40% OFF</h3>
-                    <p class="text-xl mt-4">Monte seu kit perfeito e economize mais</p>
-                    <a href="/produtos.html?categoria=Combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold">Aproveitar</a>
-                  </div>
-                </div>
+      <section class="code-section bg-white">
+      <div class="relative banner-wrapper overflow-hidden w-full">
+        <div id="banner-track" class="carousel-track h-full">
+          
+          <div class="carousel-slide">
+            <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center">
+              <div class="container mx-auto px-4 text-white">
+                <h3 class="text-3xl sm:text-5xl font-bold drop-shadow-lg">Até 30% OFF em Emagrecimento</h3>
+                <p class="text-lg sm:text-xl mt-4 opacity-90">Queime gordura com os melhores termogênicos</p>
+                <a href="produtos.html?categoria=Emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Comprar Agora</a>
               </div>
             </div>
-            <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20"><i class="fas fa-chevron-left text-xl"></i></button>
-            <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white bg-opacity-30 hover:bg-opacity-50 text-black p-3 rounded-full z-20"><i class="fas fa-chevron-right text-xl"></i></button>
           </div>
+
+          <div class="carousel-slide">
+            <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center justify-end">
+              <div class="container mx-auto px-4 text-white text-right">
+                <h3 class="text-3xl sm:text-5xl font-bold drop-shadow-lg">Potencialize Seu Treino</h3>
+                <p class="text-lg sm:text-xl mt-4 opacity-90">Whey, creatina e pré-treino com desconto</p>
+                <a href="produtos.html?categoria=Treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Ver Ofertas</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="carousel-slide">
+            <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center text-white">
+                <h3 class="text-3xl sm:text-5xl font-bold drop-shadow-lg">Combos com até 40% OFF</h3>
+                <p class="text-lg sm:text-xl mt-4 opacity-90">Monte seu kit perfeito e economize mais</p>
+                <a href="produtos.html?categoria=Combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Aproveitar</a>
+              </div>
+            </div>
+          </div>
+
         </div>
-      </section>
+
+        <button id="banner-prev" class="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full z-20 flex items-center justify-center transition-all"><i class="fas fa-chevron-left"></i></button>
+        <button id="banner-next" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white w-10 h-10 sm:w-12 sm:h-12 rounded-full z-20 flex items-center justify-center transition-all"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </section>
       
       <section class="code-section py-16 bg-white">
         <div class="container mx-auto px-4">
