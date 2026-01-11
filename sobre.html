@@ -727,9 +727,16 @@ supForm.onsubmit = async (e) => {
         });
     }
 
+    window.valorFreteGratisPlanilha = 0;
+
     function renderizarProdutos(produtos) {
         const container = document.getElementById('products-container');
         if(!container) return;
+
+        // PEGA O VALOR DO FRETE GRÁTIS DA PRIMEIRA LINHA DA PLANILHA (Coluna "frete_gratis")
+        if(produtos.length > 0 && produtos[0].frete_gratis) {
+            window.valorFreteGratisPlanilha = parseFloat(produtos[0].frete_gratis.replace(',', '.'));
+        }
         
         container.innerHTML = "";
         // Filtra linhas vazias ou inválidas
@@ -1300,21 +1307,35 @@ const checkPendingOrders = async () => {
 
     function renderizarOpcoesFrete(container) {
         if (!opcoesFreteCache) return;
+        
+        // Calcula o subtotal atual do carrinho
+        const subtotalAtual = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+        
+        // Verifica se atingiu o valor para Frete Grátis
+        const atingiuFreteGratis = window.valorFreteGratisPlanilha > 0 && subtotalAtual >= window.valorFreteGratisPlanilha;
+
         let html = '';
         
         opcoesFreteCache.forEach((op) => {
+            // Se atingiu o valor, o preço da opção vira 0
+            const precoExibido = atingiuFreteGratis ? 0 : op.preco;
             const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
             
+            // Cria um objeto modificado caso seja grátis para passar para a função de seleção
+            const opcaoModificada = { ...op, preco: precoExibido };
+
             html += `
                 <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50">
                     <div class="flex items-center gap-3">
-                        <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(op)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)] h-4 w-4">
+                        <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(opcaoModificada)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)] h-4 w-4">
                         <div class="flex flex-col">
                             <span class="text-xs text-gray-800 font-bold">${op.nome}</span>
                             <span class="text-[10px] text-gray-500">Prazo: ${op.prazo} dias</span>
                         </div>
                     </div>
-                    <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${op.preco.toFixed(2).replace('.',',')}</span>
+                    <span class="text-sm font-bold ${atingiuFreteGratis ? 'text-green-600' : 'text-[var(--accent2-color)]'}">
+                        ${precoExibido === 0 ? 'FRETE GRÁTIS' : 'R$ ' + precoExibido.toFixed(2).replace('.',',')}
+                    </span>
                 </label>
             `;
         });
@@ -1424,7 +1445,7 @@ const checkPendingOrders = async () => {
         
         cart[index].quantity = newQty;
         updateCartUI();
-        
+        if(currentUserData && currentUserData.cep) window.calcularFreteAutomatico(currentUserData.cep);
         try { 
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
         } catch(e) { 
