@@ -1665,12 +1665,34 @@ window.changeQty = async (index, delta) => {
 
     try {
         const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
-        
-        // --- LÓGICA DE DESCONTO NO CHECKOUT ---
         let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
-        const totalComFreteEDesconto = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
+        const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
 
-        // Criamos uma referência de ID no Firebase antes para enviar à API
+        // Criamos a lista de itens para enviar ao Mercado Pago
+        const itensParaPagamento = cart.map(i => ({
+            title: i.name,
+            quantity: i.quantity || 1,
+            unit_price: Number(i.price)
+        }));
+
+        // Adicionamos o Frete como um item para somar no valor
+        itensParaPagamento.push({
+            title: `FRETE: ${freteSelecionado.nome}`,
+            quantity: 1,
+            unit_price: Number(freteSelecionado.preco)
+        });
+
+        // Se houver desconto, enviamos um item com valor negativo
+        // IMPORTANTE: Algumas APIs de integração barram unit_price negativo. 
+        // Se o seu valor não mudar, me avise para ajustarmos o preço unitário dos produtos.
+        if (valorDesconto > 0) {
+            itensParaPagamento.push({
+                title: `CUPOM: ${cupomAplicado.codigo}`,
+                quantity: 1,
+                unit_price: Number(valorDesconto) * -1
+            });
+        }
+
         const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
         // --- PASSO 1: CHAMADA DA API ---
@@ -1678,15 +1700,8 @@ window.changeQty = async (index, delta) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                items: cart.map(i => ({
-                    title: i.name, 
-                    quantity: i.quantity || 1,
-                    unit_price: Number(i.price)
-                })),
+                items: itensParaPagamento,
                 payer: { email: currentUserData.email, name: currentUserData.fullName },
-                shipment_cost: Number(freteSelecionado.preco),
-                // Enviamos o desconto como um valor negativo se existir
-                discount: valorDesconto > 0 ? Number(valorDesconto) * -1 : 0,
                 external_reference: tempOrderRef.id 
             })
         });
@@ -1694,17 +1709,16 @@ window.changeQty = async (index, delta) => {
         const data = await response.json();
 
         if (!data.id || !data.init_point) {
-            console.error("Dados incompletos da API:", data);
             throw new Error("Erro na resposta do pagamento");
         }
 
-        // --- PASSO 2: SALVAR NO FIREBASE COM O DESCONTO REGISTRADO ---
+        // --- PASSO 2: SALVAR NO FIREBASE ---
         await setDoc(tempOrderRef, {
             items: cart,
             subtotal: subtotalGeral,
             desconto: valorDesconto,
             cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalComFreteEDesconto, // VALOR REAL QUE O CLIENTE VAI PAGAR
+            total: totalFinalCalculado, 
             data: new Date(),
             status: 'Aguardando Pagamento',
             metodo: 'Mercado Pago',
@@ -1718,14 +1732,14 @@ window.changeQty = async (index, delta) => {
         // --- PASSO 3: LIMPAR E REDIRECIONAR ---
         await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
         cart = [];
-        cupomAplicado = null; // Reseta o cupom após finalizar
+        cupomAplicado = null; 
         updateCartUI();
 
         window.location.href = data.init_point;
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
-        alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
+        alert("Erro ao processar desconto no Mercado Pago. Tente novamente.");
     } finally {
         btnCheckout.innerHTML = textoOriginal;
         btnCheckout.disabled = false;
