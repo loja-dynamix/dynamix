@@ -12,6 +12,44 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
   <style>
+    .btn-banner-custom {
+    position: absolute;
+    z-index: 40;
+    transition: all 0.3s ease;
+}
+
+/* Botão do Slide 1 (Emagrecimento) */
+.btn-pos-s1 {
+    bottom: 16%;      /* Altura: quanto maior o %, mais sobe */
+    left: 12%;        /* Lado: distância da esquerda */
+    padding: 22px 100px; /* Tamanho: (Cima/Baixo) (Lado/Lado) */
+    font-size: 16px;
+}
+
+/* Botão do Slide 2 (Treino) */
+.btn-pos-s2 {
+    bottom: 43%;
+    right: 2%;       /* Distância da direita */
+    padding: 16px 90px;
+    font-size: 16px;
+}
+
+/* Botão do Slide 3 (Combos) */
+.btn-pos-s3 {
+    bottom: 31%;
+    left: 67%;
+    padding: 25px 105px;
+    font-size: 20px;
+}
+
+/* Ajuste para celular (evita que o botão saia da tela pequena) */
+@media (max-width: 640px) {
+    .btn-pos-s1, .btn-pos-s2, .btn-pos-s3 {
+        bottom: 10%;
+        font-size: 12px;
+        padding: 8px 16px;
+    }
+}
    .carousel-slide img {
     width: 100%;
     height: 100%;
@@ -171,36 +209,31 @@
       <div class="relative banner-wrapper overflow-hidden w-full">
         <div id="banner-track" class="carousel-track h-full">
           
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center">
-              <div class="container mx-auto px-4 text-white">
-              
-                <a href="produtos.html?categoria=Emagrecimento" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Comprar Agora</a>
-              </div>
-            </div>
-          </div>
+         <div class="carousel-slide">
+    <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
+    <div class="absolute inset-0 bg-black/10"></div> <a href="produtos.html?categoria=Emagrecimento" 
+       class="btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">
+       Comprar Agora
+    </a>
+</div>
 
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-end">
-              <div class="container mx-auto px-4 text-white text-right">
-                
-                <a href="produtos.html?categoria=Treino" class="mt-6 inline-block bg-white text-[var(--accent2-color)] px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Ver Ofertas</a>
-              </div>
-            </div>
-          </div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <a href="produtos.html?categoria=Treino" 
+       class="btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">
+       Ver Ofertas
+    </a>
+</div>
 
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="text-center text-white">
-                
-                <a href="produtos.html?categoria=Combos" class="mt-6 inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold shadow-lg hover:scale-105 transition-transform">Aproveitar</a>
-              </div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
+    <div class="absolute inset-0 bg-black/10"></div>
+    <a href="produtos.html?categoria=Combos" 
+       class="btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">
+       Aproveitar Combo
+    </a>
+</div>
             </div>
           </div>
 
