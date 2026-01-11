@@ -1350,14 +1350,20 @@ const checkPendingOrders = async () => {
         }
     };
 
-    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating) => {
+    window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
+        // Histórico de vistos recentemente - Salvando todos os dados necessários
         try {
             let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
             recentes = recentes.filter(p => p.nome !== nome);
-            recentes.unshift({ nome, preco, imagem, categoria, rating });
+            recentes.unshift({ 
+                nome, preco, imagem, categoria, rating, 
+                descricao: descricao, 
+                precoAntigo: precoAntigo, 
+                parcelas: parcelas 
+            });
             if(recentes.length > 6) recentes.pop();
             localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
-        } catch(e) { console.log('Erro ao salvar histórico'); }
+        } catch(e) {}
 
         const modal = document.getElementById('product-modal');
         document.getElementById('modal-product-image').src = imagem;
@@ -1694,8 +1700,13 @@ let resumoValoresHTML = `
             } else {
                 let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
                 recentes.forEach(prod => {
+                    // Prepara os textos para não dar erro no clique
+                    const safeDesc = (prod.descricao || "Produto Dynamix").replace(/'/g, "\\'");
+                    const safePrecoDe = prod.precoAntigo || "";
+                    
                     html += `
-                        <div class="flex items-center gap-3 bg-white border border-gray-100 p-2 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer" onclick="window.openProductModal('${prod.nome}', ${prod.preco}, '${prod.imagem}')">
+                        <div class="flex items-center gap-3 bg-white border border-gray-100 p-2 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer" 
+                             onclick="window.openProductModal('${prod.nome}', ${prod.preco}, '${prod.imagem}', '${prod.categoria}', '${safeDesc}', '${safePrecoDe}', ${prod.rating || 5}, ${prod.parcelas || 1})">
                             <img src="${prod.imagem}" class="w-16 h-16 object-cover rounded-md bg-gray-100">
                             <div class="flex-grow min-w-0">
                                 <h4 class="font-bold text-sm text-gray-800 truncate">${prod.nome}</h4>
