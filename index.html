@@ -619,6 +619,18 @@
       </div>
       <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-4"></div>
       <div class="p-6 border-t bg-gray-50">
+        <div class="mb-4 pt-4 border-t border-gray-200">
+    <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Possui um cupom?</label>
+    <div class="flex gap-2">
+        <input type="text" id="coupon-input" placeholder="Digite o código" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[var(--accent-color)]">
+        <button onclick="window.aplicarCupom()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all">Aplicar</button>
+    </div>
+    <p id="coupon-msg" class="text-[9px] mt-1 font-bold hidden"></p>
+</div>
+<div id="discount-area" class="hidden flex justify-between items-center mb-2 text-green-600 font-bold text-sm">
+    <span>Desconto:</span>
+    <span id="cart-discount">- R$ 0,00</span>
+</div>
           <div class="flex justify-between items-center mb-4"><span class="text-gray-600 font-bold">Total:</span><span id="cart-total" class="text-2xl font-bold text-[var(--accent2-color)]">R$ 0,00</span></div>
           <button onclick="checkout()" class="btn-checkout-premium w-full py-5 rounded-xl font-black text-lg flex items-center justify-center gap-3 uppercase tracking-tighter">
     <span>Finalizar Pedido Agora</span>
@@ -1386,70 +1398,80 @@ if (paymentId) {
 
     // --- LÓGICA DO CARRINHO COM FRETE AUTOMÁTICO ---
     function updateCartUI() {
-        const container = document.getElementById('cart-items');
-        const totalEl = document.getElementById('cart-total');
-        const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
-        
-        // Calcula a quantidade total de itens para o ícone do carrinho
-        const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
-        countEls.forEach(el => { if(el) { el.innerText = totalItems; el.classList.toggle('hidden', totalItems === 0); } });
-        
-        // Calcula o subtotal considerando a quantidade
-        const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-        const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
-        const totalFinal = subtotal + valorFrete;
-
-        totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-        
-        if (cart.length === 0) { 
-            container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
-            freteSelecionado = null; 
-            opcoesFreteCache = null;
-            cepCache = null;
-            return; 
-        }
-
-        let html = cart.map((item, index) => `
-            <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
-                <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
-                <div class="flex-grow">
-                    <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
-                    <p class="text-xs font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
-                    <div class="flex items-center gap-2 mt-2">
-                        <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
-                        <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
-                        <button onclick="window.changeQty(${index}, 1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">+</button>
-                    </div>
-                </div>
-                <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600 ml-2"><i class="fas fa-trash-alt"></i></button>
-            </div>`).join('');
-
-        let addressBlock = '';
-        if (currentUserData && currentUserData.cep && currentUserData.street) {
-             addressBlock = `
-                <div class="mt-4 pt-4 border-t border-gray-200">
-                    <div class="flex justify-between items-center mb-2">
-                        <p class="text-xs font-bold text-gray-700">
-                            <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> 
-                            Enviar para: <span class="font-normal text-gray-500">${currentUserData.street}, ${currentUserData.number}</span>
-                        </p>
-                        <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar</button>
-                    </div>
-                    <div id="frete-auto-container" class="space-y-2">
-                        <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i></div>
-                    </div>
-                </div>`;
-            setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
-        } else {
-             addressBlock = `<div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-3 rounded-lg">
-                <p class="text-[10px] text-red-600 mb-1 font-bold">Endereço não encontrado.</p>
-                <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] font-bold underline">Cadastrar Agora</button>
-            </div>`;
-            freteSelecionado = null;
-        }
-        container.innerHTML = html + addressBlock;
+    const container = document.getElementById('cart-items');
+    const totalEl = document.getElementById('cart-total');
+    const discountArea = document.getElementById('discount-area');
+    const discountEl = document.getElementById('cart-discount');
+    const countEls = [document.getElementById('cart-count'), document.getElementById('mobile-cart-count')];
+    
+    const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    countEls.forEach(el => { if(el) { el.innerText = totalItems; el.classList.toggle('hidden', totalItems === 0); } });
+    
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+    const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
+    
+    // Lógica do Desconto
+    let valorDesconto = 0;
+    if (cupomAplicado) {
+        valorDesconto = cupomAplicado.valor;
+        discountArea.classList.remove('hidden');
+        discountEl.innerText = `- R$ ${valorDesconto.toFixed(2).replace('.', ',')}`;
+    } else {
+        discountArea.classList.add('hidden');
     }
 
+    // Cálculo Final: Subtotal + Frete - Desconto (mínimo R$ 0)
+    const totalFinal = Math.max(0, (subtotal + valorFrete) - valorDesconto);
+
+    totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    
+    if (cart.length === 0) { 
+        container.innerHTML = `<div class="text-center text-gray-500 mt-10"><p>Carrinho vazio.</p></div>`; 
+        freteSelecionado = null; 
+        cupomAplicado = null; // Reseta cupom se esvaziar
+        return; 
+    }
+
+    let html = cart.map((item, index) => `
+        <div class="flex items-center gap-4 bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-3">
+            <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
+            <div class="flex-grow">
+                <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
+                <p class="text-xs font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                <div class="flex items-center gap-2 mt-2">
+                    <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
+                    <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
+                    <button onclick="window.changeQty(${index}, 1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">+</button>
+                </div>
+            </div>
+            <button onclick="window.removeFromCart(${index})" class="text-red-400 hover:text-red-600 ml-2"><i class="fas fa-trash-alt"></i></button>
+        </div>`).join('');
+
+    let addressBlock = '';
+    if (currentUserData && currentUserData.cep && currentUserData.street) {
+         addressBlock = `
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-2">
+                    <p class="text-xs font-bold text-gray-700">
+                        <i class="fas fa-map-marker-alt text-[var(--accent-color)]"></i> 
+                        Enviar para: <span class="font-normal text-gray-500">${currentUserData.street}, ${currentUserData.number}</span>
+                    </p>
+                    <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] text-blue-600 font-bold underline hover:text-blue-800">Alterar</button>
+                </div>
+                <div id="frete-auto-container" class="space-y-2">
+                    <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i></div>
+                </div>
+            </div>`;
+        setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
+    } else {
+         addressBlock = `<div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-3 rounded-lg">
+            <p class="text-[10px] text-red-600 mb-1 font-bold">Endereço não encontrado.</p>
+            <button onclick="switchView('profile-view'); toggleCart()" class="text-[10px] font-bold underline">Cadastrar Agora</button>
+        </div>`;
+        freteSelecionado = null;
+    }
+    container.innerHTML = html + addressBlock;
+}
     // Função que busca o frete sem input manual
     window.calcularFreteAutomatico = async (cep) => {
         const container = document.getElementById('frete-auto-container');
@@ -1976,6 +1998,43 @@ if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
         btn.disabled = false;
         btn.innerHTML = originalHTML;
     }
+};
+    let cupomAplicado = null;
+
+window.aplicarCupom = () => {
+    const input = document.getElementById('coupon-input');
+    const msg = document.getElementById('coupon-msg');
+    const codigo = input.value.trim().toUpperCase();
+
+    if (!codigo) return;
+
+    // Busca os dados da planilha que já estão carregados na primeira linha (conforme sua lógica de frete_gratis)
+    Papa.parse(LINK_DA_PLANILHA, {
+        download: true,
+        header: true,
+        complete: function(results) {
+            const planilha = results.data;
+            // Procura o cupom em qualquer linha da planilha nas colunas cupom_codigo e cupom_valor
+            const cupomEncontrado = planilha.find(linha => linha.cupom_codigo && linha.cupom_codigo.toUpperCase() === codigo);
+
+            if (cupomEncontrado) {
+                cupomAplicado = {
+                    codigo: cupomEncontrado.cupom_codigo,
+                    valor: parseFloat(cupomEncontrado.cupom_valor.replace(',', '.'))
+                };
+                msg.innerText = "Cupom aplicado com sucesso!";
+                msg.className = "text-[9px] mt-1 font-bold text-green-600";
+                msg.classList.remove('hidden');
+                updateCartUI(); // Atualiza o preço na tela
+            } else {
+                cupomAplicado = null;
+                msg.innerText = "Cupom inválido ou expirado.";
+                msg.className = "text-[9px] mt-1 font-bold text-red-600";
+                msg.classList.remove('hidden');
+                updateCartUI();
+            }
+        }
+    });
 };
   </script>
 </body>
