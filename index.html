@@ -918,8 +918,9 @@ supForm.onsubmit = async (e) => {
                 tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm">${produto.tag}</span>`;
             }
 
-            const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
-            const precoFormatado = precoNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            const precoLimpo = produto.preco_por.replace(/\./g, '').replace(',', '.');
+const precoNumerico = parseFloat(precoLimpo);
+const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
             
             const numParcelas = parseInt(produto.parcelas) || 1;
             let parcelamentoHTML = '';
@@ -952,7 +953,7 @@ supForm.onsubmit = async (e) => {
                     <div class="mt-auto pt-3 border-t border-gray-50">
                         <div class="flex items-center justify-between">
                             <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
                                 <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
                                 ${parcelamentoHTML}
                             </div>
@@ -1604,7 +1605,8 @@ if (paymentId) {
 
         const oldPriceEl = document.getElementById('modal-product-old-price');
         if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
-    const antigoFormatado = parseFloat(precoAntigo.replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    const limpoAntigo = precoAntigo.replace(/\./g, '').replace(',', '.');
+    const antigoFormatado = parseFloat(limpoAntigo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     oldPriceEl.innerText = antigoFormatado;
     oldPriceEl.classList.remove('hidden');
         } else {
