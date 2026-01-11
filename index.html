@@ -1654,75 +1654,83 @@ window.changeQty = async (index, delta) => {
         }
     };
     window.checkout = async () => {
-        if (!auth.currentUser) { openModal(); return; }
-        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
+    if (!auth.currentUser) { openModal(); return; }
+    if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+    if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
-        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-        const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
-        btnCheckout.disabled = true;
+    const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+    const textoOriginal = btnCheckout.innerHTML;
+    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
+    btnCheckout.disabled = true;
 
-        try {
-            const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
-            const totalComFrete = subtotalGeral + freteSelecionado.preco;
+    try {
+        const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
+        
+        // --- LÓGICA DE DESCONTO NO CHECKOUT ---
+        let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
+        const totalComFreteEDesconto = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
 
-            // Criamos uma referência de ID no Firebase antes para enviar à API
-            const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+        // Criamos uma referência de ID no Firebase antes para enviar à API
+        const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
-            // --- PASSO 1: CHAMADA DA API ---
-            const response = await fetch('/api/pagamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    items: cart.map(i => ({
-                        title: i.name, 
-                        quantity: i.quantity || 1, // Envia a quantidade real
-                        unit_price: Number(i.price)
-                    })),
-                    payer: { email: currentUserData.email, name: currentUserData.fullName },
-                    shipment_cost: Number(freteSelecionado.preco),
-                    external_reference: tempOrderRef.id // Opcional: vincula os dois sistemas
-                })
-            });
+        // --- PASSO 1: CHAMADA DA API ---
+        const response = await fetch('/api/pagamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                items: cart.map(i => ({
+                    title: i.name, 
+                    quantity: i.quantity || 1,
+                    unit_price: Number(i.price)
+                })),
+                payer: { email: currentUserData.email, name: currentUserData.fullName },
+                shipment_cost: Number(freteSelecionado.preco),
+                // Enviamos o desconto como um valor negativo se existir
+                discount: valorDesconto > 0 ? Number(valorDesconto) * -1 : 0,
+                external_reference: tempOrderRef.id 
+            })
+        });
 
-            const data = await response.json();
+        const data = await response.json();
 
-            // Agora 'data.id' virá preenchido da API
-            if (!data.id || !data.init_point) {
-                console.error("Dados incompletos da API:", data);
-                throw new Error("Erro na resposta do pagamento");
-            }
-
-            // --- PASSO 2: SALVAR NO FIREBASE COM O ID RECUPERADO ---
-            await setDoc(tempOrderRef, {
-                items: cart,
-                total: totalComFrete,
-                data: new Date(),
-                status: 'Aguardando Pagamento',
-                metodo: 'Mercado Pago',
-                frete: freteSelecionado,
-                id_pagamento: String(data.id), // ID DO MERCADO PAGO AQUI
-                payment_url: data.init_point,
-                pedidoId: tempOrderRef.id,
-                cliente_uid: auth.currentUser.uid
-            });
-
-            // --- PASSO 3: LIMPAR E REDIRECIONAR ---
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-            cart = [];
-            updateCartUI();
-
-            window.location.href = data.init_point;
-
-        } catch (error) {
-            console.error("Erro no Checkout:", error);
-            alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
-        } finally {
-            btnCheckout.innerHTML = textoOriginal;
-            btnCheckout.disabled = false;
+        if (!data.id || !data.init_point) {
+            console.error("Dados incompletos da API:", data);
+            throw new Error("Erro na resposta do pagamento");
         }
-    };
+
+        // --- PASSO 2: SALVAR NO FIREBASE COM O DESCONTO REGISTRADO ---
+        await setDoc(tempOrderRef, {
+            items: cart,
+            subtotal: subtotalGeral,
+            desconto: valorDesconto,
+            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+            total: totalComFreteEDesconto, // VALOR REAL QUE O CLIENTE VAI PAGAR
+            data: new Date(),
+            status: 'Aguardando Pagamento',
+            metodo: 'Mercado Pago',
+            frete: freteSelecionado,
+            id_pagamento: String(data.id),
+            payment_url: data.init_point,
+            pedidoId: tempOrderRef.id,
+            cliente_uid: auth.currentUser.uid
+        });
+
+        // --- PASSO 3: LIMPAR E REDIRECIONAR ---
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+        cart = [];
+        cupomAplicado = null; // Reseta o cupom após finalizar
+        updateCartUI();
+
+        window.location.href = data.init_point;
+
+    } catch (error) {
+        console.error("Erro no Checkout:", error);
+        alert("Erro ao processar pagamento. Tente novamente ou finalize via WhatsApp.");
+    } finally {
+        btnCheckout.innerHTML = textoOriginal;
+        btnCheckout.disabled = false;
+    }
+};
     // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
