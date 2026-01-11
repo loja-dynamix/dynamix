@@ -919,8 +919,8 @@ supForm.onsubmit = async (e) => {
             }
 
             const precoNumerico = parseFloat(produto.preco_por.replace(',', '.'));
+            const precoFormatado = precoNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             
-            // LÓGICA DE PARCELAS
             const numParcelas = parseInt(produto.parcelas) || 1;
             let parcelamentoHTML = '';
             if(numParcelas > 1) {
@@ -952,8 +952,8 @@ supForm.onsubmit = async (e) => {
                     <div class="mt-auto pt-3 border-t border-gray-50">
                         <div class="flex items-center justify-between">
                             <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
-                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
+                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
                                 ${parcelamentoHTML}
                             </div>
                             <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
@@ -1431,7 +1431,7 @@ if (paymentId) {
             <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
             <div class="flex-grow">
                 <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
-                <p class="text-xs font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                <p class="text-xs font-bold text-[var(--accent2-color)]">${item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                 <div class="flex items-center gap-2 mt-2">
                     <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
                     <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
@@ -1574,7 +1574,7 @@ if (paymentId) {
         const modal = document.getElementById('product-modal');
         document.getElementById('modal-product-image').src = imagem;
         document.getElementById('modal-product-title').innerText = nome;
-        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
+        document.getElementById('modal-product-price').innerText = preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
         document.getElementById('modal-product-desc').innerText = descricao || "Produto de excelente qualidade Dynamix.";
         
@@ -1604,8 +1604,9 @@ if (paymentId) {
 
         const oldPriceEl = document.getElementById('modal-product-old-price');
         if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
-            oldPriceEl.innerText = 'R$ ' + precoAntigo;
-            oldPriceEl.classList.remove('hidden');
+    const antigoFormatado = parseFloat(precoAntigo.replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    oldPriceEl.innerText = antigoFormatado;
+    oldPriceEl.classList.remove('hidden');
         } else {
             oldPriceEl.classList.add('hidden');
         }
@@ -1935,7 +1936,7 @@ window.changeQty = async (index, delta) => {
                             <div class="flex-grow min-w-0">
                                 <h4 class="font-bold text-sm text-gray-800 truncate">${prod.nome}</h4>
                                 <div class="flex items-center gap-1 text-xs text-yellow-400 mb-1"><i class="fas fa-star"></i> <span>${prod.rating || 5}.0</span></div>
-                                <span class="font-bold text-[var(--accent2-color)] text-sm">R$ ${prod.preco.toFixed(2).replace('.',',')}</span>
+                                <span class="font-bold text-[var(--accent2-color)] text-sm">${prod.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                             <button class="text-[var(--accent-color)] hover:scale-110 transition-transform"><i class="fas fa-chevron-right"></i></button>
                         </div>`;
