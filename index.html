@@ -1814,6 +1814,7 @@ window.changeQty = async (index, delta) => {
                     // --- 2. RESUMO DE VALORES ---
                     const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
                     const valorFrete = pedido.frete ? pedido.frete.preco : 0;
+                    const valorDesconto = pedido.desconto || 0; // Pega o desconto salvo no banco
                     
                     let subtotalCalculado = 0;
                     if (pedido.items) {
@@ -1822,8 +1823,9 @@ window.changeQty = async (index, delta) => {
                         });
                     }
 
-                    // O total final exibido será a soma real do que está na lista + frete
-                    const totalExibido = subtotalCalculado + valorFrete;
+                    // O total agora usa o campo 'total' salvo no banco (que já tem o desconto)
+                    // ou calcula: Subtotal + Frete - Desconto
+                    const totalExibido = pedido.total || (subtotalCalculado + valorFrete - valorDesconto);
 
                     let resumoValoresHTML = `
                         <div class="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
@@ -1835,8 +1837,13 @@ window.changeQty = async (index, delta) => {
                                 <span>${nomeFrete}:</span>
                                 <span>R$ ${valorFrete.toFixed(2).replace('.',',')}</span>
                             </div>
+                            ${valorDesconto > 0 ? `
+                            <div class="flex justify-between text-[10px] text-green-600 font-bold">
+                                <span>Desconto ${pedido.cupom_codigo ? `(${pedido.cupom_codigo})` : ''}:</span>
+                                <span>- R$ ${valorDesconto.toFixed(2).replace('.',',')}</span>
+                            </div>` : ''}
                             <div class="flex justify-between text-xs font-black text-gray-800 pt-1 border-t border-gray-200">
-                                <span>Total Pago:</span>
+                                <span>Total do Pedido:</span>
                                 <span class="text-[var(--accent2-color)]">R$ ${totalExibido.toFixed(2).replace('.',',')}</span>
                             </div>
                         </div>
