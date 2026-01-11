@@ -221,6 +221,15 @@
                      <p class="mt-2 text-gray-500">Carregando catálogo...</p>
                  </div>
             </div>
+            <div id="pagination-container" class="flex justify-center items-center gap-4 mt-12 mb-8">
+    <button id="prev-page" class="px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+        <i class="fas fa-chevron-left mr-2"></i> Anterior
+    </button>
+    <span class="text-sm font-bold text-gray-600">Página <span id="current-page-display" class="text-black">1</span></span>
+    <button id="next-page" class="px-4 py-2 bg-white border border-gray-300 rounded-lg font-bold text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+        Próxima <i class="fas fa-chevron-right ml-2"></i>
+    </button>
+</div>
           </main>
         </div>
       </div>
@@ -697,6 +706,9 @@ supForm.onsubmit = async (e) => {
 
     // Variáveis de Produtos/Filtros
     let todosProdutos = [];
+    let paginaAtual = 1;
+const produtosPorPagina = 12;
+let produtosFiltradosGeral = []; // Para guardar a lista filtrada
     let categoriasUnicas = new Set();
     const LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRX5YZzDZmE5NO6C2YyhAnbM0TMQ6Nc5cigPfXbFGWiFwoH0UNrWXx-YyngRC_OaxLntUSsvqbQ_zv/pub?output=csv";
 
@@ -809,105 +821,105 @@ supForm.onsubmit = async (e) => {
         });
     }
 
-    function aplicarFiltros() {
-        let filtrados = [...todosProdutos];
+    // CÓDIGO INÍCIO: LÓGICA DE FILTRO E PAGINAÇÃO
+function aplicarFiltros() {
+    let filtrados = [...todosProdutos];
 
-        // Busca por texto
-        const searchInput = document.getElementById('search-input');
-        if(searchInput && searchInput.value) {
-            const termo = searchInput.value.toLowerCase();
-            filtrados = filtrados.filter(p => p.nome.toLowerCase().includes(termo));
-        }
-
-        // Filtro de Categoria
-        const catAll = document.getElementById('cat-all');
-        if(catAll && !catAll.checked) {
-            const catsSelecionadas = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
-            if(catsSelecionadas.length > 0) {
-                filtrados = filtrados.filter(p => catsSelecionadas.includes(p.categoriaNormalizada));
-            }
-        }
-
-        // Filtro de Preço
-        const minPrice = parseFloat(document.getElementById('price-min')?.value) || 0;
-        const maxPrice = parseFloat(document.getElementById('price-max')?.value) || Infinity;
-        filtrados = filtrados.filter(p => p.precoNumerico >= minPrice && p.precoNumerico <= maxPrice);
-
-        // Ordenação
-        const sortSelect = document.getElementById('sort-select');
-        if(sortSelect) {
-            const sortType = sortSelect.value;
-            if(sortType === 'price-asc') filtrados.sort((a, b) => a.precoNumerico - b.precoNumerico);
-            if(sortType === 'price-desc') filtrados.sort((a, b) => b.precoNumerico - a.precoNumerico);
-            if(sortType === 'name-asc') filtrados.sort((a, b) => a.nome.localeCompare(b.nome));
-        }
-
-        // Atualiza contadores
-        const countShown = document.getElementById('count-shown');
-        const countTotal = document.getElementById('count-total');
-        if(countShown) countShown.innerText = filtrados.length;
-        if(countTotal) countTotal.innerText = todosProdutos.length;
-
-        renderizarGrid(filtrados);
+    const searchInput = document.getElementById('search-input');
+    if(searchInput && searchInput.value) {
+        const termo = searchInput.value.toLowerCase();
+        filtrados = filtrados.filter(p => p.nome.toLowerCase().includes(termo));
     }
-window.valorFreteGratisPlanilha = 0;
-    function renderizarGrid(produtos) {
-        const container = document.getElementById('products-container');
-        if(!container) return;
 
-        // PEGA O VALOR DO FRETE GRÁTIS DA PRIMEIRA LINHA DA PLANILHA (Coluna "frete_gratis")
-        if(produtos.length > 0 && produtos[0].frete_gratis) {
-            window.valorFreteGratisPlanilha = parseFloat(produtos[0].frete_gratis.replace(',', '.'));
+    const catAll = document.getElementById('cat-all');
+    if(catAll && !catAll.checked) {
+        const catsSelecionadas = Array.from(document.querySelectorAll('.cat-checkbox:checked')).map(cb => cb.value);
+        if(catsSelecionadas.length > 0) {
+            filtrados = filtrados.filter(p => catsSelecionadas.includes(p.categoriaNormalizada));
         }
-        
-        container.innerHTML = "";
+    }
 
-        if(produtos.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Nenhum produto encontrado com esses filtros.</div>';
-            return;
+    const minPrice = parseFloat(document.getElementById('price-min')?.value) || 0;
+    const maxPrice = parseFloat(document.getElementById('price-max')?.value) || Infinity;
+    filtrados = filtrados.filter(p => p.precoNumerico >= minPrice && p.precoNumerico <= maxPrice);
+
+    const sortSelect = document.getElementById('sort-select');
+    if(sortSelect) {
+        const sortType = sortSelect.value;
+        if(sortType === 'price-asc') filtrados.sort((a, b) => a.precoNumerico - b.precoNumerico);
+        if(sortType === 'price-desc') filtrados.sort((a, b) => b.precoNumerico - a.precoNumerico);
+        if(sortType === 'name-asc') filtrados.sort((a, b) => a.nome.localeCompare(b.nome));
+    }
+
+    const countTotal = document.getElementById('count-total');
+    if(countTotal) countTotal.innerText = todosProdutos.length;
+
+    // Reinicia para a página 1 sempre que um filtro for aplicado
+    paginaAtual = 1;
+    produtosFiltradosGeral = filtrados; 
+    renderizarGridComPaginacao();
+}
+
+function renderizarGridComPaginacao() {
+    const container = document.getElementById('products-container');
+    if(!container) return;
+
+    // Cálculo da Paginação
+    const inicio = (paginaAtual - 1) * produtosPorPagina;
+    const fim = inicio + produtosPorPagina;
+    const produtosExibidos = produtosFiltradosGeral.slice(inicio, fim);
+
+    // Atualiza contador "Mostrando X de Y"
+    const countShown = document.getElementById('count-shown');
+    if(countShown) countShown.innerText = produtosFiltradosGeral.length;
+
+    // Atualiza botões e número da página
+    document.getElementById('current-page-display').innerText = paginaAtual;
+    document.getElementById('prev-page').disabled = (paginaAtual === 1);
+    document.getElementById('next-page').disabled = (fim >= produtosFiltradosGeral.length);
+
+    container.innerHTML = "";
+
+    if(produtosExibidos.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-10 text-gray-500">Nenhum produto encontrado.</div>';
+        document.getElementById('pagination-container').classList.add('hidden');
+        return;
+    }
+    
+    document.getElementById('pagination-container').classList.remove('hidden');
+
+    produtosExibidos.forEach(produto => {
+        // ... (Mantenha aqui toda a lógica interna de gerar as estrelas, tags e o HTML do card igual ao que você já tem no seu renderizarGrid)
+        let estrelasHTML = '';
+        const rating = parseInt(produto.rating) || 5;
+        for(let i=0; i<5; i++) { estrelasHTML += i < rating ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : '<i class="far fa-star text-yellow-400 text-xs"></i>'; }
+        let tagHTML = '';
+        if(produto.tag) {
+            let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
+            tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
         }
+        const numParcelas = parseInt(produto.parcelas) || 1;
+        let parcelamentoHTML = '';
+        if(numParcelas > 1) {
+            const valorParcela = (produto.precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
+        }
+        const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        const safeImg = produto.imagem;
+        const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
+        const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
 
-        produtos.forEach(produto => {
-            let estrelasHTML = '';
-            const rating = parseInt(produto.rating) || 5;
-            for(let i=0; i<5; i++) {
-                estrelasHTML += i < rating ? '<i class="fas fa-star text-yellow-400 text-xs"></i>' : '<i class="far fa-star text-yellow-400 text-xs"></i>';
-            }
-
-            let tagHTML = '';
-            if(produto.tag) {
-                let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
-                tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
-            }
-
-            // LÓGICA DE PARCELAS
-            const numParcelas = parseInt(produto.parcelas) || 1;
-            let parcelamentoHTML = '';
-            if(numParcelas > 1) {
-                const valorParcela = (produto.precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
-            }
-
-            const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const safeImg = produto.imagem;
-            const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
-            const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
-            const safePrecoAntigo = produto.preco_de || '';
-
-            const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})" 
+        container.innerHTML += `
+            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${produto.preco_de || ''}', ${rating}, ${numParcelas})" 
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
-                
                 <div class="relative overflow-hidden shrink-0">
-                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
-                    <div class="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                    <img src="${produto.imagem}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
                     ${tagHTML}
                 </div>
-
                 <div class="p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
                         <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2" title="${produto.nome}">${produto.nome}</h3>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
                         <div class="flex mb-3">${estrelasHTML}</div>
                     </div>
                     <div class="mt-auto pt-3 border-t border-gray-50">
@@ -918,17 +930,33 @@ window.valorFreteGratisPlanilha = 0;
                                 ${parcelamentoHTML}
                             </div>
                             <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${produto.precoNumerico}, '${safeImg}')" 
-                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] hover:text-black transition-all flex items-center justify-center cursor-pointer shadow-md active:scale-95">
+                                    class="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center">
                                 <i class="fas fa-shopping-cart"></i>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>`;
-            
-            container.innerHTML += htmlDoCard;
-        });
+    });
+}
+
+// Eventos dos botões de página
+document.getElementById('prev-page').onclick = () => {
+    if(paginaAtual > 1) {
+        paginaAtual--;
+        renderizarGridComPaginacao();
+        window.scrollTo({top: 0, behavior: 'smooth'});
     }
+};
+
+document.getElementById('next-page').onclick = () => {
+    if((paginaAtual * produtosPorPagina) < produtosFiltradosGeral.length) {
+        paginaAtual++;
+        renderizarGridComPaginacao();
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+};
+// CÓDIGO FIM: LÓGICA DE FILTRO E PAGINAÇÃO
 
     // Inicializa Filtros e Carregamento
     const searchInput = document.getElementById('search-input');
