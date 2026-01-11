@@ -898,19 +898,26 @@ function renderizarGridComPaginacao() {
             let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
             tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
         }
-        const numParcelas = parseInt(produto.parcelas) || 1;
-        let parcelamentoHTML = '';
-        if(numParcelas > 1) {
-            const valorParcela = (produto.precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-            parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
-        }
+        const precoLimpo = produto.preco_por.replace(/\./g, '').replace(',', '.');
+const precoNumerico = parseFloat(precoLimpo);
+const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            
+            const numParcelas = parseInt(produto.parcelas) || 1;
+            let parcelamentoHTML = '';
+            if(numParcelas > 1) {
+                const valorParcela = (precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
+            }
         const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        const safeImg = produto.imagem;
-        const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
-        const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
+            const safeImg = produto.imagem;
+            const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
+            const safeDesc = (produto.descricao || '').replace(/'/g, "\\'").replace(/\n/g, ' '); 
+            
+            // Aqui limpamos o ponto do preço antigo para ele não virar R$ 2,60 no modal
+            const safePrecoAntigo = (produto.preco_de || '').replace(/\./g, '');
 
         container.innerHTML += `
-            <div onclick="window.openProductModal('${safeNome}', ${produto.precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${produto.preco_de || ''}', ${rating}, ${numParcelas})" 
+            <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
                 <div class="relative overflow-hidden shrink-0">
                     <img src="${produto.imagem}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
@@ -925,8 +932,8 @@ function renderizarGridComPaginacao() {
                     <div class="mt-auto pt-3 border-t border-gray-50">
                         <div class="flex items-center justify-between">
                             <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">R$ ${produto.preco_de}</span>` : ''}
-                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${produto.preco_por}</span>
+                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
                                 ${parcelamentoHTML}
                             </div>
                             <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${produto.precoNumerico}, '${safeImg}')" 
@@ -1401,7 +1408,7 @@ document.getElementById('next-page').onclick = () => {
             <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
             <div class="flex-grow">
                 <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
-                <p class="text-xs font-bold text-[var(--accent2-color)]">R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                <p class="text-xs font-bold text-[var(--accent2-color)]">${item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                 <div class="flex items-center gap-2 mt-2">
                     <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
                     <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
@@ -1525,24 +1532,29 @@ document.getElementById('next-page').onclick = () => {
     };
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
-        // Histórico de vistos recentemente - Salvando todos os dados necessários
-        try {
-            let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
-            recentes = recentes.filter(p => p.nome !== nome);
-            recentes.unshift({ 
-                nome, preco, imagem, categoria, rating, 
-                descricao: descricao, 
-                precoAntigo: precoAntigo, 
-                parcelas: parcelas 
-            });
-            if(recentes.length > 6) recentes.pop();
-            localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
-        } catch(e) {}
+    // Converte o preço para número garantindo que pontos de milhar não atrapalhem
+    const precoTratado = typeof preco === 'string' ? parseFloat(preco.replace(',', '.')) : preco;
 
-        const modal = document.getElementById('product-modal');
-        document.getElementById('modal-product-image').src = imagem;
-        document.getElementById('modal-product-title').innerText = nome;
-        document.getElementById('modal-product-price').innerText = 'R$ ' + preco.toFixed(2).replace('.', ',');
+    // Histórico de vistos recentemente
+    try {
+        let recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
+        recentes = recentes.filter(p => p.nome !== nome);
+        recentes.unshift({ 
+            nome, preco: precoTratado, imagem, categoria, rating, 
+            descricao: descricao, 
+            precoAntigo: precoAntigo, 
+            parcelas: parcelas 
+        });
+        if(recentes.length > 6) recentes.pop();
+        localStorage.setItem('dynamix_recentes', JSON.stringify(recentes));
+    } catch(e) {}
+
+    const modal = document.getElementById('product-modal');
+    document.getElementById('modal-product-image').src = imagem;
+    document.getElementById('modal-product-title').innerText = nome;
+    
+    // EXIBIÇÃO DO PREÇO LARANJA (CORRIGIDA)
+    document.getElementById('modal-product-price').innerText = precoTratado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         document.getElementById('modal-product-category').innerText = categoria || 'Oferta';
         document.getElementById('modal-product-desc').innerText = descricao || "Este é um produto de excelente qualidade da Dynamix.";
         
@@ -1572,8 +1584,10 @@ document.getElementById('next-page').onclick = () => {
 
         const oldPriceEl = document.getElementById('modal-product-old-price');
         if(precoAntigo && precoAntigo !== 'undefined' && precoAntigo !== '') {
-            oldPriceEl.innerText = 'R$ ' + precoAntigo;
-            oldPriceEl.classList.remove('hidden');
+    const limpoAntigo = precoAntigo.replace(/\./g, '').replace(',', '.');
+    const antigoFormatado = parseFloat(limpoAntigo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    oldPriceEl.innerText = antigoFormatado;
+    oldPriceEl.classList.remove('hidden');
         } else {
             oldPriceEl.classList.add('hidden');
         }
@@ -1923,7 +1937,7 @@ const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
                             <div class="flex-grow min-w-0">
                                 <h4 class="font-bold text-sm text-gray-800 truncate">${prod.nome}</h4>
                                 <div class="flex items-center gap-1 text-xs text-yellow-400 mb-1"><i class="fas fa-star"></i> <span>${prod.rating || 5}.0</span></div>
-                                <span class="font-bold text-[var(--accent2-color)] text-sm">R$ ${prod.preco.toFixed(2).replace('.',',')}</span>
+                                <span class="font-bold text-[var(--accent2-color)] text-sm">${prod.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                             </div>
                             <button class="text-[var(--accent-color)] hover:scale-110 transition-transform"><i class="fas fa-chevron-right"></i></button>
                         </div>`;
