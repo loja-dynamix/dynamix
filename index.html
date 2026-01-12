@@ -288,9 +288,9 @@
                 <i class="fas fa-shopping-cart text-2xl"></i>
                 <span id="mobile-cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
             </button>
-            <button id="mobile-menu-btn" class="text-[var(--dark-text-color)] focus:outline-none">
-                <i class="fas fa-bars text-2xl"></i>
-            </button>
+            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="text-[var(--dark-text-color)] focus:outline-none">
+    <i class="fas fa-bars text-2xl"></i>
+</button>
         </div>
       </div>
     </div>
@@ -875,20 +875,19 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.add('open'); overlay.classList.remove('hidden');
         }
     }
-    // Função para abrir/fechar o menu mobile
+    // ESTA É A FUNÇÃO CORRIGIDA PARA O MENU SANDWICH:
     function toggleMobileMenu() {
         const sidebar = document.getElementById('mobile-sidebar');
         const overlay = document.getElementById('mobile-sidebar-overlay');
-        const isHidden = sidebar.classList.contains('-translate-x-full');
-        if (isHidden) {
-            sidebar.classList.remove('-translate-x-full');
+        
+        if (sidebar.classList.contains('mobile-sidebar-hidden')) {
+            sidebar.classList.remove('mobile-sidebar-hidden');
             overlay.classList.remove('hidden');
         } else {
-            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.add('mobile-sidebar-hidden');
             overlay.classList.add('hidden');
         }
     }
-    // Função que abre o login ou vai para o perfil
     window.handleMobileAuthClick = () => {
         const isLogged = !document.getElementById('user-logged-menu').classList.contains('hidden');
         if (isLogged) {
@@ -898,7 +897,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('auth-modal').classList.replace('hidden', 'flex');
         }
     };
-    // Vincula o botão de barras (três tracinhos)
     document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('mobile-menu-btn');
         if(btn) btn.onclick = toggleMobileMenu;
