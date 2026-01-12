@@ -207,6 +207,27 @@
 #login-success-toast {
     animation: fadeInDown 0.5s ease-out;
 }
+    .cat-card-bg {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+/* Camada escura para o texto não sumir na imagem */
+.cat-card-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45); /* Escurece a imagem em 45% */
+    transition: background 0.3s ease;
+}
+.cat-card-bg:hover::before {
+    background: rgba(0, 0, 0, 0.3); /* Clareia um pouco ao passar o mouse */
+}
+/* Garante que ícone e texto fiquem na frente da imagem */
+.cat-card-bg > div {
+    position: relative;
+    z-index: 10;
+}
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -357,8 +378,7 @@
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             
-            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/yIhkBZ3.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
@@ -366,8 +386,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Hvg66Mv.jpeg');">
                 <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
@@ -375,8 +394,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Az5FT7V.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
@@ -384,8 +402,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/ZbhUSnp.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
@@ -393,8 +410,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/GnhNqkH.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
@@ -402,8 +418,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/o9ret2U.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
@@ -411,8 +426,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/uWQPMYs.png');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels</h3>
@@ -420,8 +434,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/6ILnwcs.png');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
