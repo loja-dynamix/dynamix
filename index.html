@@ -164,6 +164,42 @@
         50% { left: 120%; opacity: 1; }
         100% { left: 120%; opacity: 0; }
     }
+    @media (max-width: 768px) {
+    /* Ajusta altura do header no mobile */
+    #global-header .h-28 { height: 80px !important; }
+    #global-header img { height: 60px !important; }
+
+    /* Faz os produtos ficarem em 2 colunas reais no celular */
+    #products-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 12px !important;
+        padding: 0 4px;
+    }
+
+    /* Ajusta o modal de produto para não sumir o botão */
+    #product-modal > div {
+        max-height: 95vh !important;
+        width: 95% !important;
+    }
+
+    /* Melhora a visualização das categorias no celular */
+    .grid-cols-2 { gap: 10px !important; }
+    
+    /* Botões flutuantes do banner no celular */
+    .btn-banner-custom {
+        padding: 10px 20px !important;
+        font-size: 11px !important;
+        bottom: 20% !important;
+    }
+    .btn-pos-s3 { left: 50% !important; transform: translateX(-50%); }
+    .btn-pos-s2 { right: 5% !important; }
+    .btn-pos-s1 { left: 5% !important; }
+}
+
+/* Transição do menu lateral */
+.mobile-sidebar-hidden { 
+    transform: translateX(-100%) !important; 
+}
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -225,6 +261,24 @@
         </div>
       </div>
     </div>
+    <div id="mobile-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-2xl z-[100] mobile-sidebar-hidden transition-transform duration-300 lg:hidden overflow-y-auto">
+        <div class="p-6 border-b flex justify-between items-center">
+            <img src="https://i.imgur.com/a5JJDad.png" class="h-12 object-contain">
+            <button onclick="toggleMobileMenu()" class="text-gray-500 text-2xl"><i class="fas fa-times"></i></button>
+        </div>
+        <nav class="p-6 flex flex-col gap-6">
+            <a href="#" onclick="switchView('home-view'); toggleMobileMenu()" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-home w-5"></i> Início</a>
+            <a href="/produtos.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-th w-5"></i> Produtos</a>
+            <a href="/produtos.html?categoria=Combos" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-box-open w-5"></i> Combos</a>
+            <a href="/sobre.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-info-circle w-5"></i> Sobre Nós</a>
+            <a href="/contato.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-envelope w-5"></i> Contato</a>
+            <hr>
+            <button onclick="handleMobileAuthClick()" class="font-bold text-[var(--accent2-color)] flex items-center gap-3">
+    <i class="fas fa-user-circle w-5"></i> Minha Conta / Login
+</button>
+        </nav>
+    </div>
+    <div id="mobile-sidebar-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/50 z-[95] hidden lg:hidden"></div>
   </header>
 
   <div id="home-view" class="view-section active">
@@ -750,6 +804,24 @@
     </div>
 </div>
   <script>
+    function toggleMobileMenu() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        
+        // Se o menu estiver escondido, ele mostra. Se estiver aparecendo, ele esconde.
+        if (sidebar.classList.contains('mobile-sidebar-hidden')) {
+            sidebar.classList.remove('mobile-sidebar-hidden');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('mobile-sidebar-hidden');
+            overlay.classList.add('hidden');
+        }
+    }
+// Vincula o botão de barras existente à nova função
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('mobile-menu-btn');
+    if(btn) btn.onclick = toggleMobileMenu;
+});
     function switchView(viewId) {
         document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
         document.getElementById(viewId).classList.add('active');
@@ -773,6 +845,20 @@
     }
     const mobileMenuBtn = document.getElementById('mobile-menu-btn'); const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenuBtn && mobileMenu) mobileMenuBtn.onclick = () => mobileMenu.classList.toggle('hidden');
+    function handleMobileAuthClick() {
+    toggleMobileMenu(); // Fecha o menu lateral primeiro
+    
+    // Verifica se existe o menu de usuário logado visível na tela
+    const isLogged = !document.getElementById('user-logged-menu').classList.contains('hidden');
+    
+    if (isLogged) {
+        switchView('profile-view'); // Se logado, vai para os dados
+    } else {
+        if(typeof window.openModal === 'function') {
+            window.openModal(); // Se não logado, abre o formulário
+        }
+    }
+}
   </script>
 
   <script type="module">
@@ -1036,7 +1122,7 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
     let isLogin = true;
     let isGoogleCompletion = false;
 
-    const openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
+    window.openModal = () => { if(!auth.currentUser) modal.classList.replace('hidden','flex'); };
     if(loginBtn) loginBtn.onclick = openModal;
     closeBtn.onclick = () => { modal.classList.replace('flex','hidden'); errorMsg.classList.add('hidden'); };
 
