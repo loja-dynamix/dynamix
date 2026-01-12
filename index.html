@@ -200,10 +200,22 @@
 .mobile-sidebar-hidden { 
     transform: translateX(-100%) !important; 
 }
+    @keyframes fadeInDown {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+#login-success-toast {
+    animation: fadeInDown 0.5s ease-out;
+}
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
-  
+  <div id="login-success-toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden animate-bounce">
+    <div class="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-[var(--accent-color)]">
+        <i class="fas fa-check-circle text-green-400"></i>
+        <span class="text-sm font-bold">Logado como <span id="toast-user-name" class="text-[var(--accent-color)]">Usuário</span></span>
+    </div>
+</div>
   <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-28">
@@ -1300,6 +1312,13 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
             userMenu.classList.replace('hidden', 'flex');
             currentUserData = docSnap.data();
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
+          const toast = document.getElementById('login-success-toast');
+            const toastName = document.getElementById('toast-user-name');
+            if (toast.classList.contains('hidden')) {
+                toastName.innerText = currentUserData.fullName.split(' ')[0];
+                toast.classList.remove('hidden');
+                setTimeout(() => { toast.classList.add('hidden'); }, 3500);
+            }
           document.getElementById('mobile-login-btn').classList.add('hidden');
             document.getElementById('mobile-user-info').classList.remove('hidden');
             document.getElementById('mobile-user-name').innerText = currentUserData.fullName.split(' ')[0];
