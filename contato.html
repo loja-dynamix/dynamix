@@ -1553,6 +1553,7 @@ const checkPendingOrders = async () => {
                     let html = '<div class="space-y-4">';
                     querySnapshot.forEach((docPedido) => {
                     const pedido = docPedido.data();
+if (!pedido || !pedido.items || !pedido.status) return;
                     let dataFormatada = 'Data desconhecida';
                     
                     if (pedido.data && pedido.data.toDate) {
