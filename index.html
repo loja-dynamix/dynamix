@@ -862,6 +862,43 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.add('open'); overlay.classList.remove('hidden');
         }
     }
+    // Função para abrir/fechar o menu mobile
+    function toggleMobileMenu() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        const isHidden = sidebar.classList.contains('-translate-x-full');
+        if (isHidden) {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('hidden');
+        }
+    }
+    // Função que abre o login ou vai para o perfil
+    window.handleMobileAuthClick = () => {
+        const isLogged = !document.getElementById('user-logged-menu').classList.contains('hidden');
+        if (isLogged) {
+            switchView('profile-view');
+            toggleMobileMenu();
+        } else {
+            document.getElementById('auth-modal').classList.replace('hidden', 'flex');
+        }
+    };
+    // Vincula o botão de barras (três tracinhos)
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('mobile-menu-btn');
+        if(btn) btn.onclick = toggleMobileMenu;
+    });
+    // Filtros
+    const filterToggle = document.getElementById('filter-toggle');
+    const filtersSidebar = document.getElementById('filters-sidebar');
+    if (filterToggle && filtersSidebar) {
+        filterToggle.addEventListener('click', () => {
+            filtersSidebar.classList.toggle('hidden');
+        });
+    }
+
     let bannerIdx = 0; const bannerTrack = document.getElementById('banner-track');
     if(bannerTrack) {
         setInterval(() => { bannerIdx = (bannerIdx + 1) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; }, 6000);
