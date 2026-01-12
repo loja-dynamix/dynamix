@@ -273,9 +273,23 @@
             <a href="/sobre.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-info-circle w-5"></i> Sobre Nós</a>
             <a href="/contato.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-envelope w-5"></i> Contato</a>
             <hr>
-            <button onclick="handleMobileAuthClick()" class="font-bold text-[var(--accent2-color)] flex items-center gap-3">
-    <i class="fas fa-user-circle w-5"></i> Minha Conta / Login
-</button>
+            <div id="mobile-auth-section">
+                <button id="mobile-login-btn" onclick="handleMobileAuthClick()" class="font-bold text-[var(--accent2-color)] flex items-center gap-3">
+                    <i class="fas fa-user-circle w-5"></i> Entre ou Cadastre-se
+                </button>
+                <div id="mobile-user-info" class="hidden flex flex-col gap-4">
+                    <button onclick="switchView('profile-view'); toggleMobileMenu()" class="font-bold text-gray-800 flex items-center gap-3 text-left leading-tight">
+                        <i class="fas fa-user-circle w-5 text-[var(--accent2-color)]"></i>
+                        <div>
+                            <span class="text-[10px] text-gray-500 block">Olá,</span>
+                            <span id="mobile-user-name" class="text-sm truncate max-w-[150px]">Visitante</span>
+                        </div>
+                    </button>
+                    <button id="mobile-logout-btn" class="font-bold text-red-500 flex items-center gap-3 text-sm pt-2 border-t border-gray-100">
+                        <i class="fas fa-sign-out-alt w-5"></i> Sair da Conta
+                    </button>
+                </div>
+            </div>
         </nav>
     </div>
     <div id="mobile-sidebar-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/50 z-[95] hidden lg:hidden"></div>
@@ -1286,6 +1300,10 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
             userMenu.classList.replace('hidden', 'flex');
             currentUserData = docSnap.data();
             nameDisplay.innerText = currentUserData.fullName.split(' ')[0];
+          document.getElementById('mobile-login-btn').classList.add('hidden');
+            document.getElementById('mobile-user-info').classList.remove('hidden');
+            document.getElementById('mobile-user-name').innerText = currentUserData.fullName.split(' ')[0];
+            document.getElementById('mobile-logout-btn').onclick = () => { signOut(auth); toggleMobileMenu(); };
             cart = currentUserData.cart || [];
             updateCartUI();
 
@@ -1388,6 +1406,8 @@ if (paymentId) {
 }
         } else {
             currentUserData = null;
+          document.getElementById('mobile-login-btn').classList.remove('hidden');
+            document.getElementById('mobile-user-info').classList.add('hidden');
             cart = [];
             updateCartUI();
             loginTrigger.classList.remove('hidden');
