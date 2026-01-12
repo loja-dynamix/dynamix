@@ -1624,9 +1624,18 @@ if (paymentId) {
         };
 
         document.getElementById('modal-btn-buy-now').onclick = () => {
-            const msg = `Olá! Gostaria de comprar o produto: *${nome}* que vi no site por R$ ${preco.toFixed(2).replace('.', ',')}.`;
-            window.open(`https://wa.me/5511916658264?text=${encodeURIComponent(msg)}`, '_blank');
-        };
+    // Adiciona o produto ao carrinho
+    window.safeAddToCart(nome, preco, imagem);
+    // Fecha o modal de detalhes do produto
+    window.closeProductModal();
+    // Abre o carrinho lateral para o usuário já finalizar
+    const sidebar = document.getElementById('cart-sidebar');
+    const overlay = document.getElementById('cart-overlay');
+    if (!sidebar.classList.contains('open')) {
+        sidebar.classList.add('open'); 
+        overlay.classList.remove('hidden');
+    }
+};
 
         modal.classList.replace('hidden', 'flex');
     };
