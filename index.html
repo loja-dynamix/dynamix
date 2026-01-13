@@ -176,8 +176,16 @@
     /* Faz os produtos ficarem em 2 colunas reais no celular */
     #products-container {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-        padding: 0 4px;
+        gap: 10px !important;
+        padding: 0 10px;
+    }
+
+    /* Garante que a imagem do produto não fique distorcida */
+    #products-container img {
+        height: 180px !important; /* Altura fixa para manter o alinhamento */
+        object-fit: contain !important; /* Garante que a foto apareça inteira sem esticar */
+        padding: 10px;
+        background-color: #fff;
     }
 
     /* Ajusta o modal de produto para não sumir o botão */
@@ -1167,30 +1175,24 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
 
             const htmlDoCard = `
             <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
-                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
+                 class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
-                <div class="relative overflow-hidden shrink-0">
-                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                <div class="relative overflow-hidden shrink-0 bg-white">
+                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-48 md:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
                     ${tagHTML}
                 </div>
 
-                <div class="p-4 flex flex-col flex-grow">
+                <div class="p-3 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
-                        <div class="flex mb-2">${estrelasHTML}</div>
+                        <p class="text-[9px] text-gray-400 mb-1 uppercase tracking-tighter">${produto.categoria}</p>
+                        <h3 class="font-bold text-xs md:text-base mb-1 text-gray-900 leading-tight line-clamp-2 h-8 md:h-12">${produto.nome}</h3>
+                        <div class="flex mb-1">${estrelasHTML}</div>
                     </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
-                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
-                                ${parcelamentoHTML}
-                            </div>
-                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
-                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] transition-all flex items-center justify-center shadow-md">
-                                <i class="fas fa-shopping-cart"></i>
-                            </button>
+                    <div class="mt-auto pt-2 border-t border-gray-50">
+                        <div class="flex flex-col">
+                            ${produto.preco_de ? `<span class="block text-[10px] text-gray-400 line-through">R$ ${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR')}</span>` : ''}
+                            <span class="text-sm md:text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
+                            ${parcelamentoHTML}
                         </div>
                     </div>
                 </div>
