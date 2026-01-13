@@ -87,20 +87,22 @@
         50% { left: 120%; opacity: 1; }
         100% { left: 120%; opacity: 0; }
     }
-    .product-banner-fixed {
+    .product-banner-container {
     width: 100%;
-    height: 180px; /* Altura um pouco maior para não achatar no celular */
-    background-image: url('https://i.imgur.com/KvNgdJd.png');
-    background-size: contain; /* Faz a imagem aparecer inteira sem cortar */
-    background-position: center;
-    background-repeat: no-repeat;
-    background-color: #f3f4f6; /* Cor de fundo caso a imagem seja menor que a tela */
+    height: auto; /* Deixa a altura livre para a imagem mandar */
+    display: block;
 }
 
-@media (min-width: 1024px) {
-    .product-banner-fixed {
-        height: 350px; 
-        background-size: cover; /* No computador ela preenche tudo normalmente */
+.product-banner-img {
+    width: 100%;
+    height: auto; /* Mantém a proporção da imagem original */
+    display: block;
+    object-fit: contain; /* Garante que a imagem apareça inteira */
+}
+
+@media (max-width: 1023px) {
+    .product-banner-container {
+        height: auto !important; /* Remove qualquer trava de altura no mobile */
     }
 }
     .titulo-decorado {
@@ -270,8 +272,14 @@
             <span class="mx-2">/</span>
             <span class="text-black font-medium">Produtos</span>
           </nav>
-          <section class="w-full">
-    <div class="product-banner-fixed shadow-inner"></div>
+          <section class="w-full bg-white">
+    <img src="https://i.imgur.com/KvNgdJd.png" 
+         class="hidden lg:block w-full h-auto" 
+         alt="Banner Produtos Desktop">
+
+    <img src="https://i.imgur.com/UJTu6Md.png" 
+         class="block lg:hidden w-full h-auto" 
+         alt="Banner Produtos Mobile">
 </section>
           <div class="flex flex-col items-center text-center mt-10 mb-6">
     <div>
