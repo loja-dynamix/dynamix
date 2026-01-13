@@ -161,6 +161,38 @@
         background-position: 200% center;
     }
 }
+    @media (max-width: 640px) {
+    #products-container {
+        grid-template-columns: repeat(2, 1fr) !important; /* Força 2 colunas */
+        gap: 12px !important;
+        padding: 0 5px;
+    }
+
+    #products-container img {
+        height: 160px !important; /* Altura fixa para manter o padrão */
+        object-fit: contain !important; /* Não deixa a imagem esticar/achatar */
+        padding: 10px;
+        background-color: #fff;
+    }
+
+    /* Ajuste de textos para caber no card menor */
+    #products-container h3 {
+        font-size: 0.8rem !important;
+        height: 2.5rem !important; /* Garante que títulos alinhem o card */
+    }
+    
+    #products-container .text-xl {
+        font-size: 1rem !important; /* Preço um pouco menor no mobile */
+    }
+}
+    @media (max-width: 1023px) {
+    .product-banner-full-mobile {
+        margin-left: -1rem !important; /* Compensa o padding do container lateral */
+        margin-right: -1rem !important;
+        width: calc(100% + 2rem) !important; /* Expande para as bordas */
+        max-width: none !important;
+    }
+}
   </style>
 </head>
   <body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -272,7 +304,7 @@
             <span class="mx-2">/</span>
             <span class="text-black font-medium">Produtos</span>
           </nav>
-          <section class="w-full bg-white">
+          <section class="w-full bg-white product-banner-full-mobile">
     <img src="https://i.imgur.com/KvNgdJd.png" 
          class="hidden lg:block w-full h-auto" 
          alt="Banner Produtos Desktop">
@@ -1085,26 +1117,26 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
         container.innerHTML += `
             <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
-                <div class="relative overflow-hidden shrink-0">
-                    <img src="${produto.imagem}" class="w-full h-48 sm:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
+                <div class="relative overflow-hidden shrink-0 bg-white">
+                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-40 sm:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
                     ${tagHTML}
                 </div>
-                <div class="p-4 flex flex-col flex-grow">
+                <div class="p-3 md:p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
-                        <div class="flex mb-3">${estrelasHTML}</div>
+                        <p class="text-[10px] md:text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
+                        <h3 class="font-bold text-xs md:text-base mb-1 text-gray-900 leading-tight line-clamp-2 h-8 md:h-12">${produto.nome}</h3>
+                        <div class="flex mb-2">${estrelasHTML}</div>
                     </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50">
-                        <div class="flex items-center justify-between">
+                    <div class="mt-auto pt-2 border-t border-gray-50">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
-                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
+                                ${produto.preco_de ? `<span class="block text-[10px] text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+                                <span class="text-base md:text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
                                 ${parcelamentoHTML}
                             </div>
                             <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${produto.precoNumerico}, '${safeImg}')" 
-                                    class="bg-black text-white w-10 h-10 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-shopping-cart"></i>
+                                    class="bg-black text-white w-full sm:w-10 h-10 rounded-lg flex items-center justify-center hover:bg-[var(--accent2-color)] transition-colors">
+                                <i class="fas fa-shopping-cart text-sm"></i>
                             </button>
                         </div>
                     </div>
