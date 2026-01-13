@@ -119,6 +119,10 @@
         background-position: 200% center;
     }
 }
+    #global-header img {
+    max-height: 100% !important;
+    display: block;
+}
   </style>
 </head>
 <body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -132,7 +136,7 @@
 
   <div id="mobile-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-2xl z-[100] -translate-x-full transition-transform duration-300 lg:hidden overflow-y-auto">
     <div class="p-6 border-b flex justify-between items-center">
-        <img src="https://i.imgur.com/a5JJDad.png" class="h-12 object-contain">
+    <img src="https://i.imgur.com/a5JJDad.png" class="h-10 lg:h-12 object-contain w-auto">
         <button onclick="toggleMobileMenu()" class="text-gray-500 text-2xl"><i class="fas fa-times"></i></button>
     </div>
     <nav class="p-6 flex flex-col gap-6">
@@ -166,9 +170,9 @@
   <header id="global-header" class="code-section bg-white border-b border-gray-300 sticky top-0 z-50">
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-28">
-        <a href="/" class="flex items-center" onclick="window.location.href='/'">
-          <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-28 py-2 object-contain">
-        </a>
+        <a href="/" class="flex items-center h-full">
+  <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-20 lg:h-28 py-2 object-contain w-auto">
+</a>
         
         <nav class="hidden lg:flex items-center space-x-8">
           <a href="/" class="text-[var(--dark-text-color)] hover:text-[var(--accent-color)] font-medium transition-colors duration-300">Início</a>
