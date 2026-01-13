@@ -904,6 +904,7 @@ supForm.onsubmit = async (e) => {
 
     // Variáveis de Produtos/Filtros
     let todosProdutos = [];
+    window.valorFreteGratisPlanilha = 0;
     let paginaAtual = 1;
 const produtosPorPagina = 12;
 let produtosFiltradosGeral = []; // Para guardar a lista filtrada
@@ -921,6 +922,11 @@ let produtosFiltradosGeral = []; // Para guardar a lista filtrada
             download: true,
             header: true,
             complete: function(results) {
+                // CAPTURA O VALOR DO FRETE GRÁTIS DA PRIMEIRA LINHA (Coluna "frete_gratis")
+                if(results.data.length > 0 && results.data[0].frete_gratis) {
+                    window.valorFreteGratisPlanilha = parseFloat(results.data[0].frete_gratis.replace(',', '.'));
+                }
+
                 // 1. Processa todos os produtos
                 todosProdutos = results.data.filter(p => p.nome && p.preco_por).map(p => ({
                     ...p,
@@ -928,19 +934,14 @@ let produtosFiltradosGeral = []; // Para guardar a lista filtrada
                     categoriaNormalizada: p.categoria ? p.categoria.trim() : 'Outros'
                 }));
                 
-                // 2. Extrai categorias únicas para o filtro
                 categoriasUnicas = new Set();
                 todosProdutos.forEach(p => categoriasUnicas.add(p.categoriaNormalizada));
-                
-                // 3. Gera o HTML do filtro lateral
                 gerarFiltrosCategorias();
-                
-                // 4. Verifica se tem filtro na URL (ex: ?categoria=Treino)
                 verificarParametrosURL();
             },
             error: function(err) {
                 const container = document.getElementById('products-container');
-                if(container) container.innerHTML = '<p class="col-span-full text-center text-red-500">Erro ao carregar produtos. Verifique a planilha.</p>';
+                if(container) container.innerHTML = '<p class="col-span-full text-center text-red-500">Erro ao carregar produtos.</p>';
             }
         });
     }
