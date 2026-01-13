@@ -70,7 +70,11 @@
 
 @media (max-width: 640px) {
     .carousel-container-ajustado {
-        height: 200px; /* Altura menor para celulares, evita esticar muito */
+        height: 450px !important; /* Aumentamos para caber o banner vertical do celular */
+    }
+    .carousel-slide img {
+        object-fit: contain; /* Isso garante que a imagem mobile apareça inteira sem cortar os lados */
+        background-color: #fff; /* Cor de fundo caso a imagem seja menor que a tela */
     }
 }
    .carousel-slide img {
@@ -373,34 +377,38 @@
         <div id="banner-track" class="carousel-track h-full">
           
           <div class="carousel-slide">
-            <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center">
-              <div class="container mx-auto px-4 text-white">
-                <a href="produtos.html?categoria=Emagrecimento" class="btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-end">
-              <div class="container mx-auto px-4 text-white text-right">
-                <a href="produtos.html?categoria=Treino" class="btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="text-center text-white">
-                <a href="produtos.html?categoria=Combos" class="btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
-              </div>
-            </div>
-          </div>
+    <img src="https://i.imgur.com/VfRtflX.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/is1Wg1p.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center">
+        <div class="container mx-auto px-4 text-white">
+            <a href="produtos.html?categoria=Emagrecimento" class="btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
+        </div>
+    </div>
+</div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/SGzn00J.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/VwZFQuH.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center justify-end">
+        <div class="container mx-auto px-4 text-white text-right">
+            <a href="produtos.html?categoria=Treino" class="btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
+        </div>
+    </div>
+</div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/41CD2e0.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/Oqx69I9.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center justify-center">
+        <div class="text-center text-white">
+            <a href="produtos.html?categoria=Combos" class="btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
+        </div>
+    </div>
+</div>
 
         </div>
 
