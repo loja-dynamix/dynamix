@@ -87,6 +87,28 @@
         50% { left: 120%; opacity: 1; }
         100% { left: 120%; opacity: 0; }
     }
+    .modal-políticas-content {
+    animation: modalSlideUp 0.4s ease-out;
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.politica-texto h4 {
+    font-weight: 700;
+    color: var(--dark-text-color);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.politica-texto p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    color: #4b5563;
+}
   </style>
 </head>
 <body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -452,6 +474,11 @@
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
           <ul class="space-y-3">
             <li><a href="/" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li>
+    <a href="javascript:void(0)" onclick="abrirPoliticas()" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2">
+        <i class="fas fa-shield-alt text-xs"></i><span>Políticas da Loja</span>
+    </a>
+</li>
             <li><a href="/products" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
             <li><a href="/combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
             <li><a href="#" onclick="switchView('profile-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
@@ -702,6 +729,15 @@
     if (mobileMenuBtn && mobileMenu) {
         mobileMenuBtn.addEventListener('click', () => { mobileMenu.classList.toggle('hidden'); });
     }
+    function abrirPoliticas() {
+    const modal = document.getElementById('modal-politicas');
+    modal.classList.replace('hidden', 'flex');
+}
+
+function fecharPoliticas() {
+    const modal = document.getElementById('modal-politicas');
+    modal.classList.replace('flex', 'hidden');
+}
   </script>
 
   <script type="module">
@@ -1914,5 +1950,39 @@ window.aplicarCupom = () => {
     });
 };
   </script>
+  <div id="modal-politicas" class="fixed inset-0 z-[150] hidden items-center justify-center modal-backdrop p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col max-h-[85vh] modal-políticas-content">
+        
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-balance-scale text-[var(--accent-color)]"></i> 
+                Políticas e Termos
+            </h3>
+            <button onclick="fecharPoliticas()" class="text-gray-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-8 overflow-y-auto politica-texto text-sm">
+            <h4>1. Política de Entrega</h4>
+            <p>Realizamos entregas em todo o território nacional. O prazo de entrega é contabilizado a partir da confirmação do pagamento e varia de acordo com a região selecionada no checkout.</p>
+
+            <h4>2. Trocas e Devoluções</h4>
+            <p>O cliente tem o prazo de 7 dias corridos, a contar da data de recebimento, para desistir da compra realizada, conforme o Código de Defesa do Consumidor. O produto deve estar lacrado e em sua embalagem original.</p>
+
+            <h4>3. Privacidade e Segurança</h4>
+            <p>Seus dados estão seguros conosco. Utilizamos criptografia de ponta a ponta e não compartilhamos suas informações de contato com terceiros para fins publicitários.</p>
+
+            <h4>4. Formas de Pagamento</h4>
+            <p>Aceitamos Pix, Cartão de Crédito e Boleto Bancário. O processamento é feito de forma segura através do Mercado Pago.</p>
+        </div>
+
+        <div class="p-4 bg-gray-50 border-t text-center">
+            <button onclick="fecharPoliticas()" class="bg-black text-white px-8 py-2 rounded-lg font-bold hover:bg-gray-800 transition-all">
+                Entendi e Aceito
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
