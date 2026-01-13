@@ -130,6 +130,59 @@
     max-height: 100% !important;
     display: block;
 }
+    .results-section {
+      padding: 60px 0;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .results-carousel-container {
+      width: 100%;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+    }
+    .results-track {
+      display: flex;
+      gap: 20px;
+      /* Animação contínua e automática */
+      animation: scrollResults 40s linear infinite;
+      width: max-content;
+    }
+    /* Pausa quando o cliente passa o mouse */
+    .results-track:hover {
+      animation-play-state: paused;
+    }
+    .result-item {
+      /* Ajuste de tamanho para fotos de resultados ficarem inteiras */
+      width: 280px; 
+      height: 500px; 
+      flex-shrink: 0;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+      border: 1px solid #eee;
+    }
+    .result-item img {
+      width: 100%;
+      height: 100%;
+      /* O segredo para aparecer a imagem completa sem cortes */
+      object-fit: contain; 
+      background-color: #fcfcfc;
+    }
+
+    /* Ajuste para Mobile */
+    @media (max-width: 768px) {
+      .result-item {
+        width: 200px;
+        height: 360px;
+      }
+    }
+
+    /* Lógica da animação infinita */
+    @keyframes scrollResults {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(calc(-50% - 10px)); } /* Move metade da track que é a parte duplicada */
+    }
   </style>
 </head>
 <body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -264,35 +317,32 @@
 
             <div class="w-full lg:w-2/5 shrink-0 relative group">
                 <div class="absolute -inset-1 bg-gradient-to-tr from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent3-color)] rounded-[2rem] blur-sm opacity-70 group-hover:opacity-100 transition-all duration-500"></div>
-                <img src="https://images.unsplash.com/photo-1556157382-97eda2d62296?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Fundador da Dynamix" class="relative rounded-[1.8rem] w-full h-[420px] object-cover shadow-lg bg-white p-1">
+                <img src="https://i.imgur.com/9I0g9ZG.png" alt="Fundador da Dynamix" class="relative rounded-[1.8rem] w-full h-[420px] object-cover shadow-lg bg-white p-1">
             </div>
 
             <div class="w-full lg:w-3/5 text-left relative z-10">
                 <h3 class="text-3xl font-bold text-black font-[var(--font-family-heading)] mb-6">
-                    A missão de um homem só: <span class="text-gradient">Qualidade sem atalhos.</span>
+                    Uma marca que nasceu da vivência, <span class="text-gradient">não da promessa.</span>
                 </h3>
                 <div class="space-y-5 text-gray-600 leading-relaxed text-lg">
                     <p>
-                        <strong class="text-black">"Eu estava cansado de ser enganado."</strong>
+                        <strong class="text-black">"Eu estava cansada de ser enganada."</strong>
                     </p>
                     <p>
-                        Foi esse sentimento que me fez criar a Dynamix. Como atleta amador, eu gastava dinheiro em produtos com rótulos lindos, mas que por dentro eram pura enganação. Eu decidi que se quisesse algo bem feito, teria que fazer eu mesmo.
+                        Foi esse sentimento que me fez criar a Dynamix. Durante o meu processo de perda de peso, encontrei nas cápsulas da Top New um apoio real para ganhar mais energia, equilíbrio e leveza no dia a dia.
                     </p>
                     <p>
-                        Aqui não tem investidor engravatado ou conselho administrativo focado apenas no lucro. <strong class="text-[var(--accent2-color)]">Sou apenas eu</strong>, selecionando pessoalmente cada ingrediente que entra nos nossos potes.
+                        Aos poucos, os resultados começaram a aparecer, não só no corpo, mas também na forma como eu me sentia comigo mesma. <strong class="text-[var(--accent2-color)]">Ao viver essa transformação</strong>, percebi que o meu desejo ia além de emagrecer.
                     </p>
                     <p>
-                        Quando você escolhe a Dynamix, você está confiando na minha palavra e no meu compromisso diário com a sua saúde.
+                        Eu queria ajudar outras pessoas a viverem esse processo de forma mais consciente, saudável e respeitosa, entendendo que cada corpo tem seu próprio tempo. Durante a minha jornada, senti falta de um suporte mais humano, de orientações sinceras e de produtos realmente pensados para esse momento. Foi assim que nasceu a Dynamix: do desejo de oferecer acolhimento, bons conselhos e soluções para quem busca uma vida mais leve, equilibrada e possível.
                     </p>
                 </div>
                 
                 <div class="mt-10 flex items-center gap-6 pt-6 border-t border-gray-100">
                     <div>
-                        <p class="font-bold text-xl text-black font-[var(--font-family-heading)]">Roberto M.</p>
-                        <p class="text-[var(--accent3-color)] font-medium">Fundador & Único Dono</p>
-                    </div>
-                    <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/signature.png" alt="Assinatura" class="h-14 opacity-40 ml-auto filter grayscale hover:grayscale-0 transition-all">
-                </div>
+                        <p class="font-bold text-xl text-black font-[var(--font-family-heading)]">Dina S.</p>
+                        <p class="text-[var(--accent3-color)] font-medium">Fundadora & Única Dona</p>
             </div>
 
           </div>
@@ -323,7 +373,7 @@
                         </div>
                         <h3 class="text-2xl font-bold font-[var(--font-family-heading)] mb-3">Verdade no Rótulo</h3>
                         <p class="opacity-90 font-medium leading-relaxed">
-                            Sem misturas proprietárias ("proprietary blends") para esconder doses baixas. Você sabe exatamente o que e quanto está tomando.
+                            Transparência no rótulo, sem misturas proprietárias, para que você saiba exatamente o que e quanto está consumindo.
                         </p>
                     </div>
                 </div>
@@ -366,7 +416,40 @@
           </div>
         </div>
       </section>
-
+<section class="results-section border-t border-gray-50">
+        <div class="container mx-auto px-4 mb-12 text-center">
+            <h2 class="text-3xl md:text-5xl font-black font-[var(--font-family-heading)] text-black mb-4">
+                A Revolução do <span class="text-gradient">Corpo</span>
+            </h2>
+            <p class="text-gray-400 font-medium italic">Resultados reais. Sem filtros. Apenas dedicação e Dynamix.</p>
+        </div>
+        
+        <div class="results-carousel-container">
+          <div class="results-track">
+            <div class="result-item"><img src="https://i.imgur.com/yP0pwSv.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/fcfRIja.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/0n5kkyN.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/tRtcyls.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/MyjY7El.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/f3rKFmE.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/EA48OSy.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/Ni04hYz.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/7q7WF1x.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/Ni1zUzk.png"></div>
+            
+            <div class="result-item"><img src="https://i.imgur.com/yP0pwSv.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/fcfRIja.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/0n5kkyN.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/tRtcyls.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/MyjY7El.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/f3rKFmE.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/EA48OSy.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/Ni04hYz.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/7q7WF1x.png"></div>
+            <div class="result-item"><img src="https://i.imgur.com/Ni1zUzk.png"></div>
+          </div>
+        </div>
+      </section>
       <section class="py-24 bg-gray-50 relative overflow-hidden">
         <div class="container mx-auto px-4 text-center relative z-10">
           <div class="bg-white rounded-3xl p-12 shadow-xl border-2 border-transparent bg-clip-padding" style="background-image: linear-gradient(white, white), linear-gradient(to right, var(--primary-color), var(--accent4-color)); background-origin: border-box;">
