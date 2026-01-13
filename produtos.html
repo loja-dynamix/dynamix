@@ -142,6 +142,23 @@
     line-height: 1.6;
     color: #4b5563;
 }
+    .brilho-animado {
+    background: linear-gradient(to right, #9ca3af 20%, #ff8600 40%, #ffc30d 60%, #9ca3af 80%);
+    background-size: 200% auto;
+    color: #000;
+    background-clip: text;
+    text-fill-color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 3s linear infinite;
+    font-weight: bold;
+}
+
+@keyframes shine {
+    to {
+        background-position: 200% center;
+    }
+}
   </style>
 </head>
   <body class="min-h-screen bg-gray-50 [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -488,7 +505,7 @@
       <div class="border-t border-white border-opacity-10 pt-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-6">
           <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
-          <div class="flex items-center gap-3"><span class="text-gray-400 text-sm">Desenvolvido por</span><a href="#" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-24 object-contain"></a></div>
+          <div class="flex items-center gap-3"><span class="brilho-animado text-sm">Desenvolvido por</span><a href="#" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-24 object-contain"></a></div>
         </div>
       </div>
     </div>
