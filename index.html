@@ -700,7 +700,15 @@
             <li class="flex items-start gap-3"><i class="fas fa-phone text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">(11) 99999-9999</span></li>
           </ul>
           <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
-          <form class="flex gap-2"><input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm"><button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all"><i class="fas fa-paper-plane"></i></button></form>
+          <form id="newsletter-form" action="https://formspree.io/f/xykznlnr" method="POST" class="flex flex-col gap-2">
+    <div class="flex gap-2">
+        <input type="email" name="email" id="newsletter-email" placeholder="Seu e-mail" required class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+        <button type="submit" id="btn-newsletter" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+    <p id="newsletter-status" class="text-[11px] font-bold mt-1 hidden"></p>
+</form>
         </div>
       </div>
       <div class="border-t border-white border-opacity-10 pt-8 mb-8">
@@ -2395,6 +2403,48 @@ window.aplicarCupom = () => {
         }
     });
 };
+    const newsForm = document.getElementById('newsletter-form');
+if (newsForm) {
+    newsForm.onsubmit = async (e) => {
+        e.preventDefault(); // Impede a página de recarregar
+        const btn = document.getElementById('btn-newsletter');
+        const status = document.getElementById('newsletter-status');
+        const emailInput = document.getElementById('newsletter-email');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Efeito de carregando
+        
+        try {
+            const formData = new FormData(newsForm);
+            // Adiciona um campo de assunto para você saber que é da newsletter
+            formData.append('assunto', 'Nova Inscrição na Newsletter - Rodapé');
+
+            const response = await fetch(newsForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                status.innerText = "✅ Inscrição confirmada! Obrigado.";
+                status.classList.remove('hidden', 'text-red-400');
+                status.classList.add('text-green-400');
+                newsForm.reset(); // Limpa o campo de e-mail
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            status.innerText = "❌ Erro ao enviar. Tente novamente.";
+            status.classList.remove('hidden', 'text-green-400');
+            status.classList.add('text-red-400');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            // Esconde a mensagem após 5 segundos
+            setTimeout(() => { status.classList.add('hidden'); }, 5000);
+        }
+    };
+}
   </script>
   <div id="modal-politicas" class="fixed inset-0 z-[150] hidden items-center justify-center modal-backdrop p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col max-h-[85vh] modal-políticas-content">
