@@ -314,11 +314,7 @@
   <div id="products-view" class="view-section active flex-grow">
       <section class="bg-white py-4 border-b border-gray-100">
         <div class="container mx-auto px-4">
-          <nav class="text-sm text-gray-500 mb-4">
-            <a href="/" class="hover:text-[var(--accent2-color)]">Início</a>
-            <span class="mx-2">/</span>
-            <span class="text-black font-medium">Produtos</span>
-          </nav>
+          
           <section class="w-full bg-white product-banner-full-mobile">
     <img src="https://i.imgur.com/KvNgdJd.png" 
          class="hidden lg:block w-full h-auto" 
@@ -547,7 +543,15 @@
             <li class="flex items-start gap-3"><i class="fas fa-phone text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">(11) 99999-9999</span></li>
           </ul>
           <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
-          <form class="flex gap-2"><input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm"><button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all"><i class="fas fa-paper-plane"></i></button></form>
+          <form id="newsletter-form" action="https://formspree.io/f/xykznlnr" method="POST" class="flex flex-col gap-2">
+  <div class="flex gap-2">
+    <input type="email" name="email" id="news-email" placeholder="Seu e-mail" required class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+    <button type="submit" id="btn-news" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all">
+      <i class="fas fa-paper-plane"></i>
+    </button>
+  </div>
+  <p id="news-status" class="text-xs font-bold hidden"></p>
+</form>
         </div>
       </div>
       <div class="border-t border-white border-opacity-10 pt-8 mb-8">
@@ -2279,6 +2283,43 @@ window.aplicarCupom = () => {
         }
     });
 };
+    const newsForm = document.getElementById('newsletter-form');
+if (newsForm) {
+    newsForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-news');
+        const status = document.getElementById('news-status');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        try {
+            const formData = new FormData(newsForm);
+            const response = await fetch(newsForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                status.innerText = "Inscrição confirmada com sucesso!";
+                status.classList.remove('hidden', 'text-red-500');
+                status.classList.add('text-green-400'); // Fica verde
+                newsForm.reset();
+                setTimeout(() => { status.classList.add('hidden'); }, 5000);
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            status.innerText = "Erro ao enviar. Tente novamente.";
+            status.classList.remove('hidden', 'text-green-400');
+            status.classList.add('text-red-500');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+    };
+}
   </script>
     <div id="modal-politicas" class="fixed inset-0 z-[150] hidden items-center justify-center modal-backdrop p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col max-h-[85vh] modal-políticas-content">
