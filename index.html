@@ -2039,27 +2039,19 @@ window.changeQty = async (index, delta) => {
     };
     window.checkout = async () => {
         if (!auth.currentUser) { openModal(); return; }
-        
-        await auth.currentUser.reload(); 
-        if (!auth.currentUser.emailVerified) {
-            window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.');
-            return;
-        }
-
         if (cart.length === 0) { alert("Carrinho vazio!"); return; }
         if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
         const btnCheckout = document.querySelector('button[onclick="checkout()"]');
         const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
         btnCheckout.disabled = true;
 
         try {
             const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
-            let valorDescontoTotal = cupomAplicado ? cupomAplicado.valor : 0;
-            const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDescontoTotal);
-
-            // Ajuste para o Mercado Pago não dar erro com valores negativos
+            const valorDescontoTotal = cupomAplicado ? cupomAplicado.valor : 0;
+            
+            // Calculamos quanto cada produto deve custar após o desconto (evita unit_price negativo)
             const fatorDesconto = subtotalGeral > 0 ? (subtotalGeral - valorDescontoTotal) / subtotalGeral : 1;
 
             const itensParaPagamento = cart.map(i => ({
@@ -2068,6 +2060,7 @@ window.changeQty = async (index, delta) => {
                 unit_price: Number((i.price * fatorDesconto).toFixed(2))
             }));
 
+            // Adiciona o frete como item (Mercado Pago aceita assim perfeitamente)
             itensParaPagamento.push({
                 title: `FRETE: ${freteSelecionado.nome}`,
                 quantity: 1,
@@ -2088,43 +2081,41 @@ window.changeQty = async (index, delta) => {
 
             const data = await response.json();
 
-            // Pega o ID da preferência (aquele código longo que você mencionou)
-            const idPagamentoLongon = data.id || (data.preference ? data.preference.id : null);
+            // Pega o ID que vem do Mercado Pago
+            const idGeradoMP = data.id || null;
 
-            if (!idPagamentoLongon) {
-                console.error("Resposta da API:", data);
-                throw new Error("O Mercado Pago não devolveu um ID de pagamento válido.");
+            if (!idGeradoMP) {
+                throw new Error("O Mercado Pago não gerou o ID. Verifique o valor do desconto.");
             }
 
-            // SALVAMENTO NO FIREBASE - Agora com o ID garantido
+            // SALVAR NO FIREBASE
             await setDoc(tempOrderRef, {
                 items: cart,
                 subtotal: subtotalGeral,
                 desconto: valorDescontoTotal,
                 cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-                total: totalFinalCalculado, 
+                total: Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDescontoTotal),
                 data: new Date(),
                 status: 'Aguardando Pagamento',
                 metodo: 'Mercado Pago',
                 frete: freteSelecionado,
-                id_pagamento: String(idPagamentoLongon), // Aqui salva o ID longo
+                id_pagamento: String(idGeradoMP), // Aqui salva o ID longo que você quer
                 payment_url: data.init_point,
                 pedidoId: tempOrderRef.id,
                 cliente_uid: auth.currentUser.uid
             });
 
-            // Limpa o carrinho apenas após ter certeza que salvou no banco
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
             cart = [];
             cupomAplicado = null; 
             updateCartUI();
 
-            // Redireciona para o Mercado Pago
+            // Redireciona para o pagamento
             window.location.href = data.init_point;
 
         } catch (error) {
-            console.error("Erro no Checkout:", error);
-            alert("Erro ao processar pedido: " + error.message);
+            console.error("Erro:", error);
+            alert("Erro ao gerar pedido: " + error.message);
         } finally {
             btnCheckout.innerHTML = textoOriginal;
             btnCheckout.disabled = false;
