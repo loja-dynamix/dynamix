@@ -292,9 +292,6 @@
                 <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">Sair</button>
             </div>
             
-            <div id="verify-warning" class="hidden absolute top-14 left-0 w-full bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded text-[10px] text-center shadow-md z-50">
-                Verifique seu e-mail!
-            </div>
           </div>
         </nav>
 
@@ -310,7 +307,10 @@
       </div>
     </div>
   </header>
-
+<div id="verify-warning" class="hidden bg-yellow-400 text-black text-center py-2 px-4 text-xs font-bold shadow-md sticky top-[112px] z-[45]">
+    <i class="fas fa-exclamation-circle mr-2"></i> 
+    Sua conta não foi verificada. Verifique sua caixa de entrada e spam para liberar as compras.
+</div>
   <div id="products-view" class="view-section active flex-grow">
       <section class="bg-white py-4 border-b border-gray-100">
         <div class="container mx-auto px-4">
