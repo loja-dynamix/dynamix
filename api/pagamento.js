@@ -1,3 +1,4 @@
+// api/pagamento.js
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,7 +11,8 @@ module.exports = async (req, res) => {
     const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
     if (!ACCESS_TOKEN) return res.status(500).json({ error: 'Token ausente' });
   
-    const { items, payer, external_reference } = req.body;
+    // Recebemos o external_reference (ID do pedido no Firebase)
+    const { items, payer, shipment_cost, external_reference } = req.body;
   
     try {
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -22,24 +24,34 @@ module.exports = async (req, res) => {
         body: JSON.stringify({
           items,
           payer,
-          external_reference: String(external_reference || ""),
+          external_reference: external_reference || "",
+          shipments: {
+            cost: Number(shipment_cost) || 0,
+            mode: 'not_specified'
+          },
           back_urls: {
             success: req.headers.origin || "https://dynamix-tau.vercel.app",
             failure: req.headers.origin || "https://dynamix-tau.vercel.app",
             pending: req.headers.origin || "https://dynamix-tau.vercel.app"
           },
-          auto_return: "approved"
+          auto_return: "approved",
         })
       });
   
       const data = await response.json();
-      // Retorna o ID (Preference ID) e o Link
-      return res.status(200).json({ 
-          id: data.id, 
-          init_point: data.init_point 
-      });
+  
+      if (data.init_point) {
+        // MUDANÇA AQUI: Retornamos o ID e o Link de pagamento
+        return res.status(200).json({ 
+            id: data.id, 
+            init_point: data.init_point 
+        });
+      } else {
+        return res.status(400).json({ error: 'Erro MP', details: data });
+      }
   
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
-};
+  };
+
