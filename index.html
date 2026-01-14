@@ -2147,7 +2147,7 @@ window.changeQty = async (index, delta) => {
             return;
         }
         try {
-            const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
+            const q = query(collection(db, "users", auth.currentUser.uid, "orders"));
             const querySnapshot = await getDocs(q);
             
             if (querySnapshot.empty) {
@@ -2161,32 +2161,32 @@ window.changeQty = async (index, delta) => {
                 let html = '<div class="space-y-4">';
                 
                 querySnapshot.forEach((docPedido) => {
-                  const pedido = docPedido.data();
-if (!pedido || !pedido.items || !pedido.status) return;
-                    let dataFormatada = 'Data desconhecida';
+    const pedido = docPedido.data() || {};  // Proteção nível 1: nunca undefined
 
-if (pedido.data) {
+    // Proteção nível 2: campos mínimos obrigatórios
+    if (!pedido.items || !Array.isArray(pedido.items) || !pedido.status) {
+        console.warn("Pedido incompleto ignorado:", docPedido.id);
+        return; // pula este pedido ruim
+    }
+
+    let dataFormatada = 'Data desconhecida';
+    
     try {
-        // Tenta converter se for Timestamp do Firestore
-        if (typeof pedido.data.toDate === 'function') {
+        if (pedido.data && typeof pedido.data.toDate === 'function') {
             const dataReal = pedido.data.toDate();
             dataFormatada = dataReal.toLocaleDateString('pt-BR') + ' às ' + 
                            dataReal.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-        } 
-        // Caso já tenha vindo como Date normal (menos comum)
-        else if (pedido.data instanceof Date) {
+        } else if (pedido.data instanceof Date) {
             dataFormatada = pedido.data.toLocaleDateString('pt-BR') + ' às ' + 
                            pedido.data.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
         }
     } catch (e) {
-        console.warn("Data inválida no pedido", docPedido.id, e);
-        // deixa como 'Data desconhecida'
+        console.warn("Erro na data do pedido", docPedido.id, e);
     }
-}
 
-                    let corStatus = 'bg-gray-100 text-gray-700';
-                    if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
-                    if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
+    let corStatus = 'bg-gray-100 text-gray-700';
+    if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
+    if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
 
                     // --- 1. LISTA DE PRODUTOS ---
                     let produtosHTML = '';
