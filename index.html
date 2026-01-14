@@ -2009,6 +2009,16 @@ window.changeQty = async (index, delta) => {
     };
     window.checkout = async () => {
     if (!auth.currentUser) { openModal(); return; }
+    
+    // --- NOVA TRAVA DE VERIFICAÇÃO DE E-MAIL ---
+    // Recarrega os dados do usuário para garantir que o status de verificação está atualizado
+    await auth.currentUser.reload(); 
+    if (!auth.currentUser.emailVerified) {
+        window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.\n\nVerifique sua caixa de entrada ou use o botão no topo da página para reenviar o link.');
+        return;
+    }
+    // ------------------------------------------
+
     if (cart.length === 0) { alert("Carrinho vazio!"); return; }
     if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
@@ -2022,23 +2032,18 @@ window.changeQty = async (index, delta) => {
         let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
         const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
 
-        // Criamos a lista de itens para enviar ao Mercado Pago
         const itensParaPagamento = cart.map(i => ({
             title: i.name,
             quantity: i.quantity || 1,
             unit_price: Number(i.price)
         }));
 
-        // Adicionamos o Frete como um item para somar no valor
         itensParaPagamento.push({
             title: `FRETE: ${freteSelecionado.nome}`,
             quantity: 1,
             unit_price: Number(freteSelecionado.preco)
         });
 
-        // Se houver desconto, enviamos um item com valor negativo
-        // IMPORTANTE: Algumas APIs de integração barram unit_price negativo. 
-        // Se o seu valor não mudar, me avise para ajustarmos o preço unitário dos produtos.
         if (valorDesconto > 0) {
             itensParaPagamento.push({
                 title: `CUPOM: ${cupomAplicado.codigo}`,
@@ -2049,7 +2054,6 @@ window.changeQty = async (index, delta) => {
 
         const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
-        // --- PASSO 1: CHAMADA DA API ---
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2066,7 +2070,6 @@ window.changeQty = async (index, delta) => {
             throw new Error("Erro na resposta do pagamento");
         }
 
-        // --- PASSO 2: SALVAR NO FIREBASE ---
         await setDoc(tempOrderRef, {
             items: cart,
             subtotal: subtotalGeral,
@@ -2083,7 +2086,6 @@ window.changeQty = async (index, delta) => {
             cliente_uid: auth.currentUser.uid
         });
 
-        // --- PASSO 3: LIMPAR E REDIRECIONAR ---
         await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
         cart = [];
         cupomAplicado = null; 
