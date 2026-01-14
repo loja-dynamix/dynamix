@@ -2040,14 +2040,11 @@ window.changeQty = async (index, delta) => {
     window.checkout = async () => {
     if (!auth.currentUser) { openModal(); return; }
     
-    // --- NOVA TRAVA DE VERIFICAÇÃO DE E-MAIL ---
-    // Recarrega os dados do usuário para garantir que o status de verificação está atualizado
     await auth.currentUser.reload(); 
     if (!auth.currentUser.emailVerified) {
-        window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.\n\nVerifique sua caixa de entrada ou use o botão no topo da página para reenviar o link.');
+        window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.');
         return;
     }
-    // ------------------------------------------
 
     if (cart.length === 0) { alert("Carrinho vazio!"); return; }
     if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
@@ -2082,8 +2079,10 @@ window.changeQty = async (index, delta) => {
             });
         }
 
+        // 1. Gera a referência do pedido primeiro
         const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
+        // 2. Chama a API de pagamento
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2096,36 +2095,39 @@ window.changeQty = async (index, delta) => {
 
         const data = await response.json();
 
-        if (!data.id || !data.init_point) {
-            throw new Error("Erro na resposta do pagamento");
+        // 3. VERIFICAÇÃO CRÍTICA: Se o ID do Mercado Pago existe, salva ele como STRING
+        if (data.id) {
+            const idPagamentoString = String(data.id); // Garante que não vá nulo
+
+            await setDoc(tempOrderRef, {
+                items: cart,
+                subtotal: subtotalGeral,
+                desconto: valorDesconto,
+                cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+                total: totalFinalCalculado, 
+                data: new Date(),
+                status: 'Aguardando Pagamento',
+                metodo: 'Mercado Pago',
+                frete: freteSelecionado,
+                id_pagamento: idPagamentoString, // SALVA O ID AQUI
+                payment_url: data.init_point,
+                pedidoId: tempOrderRef.id,
+                cliente_uid: auth.currentUser.uid
+            });
+
+            // Limpa o carrinho e redireciona
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+            cart = [];
+            cupomAplicado = null; 
+            updateCartUI();
+            window.location.href = data.init_point;
+        } else {
+            throw new Error("ID de pagamento não retornado pela API");
         }
-
-        await setDoc(tempOrderRef, {
-            items: cart,
-            subtotal: subtotalGeral,
-            desconto: valorDesconto,
-            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalFinalCalculado, 
-            data: new Date(),
-            status: 'Aguardando Pagamento',
-            metodo: 'Mercado Pago',
-            frete: freteSelecionado,
-            id_pagamento: String(data.id),
-            payment_url: data.init_point,
-            pedidoId: tempOrderRef.id,
-            cliente_uid: auth.currentUser.uid
-        });
-
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-        cart = [];
-        cupomAplicado = null; 
-        updateCartUI();
-
-        window.location.href = data.init_point;
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
-        alert("Erro ao processar desconto no Mercado Pago. Tente novamente.");
+        alert("Erro ao gerar pagamento. Tente novamente.");
     } finally {
         btnCheckout.innerHTML = textoOriginal;
         btnCheckout.disabled = false;
