@@ -70,11 +70,7 @@
 
 @media (max-width: 640px) {
     .carousel-container-ajustado {
-        height: 450px !important; /* Aumentamos para caber o banner vertical do celular */
-    }
-    .carousel-slide img {
-        object-fit: contain; /* Isso garante que a imagem mobile apareça inteira sem cortar os lados */
-        background-color: #fff; /* Cor de fundo caso a imagem seja menor que a tela */
+        height: 200px; /* Altura menor para celulares, evita esticar muito */
     }
 }
    .carousel-slide img {
@@ -176,16 +172,8 @@
     /* Faz os produtos ficarem em 2 colunas reais no celular */
     #products-container {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
-        padding: 0 10px;
-    }
-
-    /* Garante que a imagem do produto não fique distorcida */
-    #products-container img {
-        height: 180px !important; /* Altura fixa para manter o alinhamento */
-        object-fit: contain !important; /* Garante que a foto apareça inteira sem esticar */
-        padding: 10px;
-        background-color: #fff;
+        gap: 12px !important;
+        padding: 0 4px;
     }
 
     /* Ajusta o modal de produto para não sumir o botão */
@@ -218,66 +206,6 @@
 }
 #login-success-toast {
     animation: fadeInDown 0.5s ease-out;
-}
-    .cat-card-bg {
-    background-size: cover;
-    background-position: center;
-    position: relative;
-}
-/* Camada escura para o texto não sumir na imagem */
-.cat-card-bg::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45); /* Escurece a imagem em 45% */
-    transition: background 0.3s ease;
-}
-.cat-card-bg:hover::before {
-    background: rgba(0, 0, 0, 0.3); /* Clareia um pouco ao passar o mouse */
-}
-/* Garante que ícone e texto fiquem na frente da imagem */
-.cat-card-bg > div {
-    position: relative;
-    z-index: 10;
-}
-    .modal-políticas-content {
-    animation: modalSlideUp 0.4s ease-out;
-}
-
-@keyframes modalSlideUp {
-    from { transform: translateY(50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-.politica-texto h4 {
-    font-weight: 700;
-    color: var(--dark-text-color);
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-    font-size: 1rem;
-}
-
-.politica-texto p {
-    margin-bottom: 1rem;
-    line-height: 1.6;
-    color: #4b5563;
-}
-    .brilho-animado {
-    background: linear-gradient(to right, #9ca3af 20%, #ff8600 40%, #ffc30d 60%, #9ca3af 80%);
-    background-size: 200% auto;
-    color: #000;
-    background-clip: text;
-    text-fill-color: transparent;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: shine 3s linear infinite;
-    font-weight: bold;
-}
-
-@keyframes shine {
-    to {
-        background-position: 200% center;
-    }
 }
   </style>
 </head>
@@ -339,9 +267,9 @@
                 <i class="fas fa-shopping-cart text-2xl"></i>
                 <span id="mobile-cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
             </button>
-            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="text-[var(--dark-text-color)] focus:outline-none">
-    <i class="fas fa-bars text-2xl"></i>
-</button>
+            <button id="mobile-menu-btn" class="text-[var(--dark-text-color)] focus:outline-none">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
         </div>
       </div>
     </div>
@@ -385,38 +313,34 @@
         <div id="banner-track" class="carousel-track h-full">
           
           <div class="carousel-slide">
-    <img src="https://i.imgur.com/VfRtflX.png" class="hidden md:block" alt="Banner Desktop">
-    <img src="https://i.imgur.com/is1Wg1p.png" class="md:hidden" alt="Banner Mobile">
-    
-    <div class="absolute inset-0 bg-black/30"></div>
-    <div class="absolute inset-0 flex items-center">
-        <div class="container mx-auto px-4 text-white">
-            <a href="produtos.html?categoria=Emagrecimento" class="hidden md:block btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
-        </div>
-    </div>
-</div>
-<div class="carousel-slide">
-    <img src="https://i.imgur.com/SGzn00J.png" class="hidden md:block" alt="Banner Desktop">
-    <img src="https://i.imgur.com/VwZFQuH.png" class="md:hidden" alt="Banner Mobile">
-    
-    <div class="absolute inset-0 bg-black/30"></div>
-    <div class="absolute inset-0 flex items-center justify-end">
-        <div class="container mx-auto px-4 text-white text-right">
-            <a href="produtos.html?categoria=Treino" class="hidden md:block btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
-        </div>
-    </div>
-</div>
-<div class="carousel-slide">
-    <img src="https://i.imgur.com/41CD2e0.png" class="hidden md:block" alt="Banner Desktop">
-    <img src="https://i.imgur.com/Oqx69I9.png" class="md:hidden" alt="Banner Mobile">
-    
-    <div class="absolute inset-0 bg-black/30"></div>
-    <div class="absolute inset-0 flex items-center justify-center">
-        <div class="text-center text-white">
-            <a href="produtos.html?categoria=Combos" class="hidden md:block btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
-        </div>
-    </div>
-</div>
+            <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center">
+              <div class="container mx-auto px-4 text-white">
+                <a href="produtos.html?categoria=Emagrecimento" class="btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="carousel-slide">
+            <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center justify-end">
+              <div class="container mx-auto px-4 text-white text-right">
+                <a href="produtos.html?categoria=Treino" class="btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="carousel-slide">
+            <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
+            <div class="absolute inset-0 bg-black/30"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="text-center text-white">
+                <a href="produtos.html?categoria=Combos" class="btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
+              </div>
+            </div>
+          </div>
 
         </div>
 
@@ -433,7 +357,8 @@
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             
-            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/yIhkBZ3.jpeg');">
+            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
@@ -441,7 +366,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Hvg66Mv.jpeg');">
+            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                 <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
@@ -449,7 +375,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Az5FT7V.jpeg');">
+            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
@@ -457,7 +384,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/ZbhUSnp.jpeg');">
+            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
@@ -465,7 +393,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/GnhNqkH.jpeg');">
+            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
@@ -473,7 +402,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/o9ret2U.jpeg');">
+            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
@@ -481,7 +411,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/uWQPMYs.png');">
+            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels</h3>
@@ -489,7 +420,8 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/6ILnwcs.png');">
+            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
@@ -659,11 +591,6 @@
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
           <ul class="space-y-3">
             <li><a href="#" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
-            <li>
-    <a href="javascript:void(0)" onclick="abrirPoliticas()" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2">
-        <i class="fas fa-shield-alt text-xs"></i><span>Políticas da Loja</span>
-    </a>
-</li>
             <li><a href="/produtos.html" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
             <li><a href="/produtos.html?categoria=Combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
             <li><a href="#" onclick="switchView('profile-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
@@ -699,7 +626,7 @@
       <div class="border-t border-white border-opacity-10 pt-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-6">
           <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
-          <div class="flex items-center gap-3"><span class="brilho-animado text-sm">Desenvolvido por</span><a href="https://asthro.com.br/" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-24 object-contain"></a></div>
+          <div class="flex items-center gap-3"><span class="text-gray-400 text-sm">Desenvolvido por</span><a href="#" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain"></a></div>
         </div>
       </div>
     </div>
@@ -935,41 +862,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.add('open'); overlay.classList.remove('hidden');
         }
     }
-    // ESTA É A FUNÇÃO CORRIGIDA PARA O MENU SANDWICH:
-    function toggleMobileMenu() {
-        const sidebar = document.getElementById('mobile-sidebar');
-        const overlay = document.getElementById('mobile-sidebar-overlay');
-        
-        if (sidebar.classList.contains('mobile-sidebar-hidden')) {
-            sidebar.classList.remove('mobile-sidebar-hidden');
-            overlay.classList.remove('hidden');
-        } else {
-            sidebar.classList.add('mobile-sidebar-hidden');
-            overlay.classList.add('hidden');
-        }
-    }
-    window.handleMobileAuthClick = () => {
-        const isLogged = !document.getElementById('user-logged-menu').classList.contains('hidden');
-        if (isLogged) {
-            switchView('profile-view');
-            toggleMobileMenu();
-        } else {
-            document.getElementById('auth-modal').classList.replace('hidden', 'flex');
-        }
-    };
-    document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('mobile-menu-btn');
-        if(btn) btn.onclick = toggleMobileMenu;
-    });
-    // Filtros
-    const filterToggle = document.getElementById('filter-toggle');
-    const filtersSidebar = document.getElementById('filters-sidebar');
-    if (filterToggle && filtersSidebar) {
-        filterToggle.addEventListener('click', () => {
-            filtersSidebar.classList.toggle('hidden');
-        });
-    }
-
     let bannerIdx = 0; const bannerTrack = document.getElementById('banner-track');
     if(bannerTrack) {
         setInterval(() => { bannerIdx = (bannerIdx + 1) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; }, 6000);
@@ -992,24 +884,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.openModal(); // Se não logado, abre o formulário
         }
     }
-}
-    window.abrirPoliticas = function() {
-    const modalPolitica = document.getElementById('modal-politicas');
-    if(modalPolitica) modalPolitica.classList.replace('hidden', 'flex');
-}
-
-window.fecharPoliticas = function() {
-    const modalPolitica = document.getElementById('modal-politicas');
-    if(modalPolitica) modalPolitica.classList.replace('flex', 'hidden');
-}
-    function abrirPoliticas() {
-    const modal = document.getElementById('modal-politicas');
-    modal.classList.replace('hidden', 'flex');
-}
-
-function fecharPoliticas() {
-    const modal = document.getElementById('modal-politicas');
-    modal.classList.replace('flex', 'hidden');
 }
   </script>
 
@@ -1175,24 +1049,30 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
 
             const htmlDoCard = `
             <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
-                 class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
+                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
-                <div class="relative overflow-hidden shrink-0 bg-white">
-                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-48 md:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
+                <div class="relative overflow-hidden shrink-0">
+                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
                     ${tagHTML}
                 </div>
 
-                <div class="p-3 flex flex-col flex-grow">
+                <div class="p-4 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <p class="text-[9px] text-gray-400 mb-1 uppercase tracking-tighter">${produto.categoria}</p>
-                        <h3 class="font-bold text-xs md:text-base mb-1 text-gray-900 leading-tight line-clamp-2 h-8 md:h-12">${produto.nome}</h3>
-                        <div class="flex mb-1">${estrelasHTML}</div>
+                        <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
+                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
+                        <div class="flex mb-2">${estrelasHTML}</div>
                     </div>
-                    <div class="mt-auto pt-2 border-t border-gray-50">
-                        <div class="flex flex-col">
-                            ${produto.preco_de ? `<span class="block text-[10px] text-gray-400 line-through">R$ ${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR')}</span>` : ''}
-                            <span class="text-sm md:text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
-                            ${parcelamentoHTML}
+                    <div class="mt-auto pt-3 border-t border-gray-50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
+                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
+                                ${parcelamentoHTML}
+                            </div>
+                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
+                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] transition-all flex items-center justify-center shadow-md">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2333,39 +2213,5 @@ window.aplicarCupom = () => {
     });
 };
   </script>
-  <div id="modal-politicas" class="fixed inset-0 z-[150] hidden items-center justify-center modal-backdrop p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col max-h-[85vh] modal-políticas-content">
-        
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
-                <i class="fas fa-balance-scale text-[var(--accent-color)]"></i> 
-                Políticas e Termos
-            </h3>
-            <button onclick="fecharPoliticas()" class="text-gray-400 hover:text-red-500 transition-colors">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-
-        <div class="p-8 overflow-y-auto politica-texto text-sm">
-            <h4>1. Política de Entrega</h4>
-            <p>Realizamos entregas em todo o território nacional. O prazo de entrega é contabilizado a partir da confirmação do pagamento e varia de acordo com a região selecionada no checkout.</p>
-
-            <h4>2. Trocas e Devoluções</h4>
-            <p>O cliente tem o prazo de 7 dias corridos, a contar da data de recebimento, para desistir da compra realizada, conforme o Código de Defesa do Consumidor. O produto deve estar lacrado e em sua embalagem original.</p>
-
-            <h4>3. Privacidade e Segurança</h4>
-            <p>Seus dados estão seguros conosco. Utilizamos criptografia de ponta a ponta e não compartilhamos suas informações de contato com terceiros para fins publicitários.</p>
-
-            <h4>4. Formas de Pagamento</h4>
-            <p>Aceitamos Pix, Cartão de Crédito e Boleto Bancário. O processamento é feito de forma segura através do Mercado Pago.</p>
-        </div>
-
-        <div class="p-4 bg-gray-50 border-t text-center">
-            <button onclick="fecharPoliticas()" class="bg-black text-white px-8 py-2 rounded-lg font-bold hover:bg-gray-800 transition-all">
-                Entendi e Aceito
-            </button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
