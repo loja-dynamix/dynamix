@@ -1401,7 +1401,7 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
                     // --- CODIGO DE ENVIO DE EMAIL ADICIONADO AQUI ---
                     const { sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
                     await sendEmailVerification(user);
-                    alert("Conta criada! Enviamos um e-mail de verificação. Por favor, verifique sua caixa de entrada.");
+                    await window.showDialog('alert', '📧 Verifique seu E-mail', 'Conta criada com sucesso!\n\nEnviamos um link de confirmação para o seu e-mail. Você precisa clicar nele para poder finalizar suas compras.');
                 }
                 
                 await setDoc(doc(db, "users", user.uid), {
