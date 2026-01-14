@@ -28,24 +28,16 @@ module.exports = async (req, res) => {
             failure: req.headers.origin || "https://dynamix-tau.vercel.app",
             pending: req.headers.origin || "https://dynamix-tau.vercel.app"
           },
-          auto_return: "approved",
-          payment_methods: {
-            excluded_payment_types: [],
-            installments: 12
-          }
+          auto_return: "approved"
         })
       });
   
       const data = await response.json();
-  
-      if (data.id && data.init_point) {
-        return res.status(200).json({ 
-            id: data.id, 
-            init_point: data.init_point 
-        });
-      } else {
-        return res.status(400).json({ error: 'Erro MP', details: data });
-      }
+      // Retorna o ID (Preference ID) e o Link
+      return res.status(200).json({ 
+          id: data.id, 
+          init_point: data.init_point 
+      });
   
     } catch (error) {
       return res.status(500).json({ error: error.message });
