@@ -1516,43 +1516,70 @@ document.getElementById('next-page').onclick = () => {
 
             // Check Pagamento
             const urlParams = new URLSearchParams(window.location.search);
-            const paymentId = urlParams.get('payment_id'); 
-            const statusURL = urlParams.get('collection_status'); 
-            const pendente = localStorage.getItem('pedido_pendente');
-            
-            if (paymentId) {
+
+// O ID que você quer (formato 274796026-f36e...) é o preference_id:
+const preferenceIdFromUrl =
+    urlParams.get('preference_id') ||
+    urlParams.get('preferenceId') ||
+    urlParams.get('preference') ||
+    null;
+
+// Esse aqui é outro ID (payment_id), pode ser numérico:
+const paymentIdFromUrl =
+    urlParams.get('payment_id') ||
+    null;
+
+const statusURL =
+    urlParams.get('collection_status') ||
+    urlParams.get('status') ||
+    null;
+
+// Se existir qualquer ID de retorno, tentamos sincronizar
+if (preferenceIdFromUrl || paymentIdFromUrl) {
     try {
-        // 1. Consultamos a sua API para ver se esse ID já está aprovado
-        const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
+        // Escolhe qual ID mandar pra sua API:
+        // Preferência: preferenceId (o que você quer salvar)
+        const idParaVerificar = preferenceIdFromUrl || paymentIdFromUrl;
+
+        // 1) Verifica status real
+        const checkResponse = await fetch(`/api/verificar?id=${idParaVerificar}`);
         const checkData = await checkResponse.json();
-        
-        const statusReal = checkData.status; 
+
+        const statusReal = checkData.status || statusURL;
+
         let statusFinal = 'Aguardando Pagamento';
         if (statusReal === 'approved') statusFinal = 'Pago';
         if (statusReal === 'in_process') statusFinal = 'Em Análise';
-        if (statusReal === 'rejected') statusFinal = 'Cancelado';
+        if (statusReal === 'rejected' || statusReal === 'cancelled') statusFinal = 'Cancelado';
 
-        // 2. Buscamos o pedido no Firebase para salvar o ID REAL e o STATUS
+        // 2) Atualiza o pedido mais recente (mantive sua lógica, mas sem salvar null)
         const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
         const snap = await getDocs(q);
-        
+
         if (!snap.empty) {
-            const ultimoPedidoDoc = snap.docs[0];
-            // Atualizamos o pedido com o ID que você testou e funcionou!
-            await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedidoDoc.id), {
-                id_pagamento: paymentId,
-                status: statusFinal
-            });
-            
-            if (statusFinal === 'Pago') {
-                window.showDialog('alert', 'Pagamento Confirmado!', 'Seu Pix foi recebido com sucesso! Seu pedido já está em processamento.');
+            const ultimoPedido = snap.docs[0];
+            const pData = ultimoPedido.data();
+
+            const novoIdPagamento = preferenceIdFromUrl || pData.id_pagamento || null;
+
+            // Só atualiza se tiver algo útil (não grava null)
+            const updatePayload = { status: statusFinal };
+            if (novoIdPagamento) updatePayload.id_pagamento = String(novoIdPagamento);
+
+            await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
+
+            if (statusFinal === 'Pago' && !pData.notificado) {
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
+                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
+                enviarNotificacaoVenda({ ...pData, ...updatePayload }, ultimoPedido.id);
             }
         }
-        
-        // Limpa a URL para o site ficar limpo
+
+        // Limpa URL
         window.history.replaceState({}, document.title, window.location.pathname);
+
     } catch (e) {
-        console.error("Erro ao sincronizar:", e);
+        console.error("Erro ao sincronizar pagamento:", e);
     }
 }
         } else {
@@ -1806,26 +1833,39 @@ document.getElementById('next-page').onclick = () => {
 
     // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
-        if(!auth.currentUser) { openModal(); return; }
-        
-        // Verifica se o produto já está no carrinho
-        const itemIndex = cart.findIndex(item => item.name === name);
-        
-        if (itemIndex > -1) {
-            cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
-        } else {
-            cart.push({name, price, image, quantity: 1});
-        }
-        
-        updateCartUI(); 
-        toggleCart();
-        
-        try { 
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
-        } catch(e) { 
-            console.error("Erro ao salvar carrinho:", e);
-        }
-    };
+    if(!auth.currentUser) { openModal(); return; }
+
+    // ✅ Converte price para número SEMPRE
+    let priceNumber = 0;
+    if (typeof price === 'string') {
+        // remove milhares e troca vírgula por ponto (seguro para pt-BR)
+        const limpo = price.replace(/\./g, '').replace(',', '.');
+        priceNumber = Number(limpo);
+    } else {
+        priceNumber = Number(price);
+    }
+    if (isNaN(priceNumber)) priceNumber = 0;
+
+    // Verifica se o produto já está no carrinho
+    const itemIndex = cart.findIndex(item => item.name === name);
+
+    if (itemIndex > -1) {
+        cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
+        // (Opcional) garante que o preço do item existente esteja numérico também
+        cart[itemIndex].price = Number(cart[itemIndex].price) || priceNumber;
+    } else {
+        cart.push({ name, price: priceNumber, image, quantity: 1 });
+    }
+
+    updateCartUI();
+    toggleCart();
+
+    try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
+    } catch(e) {
+        console.error("Erro ao salvar carrinho:", e);
+    }
+};
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
     // Converte o preço para número garantindo que pontos de milhar não atrapalhem
@@ -2022,32 +2062,53 @@ document.getElementById('next-page').onclick = () => {
 
         const data = await response.json();
 
-        if (!data.id || !data.init_point) {
-            throw new Error("Erro na resposta do pagamento");
-        }
+// Pega o ID correto (Checkout Pro normalmente retorna preference_id)
+// Seu exemplo 274796026-f36e... é um "preference_id"
+const preferenceId =
+    data.preference_id ||
+    data.preferenceId ||
+    data.id ||                  // fallback (algumas APIs retornam id = preference_id)
+    null;
 
-        await setDoc(tempOrderRef, {
-            items: cart,
-            subtotal: subtotalGeral,
-            desconto: valorDesconto,
-            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalFinalCalculado, 
-            data: new Date(),
-            status: 'Aguardando Pagamento',
-            metodo: 'Mercado Pago',
-            frete: freteSelecionado,
-            id_pagamento: String(data.id),
-            payment_url: data.init_point,
-            pedidoId: tempOrderRef.id,
-            cliente_uid: auth.currentUser.uid
-        });
+const initPoint =
+    data.init_point ||
+    data.initPoint ||
+    data.checkout_url ||
+    null;
 
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-        cart = [];
-        cupomAplicado = null; 
-        updateCartUI();
+if (!preferenceId || !initPoint) {
+    console.error("Resposta da API /api/pagamento:", data);
+    throw new Error("Erro na resposta do pagamento: preferenceId/initPoint ausentes");
+}
 
-        window.location.href = data.init_point;
+await setDoc(tempOrderRef, {
+    items: cart,
+    subtotal: subtotalGeral,
+    desconto: valorDesconto,
+    cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+    total: totalFinalCalculado,
+    data: new Date(),
+    status: 'Aguardando Pagamento',
+    metodo: 'Mercado Pago',
+    frete: freteSelecionado,
+
+    // ✅ AQUI fica o ID do formato 274796026-f36e...
+    id_pagamento: String(preferenceId),
+
+    // (Opcional) guardar URL do pagamento
+    payment_url: initPoint,
+
+    pedidoId: tempOrderRef.id,
+    cliente_uid: auth.currentUser.uid
+});
+
+await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+cart = [];
+cupomAplicado = null;
+updateCartUI();
+
+// Redireciona
+window.location.href = initPoint;
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
@@ -2123,7 +2184,7 @@ if (pedido.items && pedido.items.length > 0) {
                 </div>
                 <div class="flex-grow min-w-0">
                     <p class="text-[11px] font-bold text-gray-700 truncate">${item.name}</p>
-                    <p class="text-[10px] text-gray-400">${qtd} unidade${qtd > 1 ? 's' : ''} • R$ ${precoUnitario.toFixed(2).replace('.',',')}</p>
+                    <p class="text-[10px] text-gray-400">${qtd} UN • R$ ${(Number(item.price) || 0).toFixed(2).replace('.',',')}</p>
                 </div>
                 <div class="text-right">
                     <p class="text-[10px] font-bold text-gray-800">R$ ${totalLinha.toFixed(2).replace('.',',')}</p>
