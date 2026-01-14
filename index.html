@@ -2038,111 +2038,99 @@ window.changeQty = async (index, delta) => {
         }
     };
     window.checkout = async () => {
-    if (!auth.currentUser) { openModal(); return; }
-    
-    // --- NOVA TRAVA DE VERIFICAÇÃO DE E-MAIL ---
-    // Recarrega os dados do usuário para garantir que o status de verificação está atualizado
-    await auth.currentUser.reload(); 
-    if (!auth.currentUser.emailVerified) {
-        window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.\n\nVerifique sua caixa de entrada ou use o botão no topo da página para reenviar o link.');
-        return;
-    }
-    // ------------------------------------------
+        if (!auth.currentUser) { openModal(); return; }
+        
+        await auth.currentUser.reload(); 
+        if (!auth.currentUser.emailVerified) {
+            window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.');
+            return;
+        }
 
-    if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-    if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
+        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+        if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
-    const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-    const textoOriginal = btnCheckout.innerHTML;
-    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
-    btnCheckout.disabled = true;
+        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+        const textoOriginal = btnCheckout.innerHTML;
+        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
+        btnCheckout.disabled = true;
 
-    try {
-        const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
-        let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
-        const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
+        try {
+            const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
+            let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
+            const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
 
-        const itensParaPagamento = cart.map(i => ({
-            title: i.name,
-            quantity: i.quantity || 1,
-            unit_price: Number(i.price)
-        }));
+            const itensParaPagamento = cart.map(i => ({
+                title: i.name,
+                quantity: i.quantity || 1,
+                unit_price: Number(i.price)
+            }));
 
-        itensParaPagamento.push({
-            title: `FRETE: ${freteSelecionado.nome}`,
-            quantity: 1,
-            unit_price: Number(freteSelecionado.preco)
-        });
-
-        if (valorDesconto > 0) {
             itensParaPagamento.push({
-                title: `CUPOM: ${cupomAplicado.codigo}`,
+                title: `FRETE: ${freteSelecionado.nome}`,
                 quantity: 1,
-                unit_price: Number(valorDesconto) * -1
+                unit_price: Number(freteSelecionado.preco)
             });
+
+            if (valorDesconto > 0) {
+                itensParaPagamento.push({
+                    title: `CUPOM: ${cupomAplicado.codigo}`,
+                    quantity: 1,
+                    unit_price: Number(valorDesconto) * -1
+                });
+            }
+
+            const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+
+            const response = await fetch('/api/pagamento', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    items: itensParaPagamento,
+                    payer: { email: currentUserData.email, name: currentUserData.fullName },
+                    external_reference: tempOrderRef.id 
+                })
+            });
+
+            const data = await response.json();
+
+            // CORREÇÃO AQUI: Verificação robusta do ID
+            const idPagamentoGerado = data.id ? String(data.id) : "PENDENTE_" + Date.now();
+
+            await setDoc(tempOrderRef, {
+                items: cart,
+                subtotal: subtotalGeral,
+                desconto: valorDesconto,
+                cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+                total: totalFinalCalculado, 
+                data: new Date(),
+                status: 'Aguardando Pagamento',
+                metodo: 'Mercado Pago',
+                frete: freteSelecionado,
+                id_pagamento: idPagamentoGerado, // Nunca mais será null
+                payment_url: data.init_point || "#",
+                pedidoId: tempOrderRef.id,
+                cliente_uid: auth.currentUser.uid
+            });
+
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+            cart = [];
+            cupomAplicado = null; 
+            updateCartUI();
+
+            if (data.init_point) {
+                window.location.href = data.init_point;
+            } else {
+                alert("Erro ao redirecionar para o pagamento, mas seu pedido foi salvo no histórico.");
+            }
+
+        } catch (error) {
+            console.error("Erro no Checkout:", error);
+            alert("Erro ao processar o pagamento. Verifique sua conexão.");
+        } finally {
+            btnCheckout.innerHTML = textoOriginal;
+            btnCheckout.disabled = false;
         }
-
-        const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
-if (!data || !data.id || !data.init_point) {
-        throw new Error("Mercado Pago não retornou ID ou init_point válido");
-    }
-        const response = await fetch('/api/pagamento', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                items: itensParaPagamento,
-                payer: { email: currentUserData.email, name: currentUserData.fullName },
-                external_reference: tempOrderRef.id 
-            })
-        });
-
-        const data = await response.json();
-
-        if (!data.id || !data.init_point) {
-            throw new Error("Erro na resposta do pagamento");
-        }
-
-        await setDoc(tempOrderRef, {
-            items: cart,
-            subtotal: subtotalGeral,
-            desconto: valorDesconto,
-            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalFinalCalculado,
-            data: new Date(),
-            status: 'Aguardando Pagamento',
-            metodo: 'Mercado Pago',
-            frete: freteSelecionado,
-            // campos críticos de pagamento
-            id_pagamento: data.id ? String(data.id) : null,
-            init_point: data.init_point || null,
-            payment_url: data.init_point || null,
-            pedidoId: tempOrderRef.id,
-            cliente_uid: auth.currentUser.uid,
-            // ajuda na depuração
-            created_at: new Date().toISOString(),
-            mp_response: data   // ← salva a resposta completa (útil para debug)
-        });
-
-        // Atualiza o documento com o mesmo ID (opcional, mas deixa mais seguro)
-        await updateDoc(tempOrderRef, {
-            pedidoId: tempOrderRef.id  // garante que o campo pedidoId fique correto
-        });
-
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-        cart = [];
-        cupomAplicado = null; 
-        updateCartUI();
-
-        window.location.href = data.init_point;
-
-    } catch (error) {
-        console.error("Erro no Checkout:", error);
-        alert("Erro ao processar desconto no Mercado Pago. Tente novamente.");
-    } finally {
-        btnCheckout.innerHTML = textoOriginal;
-        btnCheckout.disabled = false;
-    }
-};
+    };
     // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
