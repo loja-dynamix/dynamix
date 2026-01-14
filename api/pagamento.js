@@ -1,4 +1,3 @@
-// api/pagamento.js
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,8 +10,7 @@ module.exports = async (req, res) => {
     const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
     if (!ACCESS_TOKEN) return res.status(500).json({ error: 'Token ausente' });
   
-    // Recebemos o external_reference (ID do pedido no Firebase)
-    const { items, payer, shipment_cost, external_reference } = req.body;
+    const { items, payer, external_reference } = req.body;
   
     try {
       const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -24,24 +22,23 @@ module.exports = async (req, res) => {
         body: JSON.stringify({
           items,
           payer,
-          external_reference: external_reference || "",
-          shipments: {
-            cost: Number(shipment_cost) || 0,
-            mode: 'not_specified'
-          },
+          external_reference: String(external_reference || ""),
           back_urls: {
             success: req.headers.origin || "https://dynamix-tau.vercel.app",
             failure: req.headers.origin || "https://dynamix-tau.vercel.app",
             pending: req.headers.origin || "https://dynamix-tau.vercel.app"
           },
           auto_return: "approved",
+          payment_methods: {
+            excluded_payment_types: [],
+            installments: 12
+          }
         })
       });
   
       const data = await response.json();
   
-      if (data.init_point) {
-        // MUDANÇA AQUI: Retornamos o ID e o Link de pagamento
+      if (data.id && data.init_point) {
         return res.status(200).json({ 
             id: data.id, 
             init_point: data.init_point 
@@ -53,4 +50,4 @@ module.exports = async (req, res) => {
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
-  };
+};
