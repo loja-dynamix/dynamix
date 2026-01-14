@@ -1926,26 +1926,39 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
 
     // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
-        if(!auth.currentUser) { openModal(); return; }
-        
-        // Verifica se o produto já está no carrinho
-        const itemIndex = cart.findIndex(item => item.name === name);
-        
-        if (itemIndex > -1) {
-            cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
-        } else {
-            cart.push({name, price, image, quantity: 1});
-        }
-        
-        updateCartUI(); 
-        toggleCart();
-        
-        try { 
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
-        } catch(e) { 
-            console.error("Erro ao salvar carrinho:", e);
-        }
-    };
+    if(!auth.currentUser) { openModal(); return; }
+
+    // ✅ Converte price para número SEMPRE
+    let priceNumber = 0;
+    if (typeof price === 'string') {
+        // remove milhares e troca vírgula por ponto (seguro para pt-BR)
+        const limpo = price.replace(/\./g, '').replace(',', '.');
+        priceNumber = Number(limpo);
+    } else {
+        priceNumber = Number(price);
+    }
+    if (isNaN(priceNumber)) priceNumber = 0;
+
+    // Verifica se o produto já está no carrinho
+    const itemIndex = cart.findIndex(item => item.name === name);
+
+    if (itemIndex > -1) {
+        cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
+        // (Opcional) garante que o preço do item existente esteja numérico também
+        cart[itemIndex].price = Number(cart[itemIndex].price) || priceNumber;
+    } else {
+        cart.push({ name, price: priceNumber, image, quantity: 1 });
+    }
+
+    updateCartUI();
+    toggleCart();
+
+    try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
+    } catch(e) {
+        console.error("Erro ao salvar carrinho:", e);
+    }
+};
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
     // Converte o preço para número garantindo que pontos de milhar não atrapalhem
@@ -2224,7 +2237,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
                         pedido.items.forEach(item => {
                             // Calcula o subtotal considerando a quantidade salva no item
                             const qtd = item.quantity || 1;
-                            subtotalProdutos += (item.price * qtd);
+                            subtotalProdutos += ((Number(item.price) || 0) * qtd);
                             
                             produtosHTML += `
                                 <div class="flex items-center gap-3">
@@ -2234,7 +2247,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
                                     </div>
                                     <div class="flex-grow min-w-0">
                                         <p class="text-[11px] font-bold text-gray-700 truncate">${item.name}</p>
-                                        <p class="text-[10px] text-gray-400">${qtd} UN • R$ ${item.price.toFixed(2).replace('.',',')}</p>
+                                        <p class="text-[10px] text-gray-400">${qtd} UN • R$ ${(Number(item.price) || 0).toFixed(2).replace('.',',')}</p>
                                     </div>
                                 </div>`;
                         });
@@ -2249,7 +2262,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
                     let subtotalCalculado = 0;
                     if (pedido.items) {
                         pedido.items.forEach(item => {
-                            subtotalCalculado += (item.price * (item.quantity || 1));
+                            subtotalCalculado += ((Number(item.price) || 0) * (item.quantity || 1));
                         });
                     }
 
