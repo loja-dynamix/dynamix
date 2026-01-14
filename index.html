@@ -2038,99 +2038,86 @@ window.changeQty = async (index, delta) => {
         }
     };
     window.checkout = async () => {
-        if (!auth.currentUser) { openModal(); return; }
+    if (!auth.currentUser) { openModal(); return; }
+    
+    await auth.currentUser.reload(); 
+    if (!auth.currentUser.emailVerified) {
+        window.showDialog('alert', 'E-mail não verificado', 'Verifique seu e-mail antes de comprar.');
+        return;
+    }
+
+    if (cart.length === 0) { alert("Carrinho vazio!"); return; }
+    if (!freteSelecionado) { alert("Selecione o frete!"); return; }
+
+    const btnCheckout = document.querySelector('button[onclick="checkout()"]');
+    const textoOriginal = btnCheckout.innerHTML;
+    btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    btnCheckout.disabled = true;
+
+    try {
+        const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
+        const valorDescontoTotal = cupomAplicado ? cupomAplicado.valor : 0;
         
-        await auth.currentUser.reload(); 
-        if (!auth.currentUser.emailVerified) {
-            window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.');
-            return;
-        }
+        // Calculamos a proporção do desconto para cada item (o MP não aceita valor negativo)
+        const fatorDesconto = subtotalGeral > 0 ? (subtotalGeral - valorDescontoTotal) / subtotalGeral : 1;
 
-        if (cart.length === 0) { alert("Carrinho vazio!"); return; }
-        if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
+        const itensParaPagamento = cart.map(i => ({
+            title: i.name,
+            quantity: i.quantity || 1,
+            unit_price: Number((i.price * fatorDesconto).toFixed(2))
+        }));
 
-        const btnCheckout = document.querySelector('button[onclick="checkout()"]');
-        const textoOriginal = btnCheckout.innerHTML;
-        btnCheckout.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando Pagamento...';
-        btnCheckout.disabled = true;
+        itensParaPagamento.push({
+            title: `FRETE: ${freteSelecionado.nome}`,
+            quantity: 1,
+            unit_price: Number(freteSelecionado.preco)
+        });
 
-        try {
-            const subtotalGeral = cart.reduce((sum, i) => sum + (i.price * (i.quantity || 1)), 0);
-            let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
-            const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
+        const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
-            const itensParaPagamento = cart.map(i => ({
-                title: i.name,
-                quantity: i.quantity || 1,
-                unit_price: Number(i.price)
-            }));
+        const response = await fetch('/api/pagamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                items: itensParaPagamento,
+                payer: { email: currentUserData.email, name: currentUserData.fullName },
+                external_reference: tempOrderRef.id 
+            })
+        });
 
-            itensParaPagamento.push({
-                title: `FRETE: ${freteSelecionado.nome}`,
-                quantity: 1,
-                unit_price: Number(freteSelecionado.preco)
-            });
+        const data = await response.json();
 
-            if (valorDesconto > 0) {
-                itensParaPagamento.push({
-                    title: `CUPOM: ${cupomAplicado.codigo}`,
-                    quantity: 1,
-                    unit_price: Number(valorDesconto) * -1
-                });
-            }
+        if (!data.id) throw new Error("ID do pagamento não gerado");
 
-            const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
+        await setDoc(tempOrderRef, {
+            items: cart,
+            subtotal: subtotalGeral,
+            desconto: valorDescontoTotal,
+            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+            total: Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDescontoTotal),
+            data: new Date(),
+            status: 'Aguardando Pagamento',
+            metodo: 'Mercado Pago',
+            frete: freteSelecionado,
+            id_pagamento: String(data.id),
+            payment_url: data.init_point,
+            pedidoId: tempOrderRef.id,
+            cliente_uid: auth.currentUser.uid
+        });
 
-            const response = await fetch('/api/pagamento', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    items: itensParaPagamento,
-                    payer: { email: currentUserData.email, name: currentUserData.fullName },
-                    external_reference: tempOrderRef.id 
-                })
-            });
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+        cart = [];
+        updateCartUI();
+        window.location.href = data.init_point;
 
-            const data = await response.json();
-
-            // CORREÇÃO AQUI: Verificação robusta do ID
-            const idPagamentoGerado = data.id ? String(data.id) : "PENDENTE_" + Date.now();
-
-            await setDoc(tempOrderRef, {
-                items: cart,
-                subtotal: subtotalGeral,
-                desconto: valorDesconto,
-                cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-                total: totalFinalCalculado, 
-                data: new Date(),
-                status: 'Aguardando Pagamento',
-                metodo: 'Mercado Pago',
-                frete: freteSelecionado,
-                id_pagamento: idPagamentoGerado, // Nunca mais será null
-                payment_url: data.init_point || "#",
-                pedidoId: tempOrderRef.id,
-                cliente_uid: auth.currentUser.uid
-            });
-
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-            cart = [];
-            cupomAplicado = null; 
-            updateCartUI();
-
-            if (data.init_point) {
-                window.location.href = data.init_point;
-            } else {
-                alert("Erro ao redirecionar para o pagamento, mas seu pedido foi salvo no histórico.");
-            }
-
-        } catch (error) {
-            console.error("Erro no Checkout:", error);
-            alert("Erro ao processar o pagamento. Verifique sua conexão.");
-        } finally {
-            btnCheckout.innerHTML = textoOriginal;
-            btnCheckout.disabled = false;
-        }
-    };
+    } catch (error) {
+        console.error(error);
+        alert("Erro ao gerar pagamento. Verifique se o cupom é válido.");
+    } finally {
+        btnCheckout.innerHTML = textoOriginal;
+        btnCheckout.disabled = false;
+    }
+};
     // (Funções auxiliares do Dashboard mantidas iguais)
     window.openDashboardModal = async (type) => {
         const modal = document.getElementById('dashboard-modal');
