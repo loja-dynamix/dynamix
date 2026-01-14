@@ -70,7 +70,11 @@
 
 @media (max-width: 640px) {
     .carousel-container-ajustado {
-        height: 200px; /* Altura menor para celulares, evita esticar muito */
+        height: 450px !important; /* Aumentamos para caber o banner vertical do celular */
+    }
+    .carousel-slide img {
+        object-fit: contain; /* Isso garante que a imagem mobile apareça inteira sem cortar os lados */
+        background-color: #fff; /* Cor de fundo caso a imagem seja menor que a tela */
     }
 }
    .carousel-slide img {
@@ -172,8 +176,16 @@
     /* Faz os produtos ficarem em 2 colunas reais no celular */
     #products-container {
         grid-template-columns: repeat(2, 1fr) !important;
-        gap: 12px !important;
-        padding: 0 4px;
+        gap: 10px !important;
+        padding: 0 10px;
+    }
+
+    /* Garante que a imagem do produto não fique distorcida */
+    #products-container img {
+        height: 180px !important; /* Altura fixa para manter o alinhamento */
+        object-fit: contain !important; /* Garante que a foto apareça inteira sem esticar */
+        padding: 10px;
+        background-color: #fff;
     }
 
     /* Ajusta o modal de produto para não sumir o botão */
@@ -207,9 +219,82 @@
 #login-success-toast {
     animation: fadeInDown 0.5s ease-out;
 }
+    .cat-card-bg {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+/* Camada escura para o texto não sumir na imagem */
+.cat-card-bg::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45); /* Escurece a imagem em 45% */
+    transition: background 0.3s ease;
+}
+.cat-card-bg:hover::before {
+    background: rgba(0, 0, 0, 0.3); /* Clareia um pouco ao passar o mouse */
+}
+/* Garante que ícone e texto fiquem na frente da imagem */
+.cat-card-bg > div {
+    position: relative;
+    z-index: 10;
+}
+    .modal-políticas-content {
+    animation: modalSlideUp 0.4s ease-out;
+}
+
+@keyframes modalSlideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.politica-texto h4 {
+    font-weight: 700;
+    color: var(--dark-text-color);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+.politica-texto p {
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    color: #4b5563;
+}
+    .brilho-animado {
+    background: linear-gradient(to right, #9ca3af 20%, #ff8600 40%, #ffc30d 60%, #9ca3af 80%);
+    background-size: 200% auto;
+    color: #000;
+    background-clip: text;
+    text-fill-color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shine 3s linear infinite;
+    font-weight: bold;
+}
+
+@keyframes shine {
+    to {
+        background-position: 200% center;
+    }
+}
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
+  <div id="logout-success-toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden animate-bounce">
+    <div class="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-red-500">
+        <i class="fas fa-sign-out-alt text-red-400"></i>
+        <span class="text-sm font-bold">Você saiu da conta com sucesso!</span>
+    </div>
+</div>
+
+<div id="delete-success-toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden animate-bounce">
+    <div class="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-red-600">
+        <i class="fas fa-trash-alt text-red-500"></i>
+        <span class="text-sm font-bold">Sua conta foi excluída permanentemente.</span>
+    </div>
+</div>
   <div id="login-success-toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[200] hidden animate-bounce">
     <div class="bg-black text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 border border-[var(--accent-color)]">
         <i class="fas fa-check-circle text-green-400"></i>
@@ -220,7 +305,7 @@
     <div class="container mx-auto px-4">
       <div class="flex items-center justify-between h-28">
         <a href="#" onclick="switchView('home-view')" class="flex items-center">
-          <img src="https://i.imgur.com/a5JJDad.png" alt="Dynamix" class="h-28 py-2 object-contain">
+          <img src="https://i.imgur.com/PxWRD9i.png" alt="Dynamix" class="h-28 py-2 object-contain">
         </a>
         
         <nav class="hidden lg:flex items-center space-x-8">
@@ -257,9 +342,7 @@
                 <button id="logout-btn" class="text-xs text-red-500 hover:text-red-700 font-medium underline ml-2">Sair</button>
             </div>
             
-            <div id="verify-warning" class="hidden absolute top-14 left-0 w-full bg-yellow-100 border border-yellow-400 text-yellow-800 px-2 py-1 rounded text-[10px] text-center shadow-md z-50">
-                Verifique seu e-mail!
-            </div>
+          
           </div>
         </nav>
         <div class="flex items-center gap-4 lg:hidden">
@@ -267,19 +350,19 @@
                 <i class="fas fa-shopping-cart text-2xl"></i>
                 <span id="mobile-cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden">0</span>
             </button>
-            <button id="mobile-menu-btn" class="text-[var(--dark-text-color)] focus:outline-none">
-                <i class="fas fa-bars text-2xl"></i>
-            </button>
+            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="text-[var(--dark-text-color)] focus:outline-none">
+    <i class="fas fa-bars text-2xl"></i>
+</button>
         </div>
       </div>
     </div>
     <div id="mobile-sidebar" class="fixed inset-y-0 left-0 w-64 bg-white shadow-2xl z-[100] mobile-sidebar-hidden transition-transform duration-300 lg:hidden overflow-y-auto">
-        <div class="p-6 border-b flex justify-between items-center">
-            <img src="https://i.imgur.com/a5JJDad.png" class="h-12 object-contain">
-            <button onclick="toggleMobileMenu()" class="text-gray-500 text-2xl"><i class="fas fa-times"></i></button>
-        </div>
+        <div class="p-6 border-b flex justify-between items-center h-24">
+    <img src="https://i.imgur.com/PxWRD9i.png" class="h-12 lg:h-16 object-contain w-auto">
+    <button onclick="toggleMobileMenu()" class="text-gray-500 text-2xl"><i class="fas fa-times"></i></button>
+</div>
         <nav class="p-6 flex flex-col gap-6">
-            <a href="#" onclick="switchView('home-view'); toggleMobileMenu()" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-home w-5"></i> Início</a>
+            <a href="/" onclick="switchView('home-view'); toggleMobileMenu()" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-home w-5"></i> Início</a>
             <a href="/produtos.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-th w-5"></i> Produtos</a>
             <a href="/produtos.html?categoria=Combos" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-box-open w-5"></i> Combos</a>
             <a href="/sobre.html" class="font-bold text-gray-800 flex items-center gap-3"><i class="fas fa-info-circle w-5"></i> Sobre Nós</a>
@@ -306,41 +389,52 @@
     </div>
     <div id="mobile-sidebar-overlay" onclick="toggleMobileMenu()" class="fixed inset-0 bg-black/50 z-[95] hidden lg:hidden"></div>
   </header>
-
+<div id="verify-warning" class="hidden bg-yellow-400 text-black text-center py-2 px-4 text-xs font-bold shadow-md sticky top-[80px] lg:top-[112px] z-[45]">
+    <i class="fas fa-exclamation-circle mr-2"></i> 
+    Sua conta não foi verificada. 
+    <button onclick="window.reenviarEmailVerificacao()" class="ml-2 underline hover:text-red-700">
+        Clique aqui para reenviar o e-mail de confirmação.
+    </button>
+    <span id="verify-status" class="ml-2 text-blue-800"></span>
+</div>
   <div id="home-view" class="view-section active">
       <section class="code-section bg-white">
       <div class="relative banner-wrapper overflow-hidden w-full">
         <div id="banner-track" class="carousel-track h-full">
           
           <div class="carousel-slide">
-            <img src="https://i.imgur.com/VfRtflX.png" alt="Promoção Emagrecimento">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center">
-              <div class="container mx-auto px-4 text-white">
-                <a href="produtos.html?categoria=Emagrecimento" class="btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/SGzn00J.png" alt="Linha Treino">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-end">
-              <div class="container mx-auto px-4 text-white text-right">
-                <a href="produtos.html?categoria=Treino" class="btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
-              </div>
-            </div>
-          </div>
-
-          <div class="carousel-slide">
-            <img src="https://i.imgur.com/41CD2e0.png" alt="Combos Especiais">
-            <div class="absolute inset-0 bg-black/30"></div>
-            <div class="absolute inset-0 flex items-center justify-center">
-              <div class="text-center text-white">
-                <a href="produtos.html?categoria=Combos" class="btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
-              </div>
-            </div>
-          </div>
+    <img src="https://i.imgur.com/VfRtflX.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/is1Wg1p.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center">
+        <div class="container mx-auto px-4 text-white">
+            <a href="produtos.html?categoria=Emagrecimento" class="hidden md:block btn-banner-custom btn-pos-s1 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Comprar Agora</a>
+        </div>
+    </div>
+</div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/SGzn00J.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/VwZFQuH.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center justify-end">
+        <div class="container mx-auto px-4 text-white text-right">
+            <a href="produtos.html?categoria=Treino" class="hidden md:block btn-banner-custom btn-pos-s2 bg-white text-[var(--accent2-color)] rounded-lg font-bold shadow-lg hover:scale-105">Ver Ofertas</a>
+        </div>
+    </div>
+</div>
+<div class="carousel-slide">
+    <img src="https://i.imgur.com/41CD2e0.png" class="hidden md:block" alt="Banner Desktop">
+    <img src="https://i.imgur.com/Oqx69I9.png" class="md:hidden" alt="Banner Mobile">
+    
+    <div class="absolute inset-0 bg-black/30"></div>
+    <div class="absolute inset-0 flex items-center justify-center">
+        <div class="text-center text-white">
+            <a href="produtos.html?categoria=Combos" class="hidden md:block btn-banner-custom btn-pos-s3 bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black rounded-lg font-bold shadow-lg hover:scale-105">Aproveitar</a>
+        </div>
+    </div>
+</div>
 
         </div>
 
@@ -357,8 +451,7 @@
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
             
-            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Emagrecimento" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/yIhkBZ3.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-fire text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Emagrecimento</h3>
@@ -366,8 +459,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Saúde" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Hvg66Mv.jpeg');">
                 <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-heart text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Saúde</h3>
@@ -375,8 +467,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Colágeno" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/Az5FT7V.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-spa text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Colágeno</h3>
@@ -384,8 +475,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Chás" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/ZbhUSnp.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-mug-hot text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Chás</h3>
@@ -393,8 +483,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Vitaminas" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/GnhNqkH.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-capsules text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Vitaminas</h3>
@@ -402,8 +491,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Treino" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/o9ret2U.jpeg');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-dumbbell text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Treino</h3>
@@ -411,8 +499,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Gels" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/uWQPMYs.png');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-compress text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Gels</h3>
@@ -420,8 +507,7 @@
               </div>
             </a>
 
-            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--primary-color)] via-[var(--accent2-color)] to-[var(--accent4-color)] shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-              <div class="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+            <a href="produtos.html?categoria=Combos" class="group relative overflow-hidden rounded-2xl cat-card-bg shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105" style="background-image: url('https://i.imgur.com/6ILnwcs.png');">
               <div class="p-6 text-center">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-300"><i class="fas fa-box-open text-[var(--accent3-color)] text-2xl"></i></div>
                 <h3 class="text-lg font-bold text-white mb-2 font-[var(--font-family-heading)] drop-shadow-md">Combos</h3>
@@ -447,7 +533,7 @@
           </div>
 
           <div class="text-center mt-12">
-            <a href="/products" class="inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
+            <a href="/produtos.html" class="inline-block bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-10 py-4 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300">
               Ver Todos os Produtos
             </a>
           </div>
@@ -465,7 +551,7 @@
             <h2 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 font-[var(--font-family-heading)]">Comece Sua Transformação Hoje!</h2>
             <p class="text-xl sm:text-2xl text-white mb-10 font-[var(--font-family-body)] opacity-95">Descubra os melhores suplementos para seu estilo de vida.</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <a href="/products" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"><span>Explorar Produtos</span><i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i></a>
+              <a href="/produtos.html" class="inline-flex items-center gap-3 bg-white text-[var(--accent2-color)] px-8 py-5 rounded-xl font-bold text-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 group"><span>Explorar Produtos</span><i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform"></i></a>
               <a href="/produtos.html?categoria=Combos" class="inline-flex items-center gap-3 bg-transparent border-2 border-white text-white px-8 py-5 rounded-xl font-bold text-lg hover:bg-white hover:text-[var(--accent2-color)] transform hover:scale-105 transition-all duration-300 group"><span>Ver Combos</span><i class="fas fa-box-open group-hover:rotate-12 transition-transform"></i></a>
             </div>
             <div class="mt-12 flex flex-wrap justify-center items-center gap-8 text-white">
@@ -590,7 +676,12 @@
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Links Rápidos</h3>
           <ul class="space-y-3">
-            <li><a href="#" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li><a href="/" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Início</span></a></li>
+            <li>
+    <a href="javascript:void(0)" onclick="abrirPoliticas()" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2">
+        <i class="fas fa-chevron-right text-xs"></i><span>Políticas da Loja</span>
+    </a>
+</li>
             <li><a href="/produtos.html" onclick="switchView('home-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Produtos</span></a></li>
             <li><a href="/produtos.html?categoria=Combos" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Combos</span></a></li>
             <li><a href="#" onclick="switchView('profile-view')" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Minha Conta</span></a></li>
@@ -599,9 +690,11 @@
         <div>
           <h3 class="text-xl font-bold mb-6 font-[var(--font-family-heading)] text-[var(--primary-color)]">Categorias</h3>
           <ul class="space-y-3">
-            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-fire text-xs"></i><span>Emagrecimento</span></a></li>
-            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-heart text-xs"></i><span>Saúde</span></a></li>
-            <li><a href="#" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-dumbbell text-xs"></i><span>Treino</span></a></li>
+            <li><a href="/produtos.html?categoria=Emagrecimento" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Emagrecimento</span></a></li>
+            <li><a href="/produtos.html?categoria=Saúde" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Saúde</span></a></li>
+            <li><a href="/produtos.html?categoria=Colágeno" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Colágeno</span></a></li>
+            <li><a href="/produtos.html?categoria=Chás" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Chás</span></a></li>
+            <li><a href="/produtos.html?categoria=Vitaminas" class="text-gray-300 hover:text-[var(--primary-color)] transition-colors flex gap-2"><i class="fas fa-chevron-right text-xs"></i><span>Vitaminas</span></a></li>
           </ul>
         </div>
         <div>
@@ -611,7 +704,15 @@
             <li class="flex items-start gap-3"><i class="fas fa-phone text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">(11) 99999-9999</span></li>
           </ul>
           <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
-          <form class="flex gap-2"><input type="email" placeholder="Seu e-mail" class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm"><button type="button" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all"><i class="fas fa-paper-plane"></i></button></form>
+          <form id="newsletter-form" action="https://formspree.io/f/xykznlnr" method="POST" class="flex flex-col gap-2">
+    <div class="flex gap-2">
+        <input type="email" name="email" id="newsletter-email" placeholder="Seu e-mail" required class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
+        <button type="submit" id="btn-newsletter" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+    <p id="newsletter-status" class="text-[11px] font-bold mt-1 hidden"></p>
+</form>
         </div>
       </div>
       <div class="border-t border-white border-opacity-10 pt-8 mb-8">
@@ -626,7 +727,14 @@
       <div class="border-t border-white border-opacity-10 pt-8">
         <div class="flex flex-col md:flex-row justify-between items-center gap-6">
           <p class="text-gray-400 text-sm text-center md:text-left">© 2025 Dynamix. Todos os direitos reservados.</p>
-          <div class="flex items-center gap-3"><span class="text-gray-400 text-sm">Desenvolvido por</span><a href="#" target="_blank" class="transform hover:scale-110 transition-transform"><img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Agência de Desenvolvimento" class="h-12 object-contain"></a></div>
+          <div class="flex items-center gap-3">
+    <span class="brilho-animado text-sm">Desenvolvido por</span>
+    <a href="https://asthro.com.br/" target="_blank" class="transform hover:scale-110 transition-transform">
+        <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" 
+             alt="Agência de Desenvolvimento" 
+             class="h-24 object-contain brightness-0 invert">
+    </a>
+</div>
         </div>
       </div>
     </div>
@@ -637,11 +745,12 @@
         <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
         <div class="text-center mb-6">
             <h2 id="modal-title" class="text-2xl font-bold text-[var(--dark-text-color)] mb-1 font-[var(--font-family-heading)]">Bem-vindo</h2>
-            <p id="modal-subtitle" class="text-sm text-gray-500">Acesse sua conta para continuar</p>
+            <p id="modal-subtitle" class="text-sm text-gray-500">Preencha os dados para continuar</p>
         </div>
         <form id="auth-form" class="space-y-3">
             <input type="email" id="email-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="E-mail">
             <input type="password" id="password-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="Senha">
+          <input type="password" id="password-confirm-input" class="hidden w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="Confirme sua Senha">
             <div id="forgot-link-container" class="text-right">
                 <button type="button" id="forgot-btn" class="text-xs text-gray-500 hover:text-[var(--accent2-color)] underline">Esqueceu a senha?</button>
             </div>
@@ -862,6 +971,41 @@ document.addEventListener('DOMContentLoaded', () => {
             sidebar.classList.add('open'); overlay.classList.remove('hidden');
         }
     }
+    // ESTA É A FUNÇÃO CORRIGIDA PARA O MENU SANDWICH:
+    function toggleMobileMenu() {
+        const sidebar = document.getElementById('mobile-sidebar');
+        const overlay = document.getElementById('mobile-sidebar-overlay');
+        
+        if (sidebar.classList.contains('mobile-sidebar-hidden')) {
+            sidebar.classList.remove('mobile-sidebar-hidden');
+            overlay.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('mobile-sidebar-hidden');
+            overlay.classList.add('hidden');
+        }
+    }
+    window.handleMobileAuthClick = () => {
+        const isLogged = !document.getElementById('user-logged-menu').classList.contains('hidden');
+        if (isLogged) {
+            switchView('profile-view');
+            toggleMobileMenu();
+        } else {
+            document.getElementById('auth-modal').classList.replace('hidden', 'flex');
+        }
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('mobile-menu-btn');
+        if(btn) btn.onclick = toggleMobileMenu;
+    });
+    // Filtros
+    const filterToggle = document.getElementById('filter-toggle');
+    const filtersSidebar = document.getElementById('filters-sidebar');
+    if (filterToggle && filtersSidebar) {
+        filterToggle.addEventListener('click', () => {
+            filtersSidebar.classList.toggle('hidden');
+        });
+    }
+
     let bannerIdx = 0; const bannerTrack = document.getElementById('banner-track');
     if(bannerTrack) {
         setInterval(() => { bannerIdx = (bannerIdx + 1) % 3; bannerTrack.style.transform = `translateX(-${bannerIdx * 100}%)`; }, 6000);
@@ -885,6 +1029,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 }
+    window.abrirPoliticas = function() {
+    const modalPolitica = document.getElementById('modal-politicas');
+    if(modalPolitica) modalPolitica.classList.replace('hidden', 'flex');
+}
+
+window.fecharPoliticas = function() {
+    const modalPolitica = document.getElementById('modal-politicas');
+    if(modalPolitica) modalPolitica.classList.replace('flex', 'hidden');
+}
+    function abrirPoliticas() {
+    const modal = document.getElementById('modal-politicas');
+    modal.classList.replace('hidden', 'flex');
+}
+
+function fecharPoliticas() {
+    const modal = document.getElementById('modal-politicas');
+    modal.classList.replace('flex', 'hidden');
+}
   </script>
 
   <script type="module">
@@ -901,6 +1063,24 @@ document.addEventListener('DOMContentLoaded', () => {
       appId: "1:752736250186:web:3787663031d273e9bd79b3",
       measurementId: "G-J06LSQSYYB"
     };
+    window.reenviarEmailVerificacao = async () => {
+    const user = auth.currentUser;
+    const statusText = document.getElementById('verify-status');
+    
+    if (user) {
+        try {
+            const { sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+            await sendEmailVerification(user);
+            statusText.innerText = "✅ E-mail enviado! Verifique sua caixa de entrada e spam.";
+            setTimeout(() => { statusText.innerText = ""; }, 5000);
+        } catch (error) {
+            console.error(error);
+            statusText.innerText = "❌ Erro ao enviar. Tente novamente mais tarde.";
+        }
+    } else {
+        alert("Você precisa estar logado para reenviar o e-mail.");
+    }
+};
 window.abrirModalSuporte = (assunto = "") => {
     document.getElementById('support-form-modal').classList.replace('hidden', 'flex');
     
@@ -1049,30 +1229,24 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
 
             const htmlDoCard = `
             <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
-                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
+                 class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
-                <div class="relative overflow-hidden shrink-0">
-                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-56 object-cover group-hover:scale-110 transition-transform duration-500">
+                <div class="relative overflow-hidden shrink-0 bg-white">
+                    <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-48 md:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
                     ${tagHTML}
                 </div>
 
-                <div class="p-4 flex flex-col flex-grow">
+                <div class="p-3 flex flex-col flex-grow">
                     <div class="flex-grow">
-                        <p class="text-xs text-gray-500 mb-1 capitalize">${produto.categoria}</p>
-                        <h3 class="font-bold text-base mb-2 text-gray-900 leading-tight line-clamp-2">${produto.nome}</h3>
-                        <div class="flex mb-2">${estrelasHTML}</div>
+                        <p class="text-[9px] text-gray-400 mb-1 uppercase tracking-tighter">${produto.categoria}</p>
+                        <h3 class="font-bold text-xs md:text-base mb-1 text-gray-900 leading-tight line-clamp-2 h-8 md:h-12">${produto.nome}</h3>
+                        <div class="flex mb-1">${estrelasHTML}</div>
                     </div>
-                    <div class="mt-auto pt-3 border-t border-gray-50">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                ${produto.preco_de ? `<span class="block text-xs text-gray-400 line-through">${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>` : ''}
-                                <span class="text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
-                                ${parcelamentoHTML}
-                            </div>
-                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumerico}, '${safeImg}')" 
-                                class="bg-black text-white w-10 h-10 rounded-lg hover:bg-[var(--accent-color)] transition-all flex items-center justify-center shadow-md">
-                                <i class="fas fa-shopping-cart"></i>
-                            </button>
+                    <div class="mt-auto pt-2 border-t border-gray-50">
+                        <div class="flex flex-col">
+                            ${produto.preco_de ? `<span class="block text-[10px] text-gray-400 line-through">R$ ${parseFloat(produto.preco_de.replace(/\./g, '').replace(',', '.')).toLocaleString('pt-BR')}</span>` : ''}
+                            <span class="text-sm md:text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
+                            ${parcelamentoHTML}
                         </div>
                     </div>
                 </div>
@@ -1161,17 +1335,23 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
         
         const regDiv = document.getElementById('register-fields');
         const forgotDiv = document.getElementById('forgot-link-container');
+        const confirmPassInput = document.getElementById('password-confirm-input'); // Nova linha
+
         if(isLogin) {
             regDiv.classList.add('hidden');
+            confirmPassInput.classList.add('hidden'); // Esconde no login
             if(forgotDiv) forgotDiv.classList.remove('hidden');
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
+            confirmPassInput.required = false;
         } else {
             regDiv.classList.remove('hidden');
+            confirmPassInput.classList.remove('hidden'); // Mostra no cadastro
             if(forgotDiv) forgotDiv.classList.add('hidden');
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
             document.getElementById('reg-cep').required = true;
+            confirmPassInput.required = true; // Torna obrigatório no cadastro
         }
     };
 
@@ -1187,16 +1367,40 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
     // --- LÓGICA DE LOGIN / CADASTRO ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
+        
+        // 1. Coleta os dados dos campos
         const email = document.getElementById('email-input').value;
         const passInput = document.getElementById('password-input');
         const password = passInput.disabled ? "" : passInput.value;
-        submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
+        const confirmPassInput = document.getElementById('password-confirm-input');
+        const confirmPassword = confirmPassInput ? confirmPassInput.value : "";
+
+        // 2. Validação: Verifica se as senhas são iguais ANTES de processar
+        if (!isLogin && !isGoogleCompletion && password !== confirmPassword) {
+            errorMsg.innerText = "As senhas não coincidem!";
+            errorMsg.classList.remove('hidden');
+            return; // Interrompe tudo aqui se estiver errado
+        }
+
+        // 3. Se estiver tudo certo, começa o processo
+        submitBtn.disabled = true; 
+        submitBtn.innerText = "Processando..."; 
+        errorMsg.classList.add('hidden');
         
         try {
             if(isLogin && !isGoogleCompletion) {
-                await signInWithEmailAndPassword(auth, email, password);
+                // LOGIN
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                
+                // Verifica se o e-mail foi confirmado ao fazer login
+                if (!userCredential.user.emailVerified) {
+                    document.getElementById('verify-warning').classList.remove('hidden');
+                } else {
+                    document.getElementById('verify-warning').classList.add('hidden');
+                }
                 modal.classList.replace('flex','hidden');
             } else {
+                // CADASTRO NOVO
                 const name = document.getElementById('reg-name').value;
                 const cpf = document.getElementById('reg-cpf').value;
                 const phone = document.getElementById('reg-phone').value;
@@ -1209,6 +1413,7 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
                     state: document.getElementById('reg-state').value,
                     complement: document.getElementById('reg-complement').value
                 };
+
                 let user;
                 if (isGoogleCompletion) {
                     user = auth.currentUser;
@@ -1218,18 +1423,29 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     user = cred.user;
                     await updateProfile(user, { displayName: name });
+                    
+                    // ENVIO DE E-MAIL DE VERIFICAÇÃO
+                    const { sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+                    await sendEmailVerification(user);
+                    
+                    // AVISO ELEGANTE (USANDO SEU MODAL)
+                    await window.showDialog('alert', '📧 Verifique seu E-mail', 'Conta criada com sucesso!\n\nEnviamos um link de confirmação para o seu e-mail. Você precisa clicar nele para poder finalizar suas compras.');
                 }
+                
+                // SALVA NO BANCO DE DADOS
                 await setDoc(doc(db, "users", user.uid), {
                     fullName: name, email: user.email, cpf: cpf, phone: phone, ...addressData, cart: []
                 }, { merge: true });
+                
                 modal.classList.replace('flex','hidden');
                 if(isGoogleCompletion) window.location.reload();
             }
         } catch(err) {
             let msg = "Erro: " + err.code;
             if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
-            if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
-            errorMsg.innerText = msg; errorMsg.classList.remove('hidden');
+            if(err.code === 'auth/weak-password') msg = "Senha muito fraca (mínimo 6 caracteres).";
+            errorMsg.innerText = msg; 
+            errorMsg.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;
             if(!isGoogleCompletion) submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
@@ -1292,6 +1508,12 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
     };
 
     onAuthStateChanged(auth, async (user) => {
+      const verifyWarning = document.getElementById('verify-warning');
+        if (user && !user.emailVerified) {
+            verifyWarning.classList.remove('hidden');
+        } else if (verifyWarning) {
+            verifyWarning.classList.add('hidden');
+        }
         const userMenu = document.getElementById('user-logged-menu');
         const loginTrigger = document.getElementById('login-trigger-btn');
         const nameDisplay = document.getElementById('user-name-display');
@@ -1379,46 +1601,68 @@ const checkPendingOrders = async () => {
         checkPendingOrders();
             // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
-const paymentId = urlParams.get('payment_id'); // ID REAL DO PAGAMENTO
-const statusURL = urlParams.get('collection_status'); 
 
-if (paymentId) {
+// O ID que você quer (formato 274796026-f36e...) é o preference_id:
+const preferenceIdFromUrl =
+    urlParams.get('preference_id') ||
+    urlParams.get('preferenceId') ||
+    urlParams.get('preference') ||
+    null;
+
+// Esse aqui é outro ID (payment_id), pode ser numérico:
+const paymentIdFromUrl =
+    urlParams.get('payment_id') ||
+    null;
+
+const statusURL =
+    urlParams.get('collection_status') ||
+    urlParams.get('status') ||
+    null;
+
+// Se existir qualquer ID de retorno, tentamos sincronizar
+if (preferenceIdFromUrl || paymentIdFromUrl) {
     try {
-        // 1. Verifica o status real na sua API da Vercel
-        const checkResponse = await fetch(`/api/verificar?id=${paymentId}`);
+        // Escolhe qual ID mandar pra sua API:
+        // Preferência: preferenceId (o que você quer salvar)
+        const idParaVerificar = preferenceIdFromUrl || paymentIdFromUrl;
+
+        // 1) Verifica status real
+        const checkResponse = await fetch(`/api/verificar?id=${idParaVerificar}`);
         const checkData = await checkResponse.json();
-        
+
         const statusReal = checkData.status || statusURL;
+
         let statusFinal = 'Aguardando Pagamento';
         if (statusReal === 'approved') statusFinal = 'Pago';
         if (statusReal === 'in_process') statusFinal = 'Em Análise';
-        if (statusReal === 'rejected') statusFinal = 'Cancelado';
+        if (statusReal === 'rejected' || statusReal === 'cancelled') statusFinal = 'Cancelado';
 
-        // 2. Procura se existe um pedido recente "pendente" para atualizar com o ID real
+        // 2) Atualiza o pedido mais recente (mantive sua lógica, mas sem salvar null)
         const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
         const snap = await getDocs(q);
-        
+
         if (!snap.empty) {
             const ultimoPedido = snap.docs[0];
             const pData = ultimoPedido.data();
-            
-            if (pData.id_pagamento !== paymentId || pData.status !== statusFinal) {
-                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
-                    id_pagamento: paymentId,
-                    status: statusFinal
-                });
-                
-                if (statusFinal === 'Pago' && !pData.notificado) {
-                    window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
-                    await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
-                    enviarNotificacaoVenda(pData, ultimoPedido.id);
-                }
+
+            const novoIdPagamento = preferenceIdFromUrl || pData.id_pagamento || null;
+
+            // Só atualiza se tiver algo útil (não grava null)
+            const updatePayload = { status: statusFinal };
+            if (novoIdPagamento) updatePayload.id_pagamento = String(novoIdPagamento);
+
+            await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
+
+            if (statusFinal === 'Pago' && !pData.notificado) {
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
+                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
+                enviarNotificacaoVenda({ ...pData, ...updatePayload }, ultimoPedido.id);
             }
         }
-        
-        // Limpa a URL para não ficar processando toda vez que der F5
+
+        // Limpa URL
         window.history.replaceState({}, document.title, window.location.pathname);
-        
+
     } catch (e) {
         console.error("Erro ao sincronizar pagamento:", e);
     }
@@ -1434,7 +1678,19 @@ if (paymentId) {
         }
     });
 
-    document.getElementById('logout-btn').onclick = () => signOut(auth);
+    const realizarLogout = async () => {
+        await signOut(auth);
+        const logoutToast = document.getElementById('logout-success-toast');
+        logoutToast.classList.remove('hidden');
+        setTimeout(() => { 
+            logoutToast.classList.add('hidden');
+            window.location.reload(); 
+        }, 2500);
+    };
+
+    // Aplica a função nos dois botões (Desktop e Mobile)
+    if(document.getElementById('logout-btn')) document.getElementById('logout-btn').onclick = realizarLogout;
+    if(document.getElementById('mobile-logout-btn')) document.getElementById('mobile-logout-btn').onclick = realizarLogout;
 
     document.getElementById('profile-form').onsubmit = async (e) => {
         e.preventDefault();
@@ -1499,20 +1755,29 @@ if (paymentId) {
     const deleteBtn = document.getElementById('delete-account-btn');
     if(deleteBtn) deleteBtn.onclick = async () => {
         const user = auth.currentUser; if(!user) return;
-        if(await window.showDialog('confirm', 'Excluir Conta?', 'Tem certeza?')) {
+        if(await window.showDialog('confirm', 'Excluir Conta?', 'Tem certeza? Essa ação não pode ser desfeita.')) {
             try {
                 if (user.providerData[0].providerId === 'google.com') {
-                    await window.showDialog('alert', 'Confirmação', 'Faça login com Google novamente.');
+                    await window.showDialog('alert', 'Confirmação', 'Por segurança, faça login com Google novamente.');
                     await reauthenticateWithPopup(user, new GoogleAuthProvider());
                 } else {
-                    const pass = await window.showDialog('password', 'Senha', 'Digite sua senha:');
+                    const pass = await window.showDialog('password', 'Confirmar Exclusão', 'Digite sua senha para confirmar:');
                     if(!pass) return;
                     await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, pass));
                 }
+                
                 await deleteDoc(doc(db, "users", user.uid));
                 await deleteUser(user);
-                window.location.reload();
-            } catch(e) { window.showDialog('alert', 'Erro', e.message); }
+                
+                // Mostra o aviso de exclusão
+                const delToast = document.getElementById('delete-success-toast');
+                delToast.classList.remove('hidden');
+                
+                setTimeout(() => { 
+                    window.location.href = "/"; // Volta para a home
+                }, 3000);
+
+            } catch(e) { window.showDialog('alert', 'Erro', 'Não foi possível excluir. Verifique sua senha.'); }
         }
     };
 
@@ -1796,6 +2061,16 @@ window.changeQty = async (index, delta) => {
     };
     window.checkout = async () => {
     if (!auth.currentUser) { openModal(); return; }
+    
+    // --- NOVA TRAVA DE VERIFICAÇÃO DE E-MAIL ---
+    // Recarrega os dados do usuário para garantir que o status de verificação está atualizado
+    await auth.currentUser.reload(); 
+    if (!auth.currentUser.emailVerified) {
+        window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.\n\nVerifique sua caixa de entrada ou use o botão no topo da página para reenviar o link.');
+        return;
+    }
+    // ------------------------------------------
+
     if (cart.length === 0) { alert("Carrinho vazio!"); return; }
     if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
 
@@ -1809,23 +2084,18 @@ window.changeQty = async (index, delta) => {
         let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
         const totalFinalCalculado = Math.max(0, (subtotalGeral + freteSelecionado.preco) - valorDesconto);
 
-        // Criamos a lista de itens para enviar ao Mercado Pago
         const itensParaPagamento = cart.map(i => ({
             title: i.name,
             quantity: i.quantity || 1,
             unit_price: Number(i.price)
         }));
 
-        // Adicionamos o Frete como um item para somar no valor
         itensParaPagamento.push({
             title: `FRETE: ${freteSelecionado.nome}`,
             quantity: 1,
             unit_price: Number(freteSelecionado.preco)
         });
 
-        // Se houver desconto, enviamos um item com valor negativo
-        // IMPORTANTE: Algumas APIs de integração barram unit_price negativo. 
-        // Se o seu valor não mudar, me avise para ajustarmos o preço unitário dos produtos.
         if (valorDesconto > 0) {
             itensParaPagamento.push({
                 title: `CUPOM: ${cupomAplicado.codigo}`,
@@ -1836,7 +2106,6 @@ window.changeQty = async (index, delta) => {
 
         const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
 
-        // --- PASSO 1: CHAMADA DA API ---
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1849,34 +2118,53 @@ window.changeQty = async (index, delta) => {
 
         const data = await response.json();
 
-        if (!data.id || !data.init_point) {
-            throw new Error("Erro na resposta do pagamento");
-        }
+// Pega o ID correto (Checkout Pro normalmente retorna preference_id)
+// Seu exemplo 274796026-f36e... é um "preference_id"
+const preferenceId =
+    data.preference_id ||
+    data.preferenceId ||
+    data.id ||                  // fallback (algumas APIs retornam id = preference_id)
+    null;
 
-        // --- PASSO 2: SALVAR NO FIREBASE ---
-        await setDoc(tempOrderRef, {
-            items: cart,
-            subtotal: subtotalGeral,
-            desconto: valorDesconto,
-            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalFinalCalculado, 
-            data: new Date(),
-            status: 'Aguardando Pagamento',
-            metodo: 'Mercado Pago',
-            frete: freteSelecionado,
-            id_pagamento: String(data.id),
-            payment_url: data.init_point,
-            pedidoId: tempOrderRef.id,
-            cliente_uid: auth.currentUser.uid
-        });
+const initPoint =
+    data.init_point ||
+    data.initPoint ||
+    data.checkout_url ||
+    null;
 
-        // --- PASSO 3: LIMPAR E REDIRECIONAR ---
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-        cart = [];
-        cupomAplicado = null; 
-        updateCartUI();
+if (!preferenceId || !initPoint) {
+    console.error("Resposta da API /api/pagamento:", data);
+    throw new Error("Erro na resposta do pagamento: preferenceId/initPoint ausentes");
+}
 
-        window.location.href = data.init_point;
+await setDoc(tempOrderRef, {
+    items: cart,
+    subtotal: subtotalGeral,
+    desconto: valorDesconto,
+    cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+    total: totalFinalCalculado,
+    data: new Date(),
+    status: 'Aguardando Pagamento',
+    metodo: 'Mercado Pago',
+    frete: freteSelecionado,
+
+    // ✅ AQUI fica o ID do formato 274796026-f36e...
+    id_pagamento: String(preferenceId),
+
+    // (Opcional) guardar URL do pagamento
+    payment_url: initPoint,
+
+    pedidoId: tempOrderRef.id,
+    cliente_uid: auth.currentUser.uid
+});
+
+await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+cart = [];
+cupomAplicado = null;
+updateCartUI();
+
+// Redireciona
+window.location.href = initPoint;
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
@@ -2212,6 +2500,143 @@ window.aplicarCupom = () => {
         }
     });
 };
+    const newsForm = document.getElementById('newsletter-form');
+if (newsForm) {
+    newsForm.onsubmit = async (e) => {
+        e.preventDefault(); // Impede a página de recarregar
+        const btn = document.getElementById('btn-newsletter');
+        const status = document.getElementById('newsletter-status');
+        const emailInput = document.getElementById('newsletter-email');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; // Efeito de carregando
+        
+        try {
+            const formData = new FormData(newsForm);
+            // Adiciona um campo de assunto para você saber que é da newsletter
+            formData.append('assunto', 'Nova Inscrição na Newsletter - Rodapé');
+
+            const response = await fetch(newsForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                status.innerText = "✅ Inscrição confirmada! Obrigado.";
+                status.classList.remove('hidden', 'text-red-400');
+                status.classList.add('text-green-400');
+                newsForm.reset(); // Limpa o campo de e-mail
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            status.innerText = "❌ Erro ao enviar. Tente novamente.";
+            status.classList.remove('hidden', 'text-green-400');
+            status.classList.add('text-red-400');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            // Esconde a mensagem após 5 segundos
+            setTimeout(() => { status.classList.add('hidden'); }, 5000);
+        }
+    };
+}
   </script>
+  <div id="modal-politicas" class="fixed inset-0 z-[150] hidden items-center justify-center modal-backdrop p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative overflow-hidden flex flex-col max-h-[85vh] modal-políticas-content">
+        
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-balance-scale text-[var(--accent-color)]"></i> 
+                Políticas e Termos
+            </h3>
+            <button onclick="fecharPoliticas()" class="text-gray-400 hover:text-red-500 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-8 overflow-y-auto politica-texto text-sm text-gray-600">
+            <h4 class="text-black font-bold text-lg mb-4">Suplementos e Produtos para Emagrecimento</h4>
+            <p>Os produtos comercializados pela Dynamix são classificados como suplementos alimentares ou produtos de uso complementar, não possuindo finalidade medicamentosa.</p>
+            <p>Os resultados podem variar de pessoa para pessoa, dependendo de fatores como metabolismo, rotina, alimentação, prática de atividades físicas e constância no uso. A Dynamix não garante resultados específicos relacionados à perda de peso, desempenho físico ou mudanças corporais.</p>
+            <p>Recomendamos que gestantes, lactantes, pessoas com condições de saúde pré-existentes ou que façam uso de medicamentos consultem um profissional de saúde antes de utilizar qualquer produto.</p>
+            <p class="mb-8">Ao adquirir nossos produtos, o cliente declara estar ciente de que os resultados são individuais e que o uso deve respeitar as orientações do fabricante e profissionais especializados.</p>
+
+            <h4 class="text-black font-bold text-lg mb-4">Política de Reembolso e Cancelamento Dynamix</h4>
+            <p>A Dynamix preza pela transparência, respeito e segurança nas relações de consumo. Esta Política de Reembolso e Cancelamento foi elaborada em conformidade com o Código de Defesa do Consumidor (Lei nº 8.078/90) e se aplica a todas as compras realizadas em nosso site.</p>
+            
+            <p><strong>1. Direito de Arrependimento</strong></p>
+            <p>Conforme o artigo 49 do Código de Defesa do Consumidor, o cliente poderá desistir da compra realizada em nosso site no prazo de até 7 (sete) dias corridos, contados a partir do recebimento do produto.</p>
+            <p>Para o exercício do direito de arrependimento, é necessário que: O produto esteja lacrado, sem sinais de uso, consumo ou violação; A embalagem original esteja preservada, incluindo rótulos, manuais e acessórios. O pedido deverá ser realizado por meio do canal de atendimento oficial da Dynamix, com a informação do número do pedido.</p>
+            
+            <p><strong>2. Condições para Reembolso</strong></p>
+            <p>Após a solicitação de arrependimento, o produto deverá ser devolvido para análise. Caso sejam constatadas condições incompatíveis com esta política, a devolução poderá ser recusada e o produto retornado ao cliente. Quando aprovado, o reembolso será realizado de forma integral, incluindo valor pago pelo produto e valor do frete de envio. O reembolso será processado em até 10 (dez) dias úteis, contados a partir da confirmação da devolução, respeitando os prazos da forma de pagamento utilizada (Cartão de crédito: estorno via administradora; Pix ou boleto bancário: transferência para conta do titular).</p>
+
+            <p><strong>3. Produtos com Defeito ou Avariados</strong></p>
+            <p>Caso o produto apresente defeito de fabricação ou avarias, o cliente deverá entrar em contato com a Dynamix em até 30 (trinta) dias corridos após o recebimento, conforme o artigo 26, inciso I, do CDC, enviando fotos ou vídeos que comprovem a situação. Após análise, a Dynamix poderá oferecer troca, reembolso ou envio de novo produto.</p>
+
+            <p><strong>4. Itens Não Elegíveis para Reembolso ou Troca</strong></p>
+            <p>Por se tratarem de produtos de uso pessoal e consumo, não serão elegíveis para reembolso ou troca: Produtos com lacre violado, rompido ou adulterado; Produtos parcialmente ou totalmente utilizados; Solicitações fora dos prazos legais ou motivadas por insatisfação com resultados, uma vez que os efeitos variam de acordo com o organismo individual.</p>
+
+            <p><strong>5. Cancelamento de Pedido Antes do Envio</strong></p>
+            <p>O cancelamento poderá ser realizado sem custo enquanto o pedido ainda não tiver sido despachado. Caso já tenha sido enviado, o cliente deverá aguardar o recebimento e seguir o procedimento de devolução.</p>
+
+            <p><strong>6. Considerações Importantes</strong></p>
+            <ul class="list-disc pl-5 mb-8">
+                <li>Os produtos não substituem uma alimentação equilibrada ou acompanhamento médico;</li>
+                <li>As informações do site têm caráter informativo e não constituem promessa de resultado;</li>
+                <li>Ao concluir a compra, o cliente declara estar de acordo com esta Política.</li>
+            </ul>
+
+            <h4 class="text-black font-bold text-lg mb-4">Política Financeira e de Pagamentos Dynamix</h4>
+            <p><strong>1. Formas de Pagamento Aceitas</strong></p>
+            <p>Cartão de crédito; Pix; Boleto bancário. As formas disponíveis poderão ser alteradas a qualquer momento, respeitando os pedidos já finalizados.</p>
+
+            <p><strong>2. Parcelamento</strong></p>
+            <p>Compras via cartão de crédito poderão ser parceladas conforme as condições no checkout. O valor mínimo de parcela e o número máximo são definidos pela Dynamix ou pela operadora. Eventuais juros são informados antes da confirmação.</p>
+
+            <p><strong>3. Confirmação e Aprovação</strong></p>
+            <p>Pix: confirmação imediata; Cartão: até 48 horas; Boleto: até 3 dias úteis. O prazo de envio conta após a confirmação.</p>
+
+            <p><strong>4. Análise Antifraude</strong></p>
+            <p>A Dynamix poderá realizar análise antifraude. O pedido poderá permanecer em análise ou ser cancelado automaticamente caso haja inconsistências, com estorno integral do valor.</p>
+
+            <p><strong>5. Recusa ou Suspensão de Pagamento</strong></p>
+            <p>Reserva-se o direito de recusar pedidos por: Erro nos dados cadastrais; Suspeita de fraude; Não confirmação do pagamento ou descumprimento dos termos do site.</p>
+
+            <p><strong>6. Responsabilidade e Chargeback</strong></p>
+            <p>É responsabilidade do cliente fornecer dados corretos. Em caso de chargeback indevido, a Dynamix poderá adotar as medidas cabíveis conforme a legislação. Não armazenamos dados sensíveis de cartões.</p>
+
+            <p class="mb-8"><strong>7. Preços e Ofertas</strong></p>
+            <p class="mb-8">Preços e promoções são válidos exclusivamente para compras no site e podem ser alterados sem aviso prévio.</p>
+
+            <h4 class="text-black font-bold text-lg mb-4">Política de Privacidade e Proteção de Dados (LGPD)</h4>
+            <p><strong>1. Coleta de Dados Pessoais</strong></p>
+            <p>Coletamos Nome, CPF, Endereço, E-mail, Telefone e dados de navegação (IP, horários) para processamento de pedidos e segurança.</p>
+
+            <p><strong>2. Finalidade</strong></p>
+            <p>Processar pedidos e pagamentos; Emitir documentos fiscais; Realizar entregas; Prestar atendimento e cumprir obrigações legais.</p>
+
+            <p><strong>3. Dados Sensíveis e Compartilhamento</strong></p>
+            <p>Não realizamos coleta intencional de dados de saúde. Compartilhamos dados apenas com plataformas de pagamento, transportadoras e prestadores essenciais à operação.</p>
+
+            <p><strong>4. Segurança e Armazenamento</strong></p>
+            <p>Adotamos medidas técnicas para proteger os dados contra acessos não autorizados. Os dados são mantidos pelo período necessário para cumprimento das finalidades informadas e obrigações fiscais.</p>
+
+            <p><strong>5. Direitos do Titular</strong></p>
+            <p>Nos termos da LGPD, o titular pode solicitar: Confirmação de tratamento; Acesso ou correção; Exclusão de dados; Revogação de consentimento através dos canais oficiais.</p>
+
+            <p><strong>6. Disposições Gerais</strong></p>
+            <p>O uso do site implica na aceitação desta Política, que pode ser atualizada para garantir conformidade legal.</p>
+        </div>
+
+        <div class="p-4 bg-gray-50 border-t text-center">
+            <button onclick="fecharPoliticas()" class="bg-black text-white px-8 py-2 rounded-lg font-bold hover:bg-gray-800 transition-all">
+                Entendi e Aceito
+            </button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
