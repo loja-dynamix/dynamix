@@ -2083,7 +2083,9 @@ window.changeQty = async (index, delta) => {
         }
 
         const tempOrderRef = doc(collection(db, "users", auth.currentUser.uid, "orders"));
-
+if (!data || !data.id || !data.init_point) {
+        throw new Error("Mercado Pago não retornou ID ou init_point válido");
+    }
         const response = await fetch('/api/pagamento', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -2105,15 +2107,25 @@ window.changeQty = async (index, delta) => {
             subtotal: subtotalGeral,
             desconto: valorDesconto,
             cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-            total: totalFinalCalculado, 
+            total: totalFinalCalculado,
             data: new Date(),
             status: 'Aguardando Pagamento',
             metodo: 'Mercado Pago',
             frete: freteSelecionado,
-            id_pagamento: String(data.id),
-            payment_url: data.init_point,
+            // campos críticos de pagamento
+            id_pagamento: data.id ? String(data.id) : null,
+            init_point: data.init_point || null,
+            payment_url: data.init_point || null,
             pedidoId: tempOrderRef.id,
-            cliente_uid: auth.currentUser.uid
+            cliente_uid: auth.currentUser.uid,
+            // ajuda na depuração
+            created_at: new Date().toISOString(),
+            mp_response: data   // ← salva a resposta completa (útil para debug)
+        });
+
+        // Atualiza o documento com o mesmo ID (opcional, mas deixa mais seguro)
+        await updateDoc(tempOrderRef, {
+            pedidoId: tempOrderRef.id  // garante que o campo pedidoId fique correto
         });
 
         await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
