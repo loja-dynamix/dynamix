@@ -545,6 +545,7 @@
         <form id="auth-form" class="space-y-3">
             <input type="email" id="email-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="E-mail">
             <input type="password" id="password-input" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="Senha">
+          <input type="password" id="password-confirm-input" class="hidden w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm" placeholder="Confirme sua Senha">
             <div id="forgot-link-container" class="text-right">
                 <button type="button" id="forgot-btn" class="text-xs text-gray-500 hover:text-[var(--accent2-color)] underline">Esqueceu a senha?</button>
             </div>
@@ -1021,17 +1022,23 @@ supForm.onsubmit = async (e) => {
         
         const regDiv = document.getElementById('register-fields');
         const forgotDiv = document.getElementById('forgot-link-container');
+        const confirmPassInput = document.getElementById('password-confirm-input'); // Nova linha
+
         if(isLogin) {
             regDiv.classList.add('hidden');
+            confirmPassInput.classList.add('hidden'); // Esconde no login
             if(forgotDiv) forgotDiv.classList.remove('hidden');
             document.querySelectorAll('#register-fields input').forEach(i => i.required = false);
+            confirmPassInput.required = false;
         } else {
             regDiv.classList.remove('hidden');
+            confirmPassInput.classList.remove('hidden'); // Mostra no cadastro
             if(forgotDiv) forgotDiv.classList.add('hidden');
             document.getElementById('reg-name').required = true;
             document.getElementById('reg-cpf').required = true;
             document.getElementById('reg-phone').required = true;
             document.getElementById('reg-cep').required = true;
+            confirmPassInput.required = true; // Torna obrigatório no cadastro
         }
     };
 
@@ -1047,16 +1054,40 @@ supForm.onsubmit = async (e) => {
     // --- LÓGICA DE LOGIN / CADASTRO ---
     authForm.onsubmit = async (e) => {
         e.preventDefault();
+        
+        // 1. Coleta os dados dos campos
         const email = document.getElementById('email-input').value;
         const passInput = document.getElementById('password-input');
         const password = passInput.disabled ? "" : passInput.value;
-        submitBtn.disabled = true; submitBtn.innerText = "Processando..."; errorMsg.classList.add('hidden');
+        const confirmPassInput = document.getElementById('password-confirm-input');
+        const confirmPassword = confirmPassInput ? confirmPassInput.value : "";
+
+        // 2. Validação: Verifica se as senhas são iguais ANTES de processar
+        if (!isLogin && !isGoogleCompletion && password !== confirmPassword) {
+            errorMsg.innerText = "As senhas não coincidem!";
+            errorMsg.classList.remove('hidden');
+            return; // Interrompe tudo aqui se estiver errado
+        }
+
+        // 3. Se estiver tudo certo, começa o processo
+        submitBtn.disabled = true; 
+        submitBtn.innerText = "Processando..."; 
+        errorMsg.classList.add('hidden');
         
         try {
             if(isLogin && !isGoogleCompletion) {
-                await signInWithEmailAndPassword(auth, email, password);
+                // LOGIN
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                
+                // Verifica se o e-mail foi confirmado ao fazer login
+                if (!userCredential.user.emailVerified) {
+                    document.getElementById('verify-warning').classList.remove('hidden');
+                } else {
+                    document.getElementById('verify-warning').classList.add('hidden');
+                }
                 modal.classList.replace('flex','hidden');
             } else {
+                // CADASTRO NOVO
                 const name = document.getElementById('reg-name').value;
                 const cpf = document.getElementById('reg-cpf').value;
                 const phone = document.getElementById('reg-phone').value;
@@ -1069,6 +1100,7 @@ supForm.onsubmit = async (e) => {
                     state: document.getElementById('reg-state').value,
                     complement: document.getElementById('reg-complement').value
                 };
+
                 let user;
                 if (isGoogleCompletion) {
                     user = auth.currentUser;
@@ -1078,18 +1110,29 @@ supForm.onsubmit = async (e) => {
                     const cred = await createUserWithEmailAndPassword(auth, email, password);
                     user = cred.user;
                     await updateProfile(user, { displayName: name });
+                    
+                    // ENVIO DE E-MAIL DE VERIFICAÇÃO
+                    const { sendEmailVerification } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js");
+                    await sendEmailVerification(user);
+                    
+                    // AVISO ELEGANTE (USANDO SEU MODAL)
+                    await window.showDialog('alert', '📧 Verifique seu E-mail', 'Conta criada com sucesso!\n\nEnviamos um link de confirmação para o seu e-mail. Você precisa clicar nele para poder finalizar suas compras.');
                 }
+                
+                // SALVA NO BANCO DE DADOS
                 await setDoc(doc(db, "users", user.uid), {
                     fullName: name, email: user.email, cpf: cpf, phone: phone, ...addressData, cart: []
                 }, { merge: true });
+                
                 modal.classList.replace('flex','hidden');
                 if(isGoogleCompletion) window.location.reload();
             }
         } catch(err) {
             let msg = "Erro: " + err.code;
             if(err.code === 'auth/email-already-in-use') msg = "E-mail já cadastrado.";
-            if(err.code === 'auth/weak-password') msg = "Senha muito fraca.";
-            errorMsg.innerText = msg; errorMsg.classList.remove('hidden');
+            if(err.code === 'auth/weak-password') msg = "Senha muito fraca (mínimo 6 caracteres).";
+            errorMsg.innerText = msg; 
+            errorMsg.classList.remove('hidden');
         } finally {
             submitBtn.disabled = false;
             if(!isGoogleCompletion) submitBtn.innerText = isLogin ? "Entrar" : "Cadastrar";
