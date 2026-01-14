@@ -2164,10 +2164,25 @@ window.changeQty = async (index, delta) => {
                   const pedido = docPedido.data();
 if (!pedido || !pedido.items || !pedido.status) return;
                     let dataFormatada = 'Data desconhecida';
-                    
-                    if (pedido.data && pedido.data.toDate) {
-                        dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                    }
+
+if (pedido.data) {
+    try {
+        // Tenta converter se for Timestamp do Firestore
+        if (typeof pedido.data.toDate === 'function') {
+            const dataReal = pedido.data.toDate();
+            dataFormatada = dataReal.toLocaleDateString('pt-BR') + ' às ' + 
+                           dataReal.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        } 
+        // Caso já tenha vindo como Date normal (menos comum)
+        else if (pedido.data instanceof Date) {
+            dataFormatada = pedido.data.toLocaleDateString('pt-BR') + ' às ' + 
+                           pedido.data.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        }
+    } catch (e) {
+        console.warn("Data inválida no pedido", docPedido.id, e);
+        // deixa como 'Data desconhecida'
+    }
+}
 
                     let corStatus = 'bg-gray-100 text-gray-700';
                     if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
