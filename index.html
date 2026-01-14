@@ -2142,107 +2142,164 @@ window.changeQty = async (index, delta) => {
 
         if (type === 'orders') {
             titleEl.innerHTML = '<i class="fas fa-box-open text-blue-500"></i> Meus Pedidos';
-            if (!auth.currentUser) {
-                contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
-                return;
-            }
-            try {
-                // BUSCA CORRETA: Acessa a subcoleção de pedidos do usuário atual
-                const ordersRef = collection(db, "users", auth.currentUser.uid, "orders");
-                const q = query(ordersRef, orderBy("data", "desc"));
-                const querySnapshot = await getDocs(q);
+        if (!auth.currentUser) {
+            contentEl.innerHTML = '<p class="text-center text-gray-500 mt-4">Faça login para ver seus pedidos.</p>';
+            return;
+        }
+        try {
+            const q = query(collection(db, "users", auth.currentUser.uid, "orders"), orderBy("data", "desc"));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                contentEl.innerHTML = `
+                    <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                        <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
+                        <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
+                        <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
+                    </div>`;
+            } else {
+                let html = '<div class="space-y-4">';
                 
-                if (querySnapshot.empty) {
-                    contentEl.innerHTML = `
-                        <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                            <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
-                            <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
-                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
-                        </div>`;
-                } else {
-                    let html = '<div class="space-y-4 custom-scroll overflow-y-auto max-h-[60vh] pr-2">';
+                querySnapshot.forEach((docPedido) => {
+                  const pedido = docPedido.data();
+if (!pedido || !pedido.items || !pedido.status) return;
+                    let dataFormatada = 'Data desconhecida';
                     
-                    querySnapshot.forEach((docPedido) => {
-                        const pedido = docPedido.data();
-                        if (!pedido.items || !pedido.status) return;
+                    if (pedido.data && pedido.data.toDate) {
+                        dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                    }
 
-                        // Formatação da Data
-                        let dataFormatada = 'Data desconhecida';
-                        if (pedido.data && pedido.data.toDate) {
-                            dataFormatada = pedido.data.toDate().toLocaleDateString('pt-BR') + ' às ' + pedido.data.toDate().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-                        }
+                    let corStatus = 'bg-gray-100 text-gray-700';
+                    if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
+                    if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
 
-                        // Cores do Status
-                        let corStatus = 'bg-gray-100 text-gray-700';
-                        if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
-                        if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
-
-                        // 1. GERAÇÃO DA LISTA DE PRODUTOS
-                        let produtosHTML = '<div class="mt-3 space-y-2 border-t border-gray-50 pt-3">';
+                    // --- 1. LISTA DE PRODUTOS ---
+                    let produtosHTML = '';
+                    let subtotalProdutos = 0;
+                    if (pedido.items && pedido.items.length > 0) {
+                        produtosHTML = `<div class="mt-3 space-y-2 border-t border-gray-50 pt-3">`;
                         pedido.items.forEach(item => {
+                            // Calcula o subtotal considerando a quantidade salva no item
                             const qtd = item.quantity || 1;
+                            subtotalProdutos += (item.price * qtd);
+                            
                             produtosHTML += `
                                 <div class="flex items-center gap-3">
-                                    <div class="relative shrink-0">
-                                        <img src="${item.image}" class="w-10 h-10 object-cover rounded shadow-sm border border-gray-100">
+                                    <div class="relative">
+                                        <img src="${item.image}" alt="${item.name}" class="w-10 h-10 object-cover rounded shadow-sm border border-gray-100">
                                         ${qtd > 1 ? `<span class="absolute -top-2 -right-2 bg-[var(--accent2-color)] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">${qtd}x</span>` : ''}
                                     </div>
                                     <div class="flex-grow min-w-0">
                                         <p class="text-[11px] font-bold text-gray-700 truncate">${item.name}</p>
-                                        <p class="text-[10px] text-gray-400">R$ ${Number(item.price).toFixed(2).replace('.',',')}</p>
+                                        <p class="text-[10px] text-gray-400">${qtd} UN • R$ ${item.price.toFixed(2).replace('.',',')}</p>
                                     </div>
                                 </div>`;
                         });
-                        produtosHTML += '</div>';
+                        produtosHTML += `</div>`;
+                    }
 
-                        // 2. ÁREA DE AÇÕES (PAGAR OU RASTREAR)
-                        let areaAcaoHTML = '';
-                        if (pedido.status === 'Aguardando Pagamento') {
-                            areaAcaoHTML = `
-                                <div class="flex flex-col gap-2 w-full mt-3">
-                                    <button onclick="window.location.href='${pedido.payment_url || '#'}'" class="w-full bg-orange-500 text-white py-3 rounded-lg font-bold text-xs hover:bg-orange-600 shadow-md flex items-center justify-center gap-2">
-                                        <i class="fas fa-credit-card"></i> FINALIZAR PAGAMENTO
-                                    </button>
-                                    <button onclick="window.verificarStatusManual('${pedido.id_pagamento}', '${docPedido.id}')" class="w-full bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-[10px] hover:bg-blue-100 transition-colors uppercase">
-                                        <i class="fas fa-sync-alt"></i> Já paguei, verificar agora
-                                    </button>
-                                </div>`;
-                        } else if (pedido.status === 'Pago') {
-                            areaAcaoHTML = `
-                                <div class="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
-                                    <button onclick="window.open('https://rastreamento.correios.com.br/', '_blank')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-xs hover:bg-blue-700 shadow-md flex items-center justify-center gap-2">
-                                        <i class="fas fa-truck"></i> RASTREAR PEDIDO
-                                    </button>
-                                    <button onclick="window.abrirModalSuporte('Pedido #${docPedido.id.slice(0,6).toUpperCase()}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2">
-                                        <i class="fas fa-headset"></i> PRECISO DE AJUDA
-                                    </button>
-                                </div>`;
-                        }
-
-                        // 3. MONTAGEM FINAL DO CARD
-                        html += `
-                        <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mb-2">
-                            <div class="flex justify-between items-center mb-1">
-                                 <span class="${corStatus} text-[9px] font-black px-2 py-0.5 rounded-full uppercase">${pedido.status}</span>
-                                 <span class="text-[10px] text-gray-400 font-bold">#${docPedido.id.slice(0,6).toUpperCase()}</span>
-                            </div>
-                            <p class="text-[10px] text-gray-400 mb-2">${dataFormatada}</p>
-                            ${produtosHTML}
-                            <div class="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center">
-                                <span class="text-[10px] text-gray-400">Total:</span>
-                                <span class="text-sm font-bold text-[var(--accent2-color)]">R$ ${Number(pedido.total || 0).toFixed(2).replace('.',',')}</span>
-                            </div>
-                            ${areaAcaoHTML}
-                        </div>`;
-                    });
+                    // --- 2. RESUMO DE VALORES ---
+                    const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
+                    const valorFrete = pedido.frete ? pedido.frete.preco : 0;
+                    const valorDesconto = pedido.desconto || 0; // Pega o desconto salvo no banco
                     
-                    html += '</div>';
-                    contentEl.innerHTML = html;
-                }
-            } catch (error) {
-                console.error("Erro Firestore:", error);
-                contentEl.innerHTML = '<p class="text-center text-red-500 mt-4 text-xs">Erro ao carregar pedidos. Verifique se o índice manual foi criado no Firebase.</p>';
+                    let subtotalCalculado = 0;
+                    if (pedido.items) {
+                        pedido.items.forEach(item => {
+                            subtotalCalculado += (item.price * (item.quantity || 1));
+                        });
+                    }
+
+                    // O total agora usa o campo 'total' salvo no banco (que já tem o desconto)
+                    // ou calcula: Subtotal + Frete - Desconto
+                    const totalExibido = pedido.total || (subtotalCalculado + valorFrete - valorDesconto);
+
+                    let resumoValoresHTML = `
+                        <div class="mt-3 bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-1">
+                            <div class="flex justify-between text-[10px] text-gray-500">
+                                <span>Subtotal:</span>
+                                <span>R$ ${subtotalCalculado.toFixed(2).replace('.',',')}</span>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-gray-500">
+                                <span>${nomeFrete}:</span>
+                                <span>R$ ${valorFrete.toFixed(2).replace('.',',')}</span>
+                            </div>
+                            ${valorDesconto > 0 ? `
+                            <div class="flex justify-between text-[10px] text-green-600 font-bold">
+                                <span>Desconto ${pedido.cupom_codigo ? `(${pedido.cupom_codigo})` : ''}:</span>
+                                <span>- R$ ${valorDesconto.toFixed(2).replace('.',',')}</span>
+                            </div>` : ''}
+                            <div class="flex justify-between text-xs font-black text-gray-800 pt-1 border-t border-gray-200">
+                                <span>Total do Pedido:</span>
+                                <span class="text-[var(--accent2-color)]">R$ ${totalExibido.toFixed(2).replace('.',',')}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    // --- 3. ÁREA DE AÇÕES (LÓGICA CORRIGIDA) ---
+                    let areaAcaoHTML = '';
+
+                    if (pedido.status === 'Aguardando Pagamento') {
+                        // APENAS botões de pagamento para pedidos pendentes
+                        areaAcaoHTML = `
+                            <div class="flex flex-col gap-2 w-full mt-3">
+                                <button onclick="window.location.href='${pedido.payment_url || '#'}'" class="w-full bg-orange-500 text-white py-3 rounded-lg font-bold text-xs hover:bg-orange-600 transition-all shadow-md flex items-center justify-center gap-2">
+                                    <i class="fas fa-credit-card"></i> FINALIZAR PAGAMENTO
+                                </button>
+                                <button onclick="window.verificarStatusManual('${pedido.id_pagamento}', '${docPedido.id}')" class="w-full bg-blue-50 text-blue-600 py-2 rounded-lg font-bold text-[10px] hover:bg-blue-100 transition-colors uppercase">
+                                    <i class="fas fa-sync-alt"></i> Já paguei, verificar agora
+                                </button>
+                            </div>`;
+                    } 
+                    else if (pedido.status === 'Pago') {
+                        // Botoões de Rastreio e Ajuda APENAS para pedidos pagos
+                        areaAcaoHTML = `
+                            <div class="mt-3 p-3 bg-blue-50 rounded-xl border border-blue-100 space-y-3">
+                                <button onclick="window.open('https://rastreamento.correios.com.br/', '_blank')" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold text-xs hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2">
+                                    <i class="fas fa-truck"></i> RASTREAR PEDIDO
+                                </button>
+                                
+                                <button onclick="window.abrirModalSuporte('Pedido #${docPedido.id.slice(0,6).toUpperCase()}')" class="w-full bg-gradient-to-r from-green-500 to-green-700 text-white py-3 rounded-lg font-bold text-xs hover:shadow-lg transition-all flex items-center justify-center gap-2">
+                                    <i class="fas fa-headset"></i> PRECISO DE AJUDA
+                                </button>
+
+                                <p class="text-[9px] text-blue-800 leading-tight text-center font-medium">
+                                    <i class="fas fa-info-circle"></i> O código de rastreio será enviado para seu e-mail e WhatsApp assim que o pacote for postado.
+                                </p>
+                            </div>`;
+                    }
+                    else {
+                        // Outros status (Cancelado, etc)
+                        areaAcaoHTML = `
+                            <button onclick="window.abrirModalSuporte('Pedido #${docPedido.id.slice(0,6).toUpperCase()}')" class="w-full mt-3 bg-gray-100 text-gray-600 py-3 rounded-lg font-bold text-xs flex items-center justify-center gap-2">
+                                <i class="fas fa-headset"></i> SUPORTE
+                            </button>`;
+                    }
+
+                    // --- MONTAGEM DO CARD FINAL ---
+                    html += `
+                    <div class="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mb-5 last:mb-0">
+                        <div class="flex justify-between items-center mb-1">
+                             <span class="${corStatus} text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">${pedido.status}</span>
+                             <span class="text-[10px] text-gray-400 font-bold">#${docPedido.id.slice(0,6).toUpperCase()}</span>
+                        </div>
+                        
+                        <p class="text-[10px] text-gray-400 mb-2">${dataFormatada}</p>
+
+                        ${produtosHTML}
+                        ${resumoValoresHTML}
+                        ${areaAcaoHTML}
+                    </div>`;
+                });
+                
+                html += '</div>';
+                contentEl.innerHTML = html;
             }
+        } catch (error) {
+            console.error(error);
+            contentEl.innerHTML = '<p class="text-center text-red-500 mt-4">Erro ao carregar pedidos.</p>';
+        }
+        } else if (type === 'history') {
             titleEl.innerHTML = '<i class="fas fa-history text-orange-500"></i> Vistos Recentemente';
             const recentes = JSON.parse(localStorage.getItem('dynamix_recentes')) || [];
             if (recentes.length === 0) {
