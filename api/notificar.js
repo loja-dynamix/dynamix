@@ -1,6 +1,7 @@
-// api/notificar.js
-module.exports = async (req, res) => {
-    // Permissões
+const nodemailer = require('nodemailer');
+
+export default async function handler(req, res) {
+    // Permissões (CORS)
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
@@ -8,52 +9,52 @@ module.exports = async (req, res) => {
 
     if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-    const { cliente, pedido, entrega } = req.body;
+    const { cliente, pedido, entrega, to, subject, html } = req.body;
 
-    if (!cliente || !pedido) return res.status(400).json({ error: 'Dados incompletos' });
+    // --- PARTE 1: NOTIFICAÇÃO DO VENDEDOR (FORMSPREE) ---
+    if (cliente && pedido) {
+        const mensagemFormspree = `
+        NOVO PEDIDO APROVADO! 🚀
+        CLIENTE: ${cliente.nome} (${cliente.email})
+        ID PAGAMENTO: ${pedido.id_pagamento}
+        TOTAL: R$ ${pedido.total}
+        ITENS: ${pedido.itens ? pedido.itens.map(i => i.name).join(', ') : 'Erro ao listar'}
+        `;
 
-    // Monta a mensagem bonita
-    const mensagem = `
-    NOVO PEDIDO APROVADO! 🚀
-    
-    CLIENTE:
-    Nome: ${cliente.nome}
-    Email: ${cliente.email}
-    CPF: ${cliente.cpf}
-    Telefone: ${cliente.telefone}
+        try {
+            await fetch('https://formspree.io/f/xykznlnr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: cliente.email,
+                    message: mensagemFormspree,
+                    subject: `Novo Pedido #${pedido.id_pagamento}`
+                })
+            });
+        } catch (e) { console.error("Erro Formspree:", e); }
+    }
 
-    ENTREGA (${entrega.tipo}):
-    CEP: ${entrega.cep}
-    Rua: ${entrega.rua}, ${entrega.numero}
-    Bairro: ${entrega.bairro}
-    Cidade: ${entrega.cidade} - ${entrega.estado}
-    Comp: ${entrega.complemento || '-'}
-
-    PEDIDO:
-    ID Pagamento: ${pedido.id_pagamento}
-    Total: R$ ${pedido.total.toFixed(2)}
-    Frete Escolhido: ${pedido.frete_nome} (R$ ${pedido.frete_valor})
-    
-    ITENS:
-    ${pedido.itens.map(i => `- ${i.name} (R$ ${i.price})`).join('\n')}
-    `;
-
-    try {
-        // Envia para o Formspree
-        const response = await fetch('https://formspree.io/f/xykznlnr', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: cliente.email,
-                message: mensagem,
-                subject: `Novo Pedido #${pedido.id_pagamento} - ${cliente.nome}`
-            })
+    // --- PARTE 2: ENVIO PARA O CLIENTE (ZOHO SMTP) ---
+    if (to && html) {
+        const transporter = nodemailer.createTransport({
+            host: process.env.ZOHO_SMTP_HOST,
+            port: parseInt(process.env.ZOHO_SMTP_PORT) || 465,
+            secure: true,
+            auth: {
+                user: process.env.ZOHO_SMTP_USER,
+                pass: process.env.ZOHO_SMTP_PASS,
+            },
         });
 
-        if (response.ok) return res.status(200).json({ success: true });
-        else throw new Error("Erro Formspree");
-
-    } catch (error) {
-        return res.status(500).json({ error: error.message });
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_FROM,
+                to: to,
+                subject: subject || "Pagamento Confirmado - Dynamix",
+                html: html,
+            });
+        } catch (e) { console.error("Erro Zoho SMTP:", e); }
     }
-};
+
+    return res.status(200).json({ ok: true, success: true });
+}
