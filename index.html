@@ -1591,19 +1591,14 @@ const pedidoAtual = pedidoSnap.exists() ? pedidoSnap.data() : null;
 // 1) Email do cliente (se ainda não enviou)
 let okCliente = false;
 if (pedidoAtual && !pedidoAtual.cliente_notificado) {
-  // Chama a função global que acabamos de fixar
-  const okEnvio = await window.enviarEmailClientePagamento({
+  okCliente = await enviarEmailClientePagamento({
     to: auth.currentUser.email,
     pedidoId: docId
   });
 
-  // Só marca como notificado no banco se a API deu OK
-  if (okEnvio) {
-    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-      cliente_notificado: true
-    });
-    console.log("E-mail de confirmação enviado ao cliente!");
-  }
+  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+    cliente_notificado: okCliente === true
+  });
 }
 
 // 2) Notificação interna (só 1 vez)
@@ -2449,12 +2444,12 @@ if (!pedido || !pedido.items || !pedido.status) return;
     
 window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
   try {
-    console.log("Tentando enviar e-mail de confirmação para:", to);
+    console.log("Tentando enviar e-mail para:", to);
     const resp = await fetch("/api/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: to,
+        to,
         subject: "Pagamento confirmado – Dynamix",
         html: `
           <div style="font-family: sans-serif; color: #333;">
@@ -2469,8 +2464,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
     });
 
     const data = await resp.json().catch(() => ({}));
-    // Verifica se a API retornou sucesso (ok ou success)
-    return resp.ok && (data.ok === true || data.success === true);
+    return resp.ok && data.ok === true;
   } catch (e) {
     console.error("Falha ao enviar e-mail do cliente:", e);
     return false;
