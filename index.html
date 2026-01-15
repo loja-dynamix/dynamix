@@ -1663,34 +1663,23 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     );
 
     // 2️⃣ Envia e-mail para o cliente
-    try {
-        await fetch("/api/enviar-email-cliente", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                to: user.email, // email do cliente
-                subject: "Pagamento confirmado – Dynamix",
-                html: `
-                    <h2>Pagamento confirmado 🎉</h2>
-                    <p>Seu pedido <strong>#${ultimoPedido.id.slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
-                    <p>Em breve você receberá as próximas atualizações.</p>
-                    <br>
-                    <p>Equipe Dynamix 💙</p>
-                `
-            })
-        });
-    } catch (e) {
-        console.error("Erro ao enviar e-mail para cliente:", e);
-    }
+const ok = await enviarEmailClientePagamento({ 
+  to: user.email, 
+  pedidoId: ultimoPedido.id 
+});
+
+if (!ok) {
+  console.warn("E-mail do cliente não foi enviado (API retornou erro).");
+}
 
     // 3️⃣ Marca como notificado (pra não enviar de novo)
     await updateDoc(
-        doc(db, "users", user.uid, "orders", ultimoPedido.id),
-        {
-            cliente_notificado: true,
-            notificado: true
-        }
-    );
+  doc(db, "users", user.uid, "orders", ultimoPedido.id),
+  {
+      cliente_notificado: ok === true,
+      notificado: true
+  }
+);
 
     // 4️⃣ Notificação interna (sua)
     enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
@@ -2443,6 +2432,32 @@ if (!pedido || !pedido.items || !pedido.status) return;
         </div>`;
         }
     };
+    
+async function enviarEmailClientePagamento({ to, pedidoId }) {
+  try {
+    const resp = await fetch("/api/enviar-email-cliente", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        subject: "Pagamento confirmado – Dynamix",
+        html: `
+          <h2>Pagamento confirmado 🎉</h2>
+          <p>Seu pedido <strong>#${String(pedidoId).slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
+          <p>Em breve você receberá as próximas atualizações.</p>
+          <br>
+          <p>Equipe Dynamix 💙</p>
+        `
+      })
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    return resp.ok && data.ok === true;
+  } catch (e) {
+    console.error("Falha ao enviar e-mail do cliente:", e);
+    return false;
+  }
+}
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
         // Busca os dados do cliente usando o ID salvo no pedido para segurança total
