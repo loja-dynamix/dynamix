@@ -1557,23 +1557,31 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         const snap = await getDocs(q);
 
         if (!snap.empty) {
-            const ultimoPedido = snap.docs[0];
-            const pData = ultimoPedido.data();
+  // ✅ tenta achar o pedido correto pelo id_pagamento
+  const idParaBater = String(preferenceIdFromUrl || paymentIdFromUrl || "");
+  let pedidoAlvo = snap.docs.find(d => String(d.data().id_pagamento || "") === idParaBater);
 
-            const novoIdPagamento = preferenceIdFromUrl || pData.id_pagamento || null;
+  // fallback: se não encontrar (ex.: retorno veio com payment_id diferente),
+  // usa o mais recente, mas só como último recurso
+  if (!pedidoAlvo) pedidoAlvo = snap.docs[0];
 
-            // Só atualiza se tiver algo útil (não grava null)
-            const updatePayload = { status: statusFinal };
-            if (novoIdPagamento) updatePayload.id_pagamento = String(novoIdPagamento);
+  const pData = pedidoAlvo.data();
 
-            await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
+  const updatePayload = { status: statusFinal };
 
-            if (statusFinal === 'Pago' && !pData.notificado) {
-                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
-                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
-                enviarNotificacaoVenda({ ...pData, ...updatePayload }, ultimoPedido.id);
-            }
-        }
+  // só atualiza id_pagamento se tiver algo útil
+  if (preferenceIdFromUrl) updatePayload.id_pagamento = String(preferenceIdFromUrl);
+
+  await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), updatePayload);
+
+  if (statusFinal === 'Pago' && !pData.notificado) {
+    window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
+    await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), { notificado: true });
+    if (typeof enviarNotificacaoVenda === "function") {
+      enviarNotificacaoVenda({ ...pData, ...updatePayload }, pedidoAlvo.id);
+    }
+  }
+}
 
         // Limpa URL
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -1832,39 +1840,38 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     };
 
     // --- FUNÇÕES GLOBAIS ---
-    window.safeAddToCart = async (name, price, image) => {
-    if(!auth.currentUser) { openModal(); return; }
+   window.safeAddToCart = async (name, price, image) => {
+  if (!auth.currentUser) { openModal(); return; }
 
-    // ✅ Converte price para número SEMPRE
-    let priceNumber = 0;
-    if (typeof price === 'string') {
-        // remove milhares e troca vírgula por ponto (seguro para pt-BR)
-        const limpo = price.replace(/\./g, '').replace(',', '.');
-        priceNumber = Number(limpo);
-    } else {
-        priceNumber = Number(price);
-    }
-    if (isNaN(priceNumber)) priceNumber = 0;
+  // Converte o price para número SEMPRE (aceita "199,90", "1.299,90", 199.90 etc)
+  let priceNumber = 0;
 
-    // Verifica se o produto já está no carrinho
-    const itemIndex = cart.findIndex(item => item.name === name);
+  if (typeof price === 'string') {
+    const limpo = price.replace(/\./g, '').replace(',', '.'); // pt-BR -> en-US
+    priceNumber = Number(limpo);
+  } else {
+    priceNumber = Number(price);
+  }
 
-    if (itemIndex > -1) {
-        cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
-        // (Opcional) garante que o preço do item existente esteja numérico também
-        cart[itemIndex].price = Number(cart[itemIndex].price) || priceNumber;
-    } else {
-        cart.push({ name, price: priceNumber, image, quantity: 1 });
-    }
+  if (isNaN(priceNumber)) priceNumber = 0;
 
-    updateCartUI();
-    toggleCart();
+  const itemIndex = cart.findIndex(item => item.name === name);
 
-    try {
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
-    } catch(e) {
-        console.error("Erro ao salvar carrinho:", e);
-    }
+  if (itemIndex > -1) {
+    cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
+    cart[itemIndex].price = Number(cart[itemIndex].price) || priceNumber; // garante número
+  } else {
+    cart.push({ name, price: priceNumber, image, quantity: 1 });
+  }
+
+  updateCartUI();
+  toggleCart();
+
+  try {
+    await updateDoc(doc(db, "users", auth.currentUser.uid), { cart });
+  } catch (e) {
+    console.error("Erro ao salvar carrinho:", e);
+  }
 };
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
@@ -1978,29 +1985,6 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
         } catch(e) { 
             console.error("Erro ao atualizar quantidade:", e);
-        }
-    };
-
-    // Atualização da função de adicionar (agora ela soma se o item já existe)
-    window.safeAddToCart = async (name, price, image) => {
-        if(!auth.currentUser) { openModal(); return; }
-        
-        // Verifica se o produto já está no carrinho
-        const existingItemIndex = cart.findIndex(item => item.name === name);
-        
-        if (existingItemIndex > -1) {
-            cart[existingItemIndex].quantity = (cart[existingItemIndex].quantity || 1) + 1;
-        } else {
-            cart.push({name, price, image, quantity: 1});
-        }
-        
-        updateCartUI(); 
-        toggleCart();
-        
-        try { 
-            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart }); 
-        } catch(e) { 
-            alert("Erro ao sincronizar carrinho.");
         }
     };
     window.checkout = async () => {
@@ -2141,7 +2125,7 @@ window.location.href = initPoint;
                         <div class="text-center mt-6 p-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
                             <i class="fas fa-shopping-bag text-gray-300 text-4xl mb-2"></i>
                             <p class="text-gray-500 text-sm">Você ainda não tem pedidos registrados.</p>
-                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
+                            <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('products-view')" class="mt-3 text-[var(--accent2-color)] font-bold text-sm hover:underline">Ir para a Loja</button>
                         </div>`;
                 } else {
                     let html = '<div class="space-y-4">';
@@ -2290,7 +2274,8 @@ const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
                     <div class="text-center py-10">
                         <i class="far fa-eye-slash text-gray-300 text-5xl mb-3"></i>
                         <p class="text-gray-500">Você ainda não visualizou nenhum produto.</p>
-                        <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('home-view')" class="mt-4 bg-[var(--primary-color)] text-black px-6 py-2 rounded-lg font-bold text-sm">Explorar Produtos</button>
+                        <button onclick="document.getElementById('dashboard-modal').classList.replace('flex','hidden'); switchView('products-view')" class="mt-4 bg-[var(--primary-color)] text-black px-6 py-2 rounded-lg font-bold text-sm">Explorar Produtos</button>
+
                     </div>`;
             } else {
                 let html = '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
