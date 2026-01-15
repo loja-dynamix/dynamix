@@ -1653,11 +1653,48 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
 
             await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
 
-            if (statusFinal === 'Pago' && !pData.notificado) {
-                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
-                await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), { notificado: true });
-                enviarNotificacaoVenda({ ...pData, ...updatePayload }, ultimoPedido.id);
-            }
+            if (statusFinal === 'Pago' && !pData.cliente_notificado) {
+
+    // 1️⃣ Mostra aviso na tela
+    window.showDialog(
+        'alert',
+        'Pagamento Confirmado!',
+        'Seu pagamento foi aprovado! Enviamos um e-mail com os detalhes do pedido.'
+    );
+
+    // 2️⃣ Envia e-mail para o cliente
+    try {
+        await fetch("/api/enviar-email-cliente", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                to: user.email, // email do cliente
+                subject: "Pagamento confirmado – Dynamix",
+                html: `
+                    <h2>Pagamento confirmado 🎉</h2>
+                    <p>Seu pedido <strong>#${ultimoPedido.id.slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
+                    <p>Em breve você receberá as próximas atualizações.</p>
+                    <br>
+                    <p>Equipe Dynamix 💙</p>
+                `
+            })
+        });
+    } catch (e) {
+        console.error("Erro ao enviar e-mail para cliente:", e);
+    }
+
+    // 3️⃣ Marca como notificado (pra não enviar de novo)
+    await updateDoc(
+        doc(db, "users", user.uid, "orders", ultimoPedido.id),
+        {
+            cliente_notificado: true,
+            notificado: true
+        }
+    );
+
+    // 4️⃣ Notificação interna (sua)
+    enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
+}
         }
 
         // Limpa URL
