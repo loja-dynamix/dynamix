@@ -1673,34 +1673,24 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
 
             if (statusFinal === 'Pago' && !pData.cliente_notificado) {
+    // 1. Mostra aviso na tela
+    window.showDialog('alert', 'Pagamento Confirmado!', 'Seu pagamento foi aprovado! Enviamos um e-mail com os detalhes.');
 
-    // 1️⃣ Mostra aviso na tela
-    window.showDialog(
-        'alert',
-        'Pagamento Confirmado!',
-        'Seu pagamento foi aprovado! Enviamos um e-mail com os detalhes do pedido.'
-    );
+    // 2. Chama a função que agora é global
+    const ok = await window.enviarEmailClientePagamento({ 
+        to: user.email, 
+        pedidoId: ultimoPedido.id 
+    });
 
-    // 2️⃣ Envia e-mail para o cliente
-const ok = await enviarEmailClientePagamento({ 
-  to: user.email, 
-  pedidoId: ultimoPedido.id 
-});
+    // 3. Só marca como notificado se o e-mail realmente foi enviado
+    if (ok) {
+        await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
+            cliente_notificado: true,
+            notificado: true
+        });
+    }
 
-if (!ok) {
-  console.warn("E-mail do cliente não foi enviado (API retornou erro).");
-}
-
-    // 3️⃣ Marca como notificado (pra não enviar de novo)
-    await updateDoc(
-  doc(db, "users", user.uid, "orders", ultimoPedido.id),
-  {
-      cliente_notificado: ok === true,
-      notificado: true
-  }
-);
-
-    // 4️⃣ Notificação interna (sua)
+    // 4. Sua notificação interna (Formspree)
     enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
 }
         }
@@ -2452,8 +2442,9 @@ if (!pedido || !pedido.items || !pedido.status) return;
         }
     };
     
-async function enviarEmailClientePagamento({ to, pedidoId }) {
+window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
   try {
+    console.log("Tentando enviar e-mail para:", to);
     const resp = await fetch("/api/enviar-email-cliente", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2461,11 +2452,13 @@ async function enviarEmailClientePagamento({ to, pedidoId }) {
         to,
         subject: "Pagamento confirmado – Dynamix",
         html: `
-          <h2>Pagamento confirmado 🎉</h2>
-          <p>Seu pedido <strong>#${String(pedidoId).slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
-          <p>Em breve você receberá as próximas atualizações.</p>
-          <br>
-          <p>Equipe Dynamix 💙</p>
+          <div style="font-family: sans-serif; color: #333;">
+            <h2 style="color: #155d9a;">Pagamento confirmado 🎉</h2>
+            <p>Olá! Seu pedido <strong>#${String(pedidoId).slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
+            <p>Já estamos preparando seus produtos para o envio. Em breve você receberá o código de rastreio.</p>
+            <br>
+            <p>Equipe Dynamix 💙</p>
+          </div>
         `
       })
     });
