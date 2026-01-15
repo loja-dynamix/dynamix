@@ -1579,16 +1579,35 @@ const checkPendingOrders = async () => {
             if (pStatus.status === 'approved') {
                 // Atualiza o banco com a trava 'notificado'
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
-                    status: 'Pago',
-                    id_pagamento_real: pStatus.id_real || p.id_pagamento,
-                    data_confirmacao: new Date(),
-                    notificado: true 
-                });
-                
-                // Envia e-mail apenas se ainda não foi enviado
-                if (!p.notificado) {
-                    enviarNotificacaoVenda(p, docId);
-                }
+  status: 'Pago',
+  id_pagamento_real: pStatus.id_real || p.id_pagamento,
+  data_confirmacao: new Date()
+});
+
+// Recarrega o pedido atualizado do banco (pra garantir flags certas)
+const pedidoSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
+const pedidoAtual = pedidoSnap.exists() ? pedidoSnap.data() : null;
+
+// 1) Email do cliente (se ainda não enviou)
+let okCliente = false;
+if (pedidoAtual && !pedidoAtual.cliente_notificado) {
+  okCliente = await enviarEmailClientePagamento({
+    to: auth.currentUser.email,
+    pedidoId: docId
+  });
+
+  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+    cliente_notificado: okCliente === true
+  });
+}
+
+// 2) Notificação interna (só 1 vez)
+if (pedidoAtual && !pedidoAtual.notificado) {
+  await enviarNotificacaoVenda(pedidoAtual, docId);
+  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+    notificado: true
+  });
+}
                 console.log("Pedido " + docId + " confirmado!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                 await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
