@@ -1,3 +1,4 @@
+// ========================= INICIO: /api/notificar.js =========================
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {
@@ -38,57 +39,58 @@ ITENS: ${pedido.itens ? pedido.itens.map(i => i.name).join(", ") : "Erro ao list
     }
 
     // =========================
-    // PARTE 2: Mailjet (cliente)
+    // PARTE 2: MailerSend (cliente)
     // =========================
     let okCliente = false;
 
-    // Se você quiser que o endpoint sirva tanto vendedor quanto cliente,
-    // não obrigue 'to/html'. Mas se vier, valida e tenta enviar.
+    // Se vier "to" e "html/text", envia pro cliente também
     if (to && (html || text)) {
-      const MJ_KEY = process.env.MAILJET_API_KEY;
-      const MJ_SECRET = process.env.MAILJET_API_SECRET;
+      const MS_KEY = process.env.MAILERSEND_API_KEY;
       const FROM_EMAIL = process.env.MAIL_FROM_EMAIL; // ex: contato@seudominio.com.br
       const FROM_NAME = process.env.MAIL_FROM_NAME || "Dynamix";
 
-      if (!MJ_KEY || !MJ_SECRET || !FROM_EMAIL) {
+      if (!MS_KEY || !FROM_EMAIL) {
         return res.status(500).json({
           ok: false,
-          error:
-            "Config faltando: MAILJET_API_KEY / MAILJET_API_SECRET / MAIL_FROM_EMAIL",
+          error: "Config faltando: MAILERSEND_API_KEY / MAIL_FROM_EMAIL",
+          okVendedor,
+          okCliente: false,
         });
       }
 
       const payload = {
-        Messages: [
-          {
-            From: { Email: FROM_EMAIL, Name: FROM_NAME },
-            To: [{ Email: to }],
-            Subject: subject || "Pagamento Confirmado - Dynamix",
-            TextPart: text || "Pagamento confirmado. Em breve enviaremos o rastreio.",
-            HTMLPart: html || `<p>${String(text || "").replace(/\n/g, "<br>")}</p>`,
-          },
-        ],
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        to: [{ email: String(to).trim() }],
+        subject: subject || "Pagamento Confirmado - Dynamix",
+        text: text || "Pagamento confirmado. Em breve enviaremos o rastreio.",
+        html:
+          html ||
+          `<p>${String(text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\n/g, "<br>")}</p>`,
       };
 
-      const basicAuth = Buffer.from(`${MJ_KEY}:${MJ_SECRET}`).toString("base64");
-
-      const resp = await fetch("https://api.mailjet.com/v3.1/send", {
+      const resp = await fetch("https://api.mailersend.com/v1/email", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Basic ${basicAuth}`,
+          Authorization: `Bearer ${MS_KEY}`,
+          Accept: "application/json",
         },
         body: JSON.stringify(payload),
       });
 
-      const data = await resp.json().catch(() => ({}));
-
+      // MailerSend costuma retornar 202 (Accepted) quando aceitou a mensagem
       if (!resp.ok) {
-        console.error("Mailjet error:", data);
-        return res.status(400).json({
+        const errText = await resp.text().catch(() => "");
+        console.error("MailerSend error:", resp.status, errText);
+
+        return res.status(resp.status).json({
           ok: false,
-          error: "Falha ao enviar e-mail via Mailjet",
-          details: data,
+          error: "Falha ao enviar e-mail via MailerSend",
+          details: errText,
           okVendedor,
           okCliente: false,
         });
@@ -97,7 +99,7 @@ ITENS: ${pedido.itens ? pedido.itens.map(i => i.name).join(", ") : "Erro ao list
       okCliente = true;
     }
 
-    // Resultado final (bem honesto)
+    // Resultado final
     return res.status(200).json({
       ok: true,
       okVendedor,
@@ -108,3 +110,4 @@ ITENS: ${pedido.itens ? pedido.itens.map(i => i.name).join(", ") : "Erro ao list
     return res.status(500).json({ ok: false, error: "Internal error" });
   }
 }
+// ========================== FIM: /api/notificar.js ==========================
