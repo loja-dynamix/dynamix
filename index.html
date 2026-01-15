@@ -2445,7 +2445,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
 window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
   try {
     console.log("Tentando enviar e-mail para:", to);
-    const resp = await fetch("/api/enviar-email-cliente", {
+    const resp = await fetch("/api/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
