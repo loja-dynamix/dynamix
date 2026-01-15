@@ -1,34 +1,36 @@
-import nodemailer from "nodemailer";
+const nodemailer = require('nodemailer');
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
+  // Garante que apenas requisições POST funcionem
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método não permitido' });
+  }
+
+  const { to, subject, html } = req.body;
+
+  // Configuração usando EXATAMENTE os nomes da sua captura de tela
+  const transporter = nodemailer.createTransport({
+    host: process.env.ZOHO_SMTP_HOST, 
+    port: parseInt(process.env.ZOHO_SMTP_PORT) || 465,
+    secure: true, // true para porta 465
+    auth: {
+      user: process.env.ZOHO_SMTP_USER, // Conforme sua imagem
+      pass: process.env.ZOHO_SMTP_PASS, 
+    },
+  });
 
   try {
-    const { to, subject, html } = req.body || {};
-    if (!to || !subject || !html) {
-      return res.status(400).json({ ok: false, error: "Campos obrigatórios: to, subject, html" });
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: "smtp.zoho.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.ZOHO_EMAIL,
-        pass: process.env.ZOHO_PASSWORD,
-      },
+    await transporter.sendMail({
+      from: process.env.EMAIL_FROM, // Conforme sua imagem
+      to: to,
+      subject: subject,
+      html: html,
     });
 
-    const info = await transporter.sendMail({
-      from: `"Dynamix" <${process.env.ZOHO_EMAIL}>`, // IMPORTANTE: tem que ser o mesmo do login do Zoho
-      to,
-      subject,
-      html,
-    });
-
-    return res.status(200).json({ ok: true, messageId: info.messageId });
-  } catch (err) {
-    console.error("Erro no Nodemailer/Zoho:", err);
-    return res.status(500).json({ ok: false, error: "Falha ao enviar e-mail" });
+    console.log("E-mail enviado com sucesso para:", to);
+    return res.status(200).json({ ok: true });
+  } catch (error) {
+    console.error('Erro detalhado do SMTP:', error);
+    return res.status(500).json({ ok: false, error: error.message });
   }
 }
