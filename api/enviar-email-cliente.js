@@ -1,37 +1,34 @@
 import nodemailer from "nodemailer";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Método não permitido" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
 
   try {
-    const { to, subject, html } = req.body;
-
+    const { to, subject, html } = req.body || {};
     if (!to || !subject || !html) {
-      return res.status(400).json({ error: "Dados incompletos" });
+      return res.status(400).json({ ok: false, error: "Campos obrigatórios: to, subject, html" });
     }
 
     const transporter = nodemailer.createTransport({
-      host: process.env.ZOHO_SMTP_HOST,
-      port: Number(process.env.ZOHO_SMTP_PORT),
-      secure: true, // 465 = SSL
+      host: "smtp.zoho.com",
+      port: 465,
+      secure: true,
       auth: {
-        user: process.env.ZOHO_SMTP_USER,
-        pass: process.env.ZOHO_SMTP_PASS,
+        user: process.env.ZOHO_EMAIL,
+        pass: process.env.ZOHO_PASSWORD,
       },
     });
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+    const info = await transporter.sendMail({
+      from: `"Dynamix" <${process.env.ZOHO_EMAIL}>`, // IMPORTANTE: tem que ser o mesmo do login do Zoho
       to,
       subject,
       html,
     });
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ ok: true, messageId: info.messageId });
   } catch (err) {
-    console.error("Erro ao enviar e-mail:", err);
-    return res.status(500).json({ error: "Falha ao enviar e-mail" });
+    console.error("Erro no Nodemailer/Zoho:", err);
+    return res.status(500).json({ ok: false, error: "Falha ao enviar e-mail" });
   }
 }
