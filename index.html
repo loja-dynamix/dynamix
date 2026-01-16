@@ -1592,9 +1592,10 @@ const pedidoAtual = pedidoSnap.exists() ? pedidoSnap.data() : null;
 let okCliente = false;
 if (pedidoAtual && !pedidoAtual.cliente_notificado) {
   okCliente = await enviarEmailClientePagamento({
-    to: auth.currentUser.email,
-    pedidoId: docId
-  });
+  to: auth.currentUser.email,
+  pedidoId: docId,
+  pedido: pedidoAtual
+});
 
   await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
     cliente_notificado: okCliente === true
@@ -1678,9 +1679,10 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
 
     // 2. Chama a função que agora é global
     const ok = await window.enviarEmailClientePagamento({ 
-        to: user.email, 
-        pedidoId: ultimoPedido.id 
-    });
+  to: user.email, 
+  pedidoId: ultimoPedido.id,
+  pedido: { ...pData, total: pData.total } 
+});
 
     // 3. Só marca como notificado se o e-mail realmente foi enviado
     if (ok) {
@@ -2442,24 +2444,128 @@ if (!pedido || !pedido.items || !pedido.status) return;
         }
     };
     
-window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
+window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = null }) {
   try {
-    console.log("Tentando enviar e-mail para:", to);
+    const pedidoCode = String(pedidoId).slice(0, 6).toUpperCase();
+    const siteUrl = "https://dynamixoficial.com.br";
+    const logoUrl = "https://i.imgur.com/PxWRD9i.png"; // logo do topo do seu site (ajuste se quiser)
+
+    // Se você tiver dados do pedido (total, frete, itens), dá pra usar aqui.
+    // Se não tiver, o e-mail ainda fica bonito e funcional.
+    const totalTxt = pedido?.total != null
+      ? Number(pedido.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : null;
+
+    const html = `
+      <div style="margin:0;padding:0;background:#f6f7fb;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7fb;padding:24px 0;">
+          <tr>
+            <td align="center" style="padding:0 12px;">
+              <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eef0f6;">
+                
+                <!-- Header -->
+                <tr>
+                  <td style="background:linear-gradient(90deg,#ffc30d,#ff8600);padding:22px 24px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td valign="middle" style="text-align:left;">
+                          <img src="${logoUrl}" alt="Dynamix" style="height:42px;display:block;object-fit:contain;">
+                        </td>
+                        <td valign="middle" style="text-align:right;font-family:Arial,Helvetica,sans-serif;">
+                          <span style="display:inline-block;background:rgba(0,0,0,.08);color:#111;padding:8px 12px;border-radius:999px;font-size:12px;font-weight:700;">
+                            Pagamento aprovado ✅
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                  <td style="padding:26px 24px;font-family:Arial,Helvetica,sans-serif;color:#111;">
+                    <h1 style="margin:0 0 10px 0;font-size:22px;line-height:1.25;color:#155d9a;">
+                      Seu pagamento foi confirmado 🎉
+                    </h1>
+
+                    <p style="margin:0 0 14px 0;font-size:14px;line-height:1.6;color:#333;">
+                      Obrigado por comprar na <strong>Dynamix</strong>! Seu pedido
+                      <strong>#${pedidoCode}</strong> foi pago com sucesso e já entrou na fila de separação.
+                    </p>
+
+                    <div style="margin:18px 0;padding:14px 14px;border:1px solid #eef0f6;border-radius:14px;background:#fafbff;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;color:#333;">
+                        <tr>
+                          <td style="padding:6px 0;"><strong>Status</strong></td>
+                          <td style="padding:6px 0;text-align:right;">Pago ✅</td>
+                        </tr>
+                        ${totalTxt ? `
+                        <tr>
+                          <td style="padding:6px 0;"><strong>Total</strong></td>
+                          <td style="padding:6px 0;text-align:right;">${totalTxt}</td>
+                        </tr>` : ``}
+                        <tr>
+                          <td style="padding:6px 0;"><strong>Próximo passo</strong></td>
+                          <td style="padding:6px 0;text-align:right;">Separação e envio</td>
+                        </tr>
+                      </table>
+                    </div>
+
+                    <p style="margin:0 0 18px 0;font-size:14px;line-height:1.6;color:#333;">
+                      Assim que o pacote for postado, você receberá o <strong>código de rastreio</strong> por e-mail.
+                    </p>
+
+                    <!-- CTA -->
+                    <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 14px auto;">
+                      <tr>
+                        <td align="center" style="border-radius:12px;background:#000;">
+                          <a href="${siteUrl}" target="_blank"
+                             style="display:inline-block;padding:14px 18px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#fff;text-decoration:none;border-radius:12px;font-weight:800;">
+                            Acompanhar no site
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+
+                    <p style="margin:0;font-size:12px;line-height:1.6;color:#6b7280;text-align:center;">
+                      Precisa de ajuda? Responda este e-mail ou fale com a gente no WhatsApp.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="padding:18px 24px;background:#0b1220;color:#fff;font-family:Arial,Helvetica,sans-serif;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="font-size:12px;line-height:1.6;color:#d1d5db;">
+                          <strong style="color:#fff;">Dynamix</strong><br>
+                          © 2025 • Sua loja de suplementos e produtos naturais
+                        </td>
+                        <td style="text-align:right;font-size:12px;color:#d1d5db;">
+                          <span style="display:inline-block;padding:6px 10px;border:1px solid rgba(255,255,255,.15);border-radius:999px;">
+                            dynamixoficial.com.br
+                          </span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `;
+
     const resp = await fetch("/api/notificar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         to,
-        subject: "Pagamento confirmado – Dynamix",
-        html: `
-          <div style="font-family: sans-serif; color: #333;">
-            <h2 style="color: #155d9a;">Pagamento confirmado 🎉</h2>
-            <p>Olá! Seu pedido <strong>#${String(pedidoId).slice(0,6).toUpperCase()}</strong> foi pago com sucesso.</p>
-            <p>Já estamos preparando seus produtos para o envio. Em breve você receberá o código de rastreio.</p>
-            <br>
-            <p>Equipe Dynamix 💙</p>
-          </div>
-        `
+        subject: `Pagamento confirmado – Pedido #${pedidoCode} (Dynamix)`,
+        html
       })
     });
 
@@ -2469,7 +2575,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId }) {
     console.error("Falha ao enviar e-mail do cliente:", e);
     return false;
   }
-}
+};
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
         // Busca os dados do cliente usando o ID salvo no pedido para segurança total
