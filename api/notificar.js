@@ -1,10 +1,25 @@
-// /api/notificar.js  (CommonJS - Vercel friendly)
+// /api/notificar.js
 
-module.exports = async function handler(req, res) {
-  // CORS básico (se você chamar do seu site no mesmo domínio, ok também)
+export const config = {
+  runtime: "nodejs",
+};
+
+function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+}
+
+async function safeText(resp) {
+  try {
+    return await resp.text();
+  } catch {
+    return "";
+  }
+}
+
+export default async function handler(req, res) {
+  setCors(res);
 
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {
@@ -12,11 +27,10 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const body = req.body || {};
-    const { cliente, pedido, to, subject, html, text } = body;
+    const { cliente, pedido, to, subject, html, text } = req.body || {};
 
     // =========================
-    // PARTE 1: Formspree (vendedor) - opcional
+    // PARTE 1: Formspree (vendedor)
     // =========================
     let okVendedor = false;
     let vendedorStatus = null;
@@ -27,9 +41,9 @@ module.exports = async function handler(req, res) {
 NOVO PEDIDO APROVADO! 🚀
 CLIENTE: ${cliente?.nome || "-"} (${cliente?.email || "-"})
 ID PAGAMENTO: ${pedido?.id_pagamento || "-"}
-TOTAL: R$ ${pedido?.total ?? "-"}
+TOTAL: R$ ${pedido?.total || "-"}
 ITENS: ${
-        Array.isArray(pedido?.itens) ? pedido.itens.map((i) => i?.name).filter(Boolean).join(", ") : "-"
+        Array.isArray(pedido?.itens) ? pedido.itens.map((i) => i?.name).join(", ") : "-"
       }
       `.trim();
 
@@ -43,10 +57,9 @@ ITENS: ${
             subject: `Novo Pedido #${pedido?.id_pagamento || ""}`,
           }),
         });
-
-        vendedorStatus = r.status;
         okVendedor = r.ok;
-        if (!r.ok) vendedorErr = await r.text().catch(() => "");
+        vendedorStatus = r.status;
+        if (!r.ok) vendedorErr = await safeText(r);
       } catch (e) {
         vendedorErr = String(e?.message || e);
       }
@@ -57,73 +70,86 @@ ITENS: ${
     // =========================
     let okCliente = false;
 
-    // Só tenta enviar se vier "to" e conteúdo
-    if (to && (html || text)) {
-      const MS_KEY = (process.env.MAILERSEND_API_KEY || "").trim();
-      const FROM_EMAIL = (process.env.MAIL_FROM_EMAIL || "").trim(); // precisa ser remetente verificado
-      const FROM_NAME = (process.env.MAIL_FROM_NAME || "Dynamix").trim();
+    const MS_KEY = process.env.MAILERSEND_API_KEY;
+    const FROM_EMAIL = process.env.MAIL_FROM_EMAIL;
+    const FROM_NAME = process.env.MAIL_FROM_NAME || "Dynamix";
 
-      // Debug útil: mostra se as envs existem (sem vazar valores)
-      if (!MS_KEY || !FROM_EMAIL) {
-        return res.status(500).json({
-          ok: false,
-          error: "Config faltando: MAILERSEND_API_KEY / MAIL_FROM_EMAIL",
-          debug: {
-            has_MAILERSEND_API_KEY: Boolean(MS_KEY),
-            has_MAIL_FROM_EMAIL: Boolean(FROM_EMAIL),
-            env_runtime_hint:
-              "Confira se você cadastrou as variáveis no MESMO projeto da Vercel e no ambiente certo (Production/Preview) e fez Redeploy.",
-          },
-          okVendedor,
-          vendedorStatus,
-          vendedorErr,
-          okCliente: false,
-        });
-      }
+    // Debug: confirma se a função está enxergando as envs (sem expor valores)
+    const envDebug = {
+      has_MAILERSEND_API_KEY: Boolean(MS_KEY),
+      has_MAIL_FROM_EMAIL: Boolean(FROM_EMAIL),
+      mail_from_email_preview: FROM_EMAIL ? FROM_EMAIL.replace(/(.{2}).+(@.+)/, "$1***$2") : null,
+    };
 
-      const safeText = String(text || "Pagamento confirmado. Em breve enviaremos o rastreio.");
-
-      const payload = {
-        from: { email: FROM_EMAIL, name: FROM_NAME },
-        to: [{ email: String(to).trim() }],
-        subject: subject || "Pagamento Confirmado - Dynamix",
-        text: safeText,
-        html:
-          html ||
-          `<p>${safeText
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/\n/g, "<br>")}</p>`,
-      };
-
-      const resp = await fetch("https://api.mailersend.com/v1/email", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${MS_KEY}`,
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
+    // Se você quer SEMPRE enviar pro cliente, deixe essa validação assim.
+    // (Se 'to' não vier, retorna erro claro)
+    if (!to) {
+      return res.status(400).json({
+        ok: false,
+        error: "Faltou o campo 'to' (email do cliente).",
+        okVendedor,
+        vendedorStatus,
+        vendedorErr,
+        debug: envDebug,
       });
-
-      // MailerSend geralmente retorna 202 quando aceitou
-      if (!(resp.status === 202 || resp.ok)) {
-        const errText = await resp.text().catch(() => "");
-        return res.status(resp.status || 500).json({
-          ok: false,
-          error: "Falha ao enviar e-mail via MailerSend",
-          status: resp.status,
-          details: errText,
-          okVendedor,
-          vendedorStatus,
-          vendedorErr,
-          okCliente: false,
-        });
-      }
-
-      okCliente = true;
     }
+
+    if (!MS_KEY || !FROM_EMAIL) {
+      return res.status(500).json({
+        ok: false,
+        error: "Config faltando: MAILERSEND_API_KEY / MAIL_FROM_EMAIL",
+        okVendedor,
+        vendedorStatus,
+        vendedorErr,
+        debug: envDebug,
+      });
+    }
+
+    const finalText =
+      text || "Pagamento confirmado. Em breve enviaremos o rastreio.";
+
+    const finalHtml =
+      html ||
+      `<p>${String(finalText)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\n/g, "<br>")}</p>`;
+
+    const payload = {
+      from: { email: FROM_EMAIL, name: FROM_NAME },
+      to: [{ email: String(to).trim() }],
+      subject: subject || "Pagamento Confirmado - Dynamix",
+      text: finalText,
+      html: finalHtml,
+    };
+
+    const resp = await fetch("https://api.mailersend.com/v1/email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MS_KEY}`,
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    // MailerSend normalmente retorna 202
+    if (!resp.ok) {
+      const details = await safeText(resp);
+      return res.status(resp.status).json({
+        ok: false,
+        error: "Falha ao enviar e-mail via MailerSend",
+        status: resp.status,
+        details, // <- AQUI vem o motivo real (domínio não verificado, sender inválido, token sem permissão etc.)
+        okVendedor,
+        vendedorStatus,
+        vendedorErr,
+        debug: envDebug,
+      });
+    }
+
+    okCliente = true;
 
     return res.status(200).json({
       ok: true,
@@ -131,12 +157,14 @@ ITENS: ${
       vendedorStatus,
       vendedorErr,
       okCliente,
+      debug: envDebug,
     });
   } catch (e) {
+    console.error("Erro geral /api/notificar:", e);
     return res.status(500).json({
       ok: false,
       error: "Internal error",
       details: String(e?.message || e),
     });
   }
-};
+}
