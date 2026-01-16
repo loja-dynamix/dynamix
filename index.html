@@ -2586,34 +2586,27 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
             `${item.name} (Qtd: ${item.quantity || 1})`
         ).join(' | ');
 
-        // Criamos um "Formulário Invisível" para o Formspree não bloquear
-        const formData = new FormData();
-        formData.append('_subject', `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`);
-        formData.append('Cliente', userData.fullName);
-        formData.append('Email', userData.email);
-        formData.append('WhatsApp', userData.phone);
-        formData.append('Produtos', itensFormatados);
-        formData.append('Total', `R$ ${pedidoData.total.toFixed(2)}`);
-        formData.append('Endereco', `${userData.street}, ${userData.number} - ${userData.city}`);
-        
-        // Isso aqui ajuda a evitar bloqueios de segurança do Formspree
-        formData.append('_honey', ''); 
+        // 1. O NAVEGADOR envia direto para o Formspree (Vendedor)
+        // Isso pula o bloqueio de servidor que está causando o erro
+        const dadosFormspree = {
+            _subject: `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`,
+            cliente: userData.fullName,
+            email_cliente: userData.email,
+            whatsapp: userData.phone,
+            produtos: itensFormatados,
+            total: `R$ ${pedidoData.total.toFixed(2)}`,
+            endereco: `${userData.street}, ${userData.number} - ${userData.city}`
+        };
 
-        console.log("Disparando notificações...");
-
-        // 1. Envio para o Vendedor (Formspree) usando o modo 'no-cors' ou FormData puro
         fetch("https://formspree.io/f/xykznlnr", {
             method: "POST",
-            body: formData,
-            headers: {
-                'Accept': 'application/json'
-            }
-        }).then(response => {
-            if (response.ok) console.log("✅ E-mail do vendedor enviado!");
-            else console.error("❌ Formspree recusou o envio.");
-        }).catch(err => console.error("Erro na rede ao enviar Formspree"));
+            headers: { "Content-Type": "application/json", "Accept": "application/json" },
+            body: JSON.stringify(dadosFormspree)
+        }).then(r => console.log("Formspree (Vendedor) ok!"))
+          .catch(e => console.error("Erro no Formspree:", e));
 
-        // 2. Envio para o Cliente (Sua API de e-mail personalizada)
+        // 2. A SUA API envia o e-mail bonitão para o Cliente
+        // Note que aqui chamamos /api/notificar apenas para o cliente
         await window.enviarEmailClientePagamento({ 
             to: userData.email, 
             pedidoId: pedidoId, 
@@ -2621,7 +2614,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
         });
 
     } catch (e) { 
-        console.error("Erro no processo de notificação:", e); 
+        console.error("Erro geral na notificação:", e); 
     }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
