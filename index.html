@@ -1604,10 +1604,17 @@ if (pedidoAtual && !pedidoAtual.cliente_notificado) {
 
 // 2) Notificação interna (só 1 vez)
 if (pedidoAtual && !pedidoAtual.notificado) {
-  await enviarNotificacaoVenda(pedidoAtual, docId);
-  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-    notificado: true
-  });
+
+  const okVendedor = await enviarNotificacaoVenda(pedidoAtual, docId);
+
+  // ✅ Só marca como "notificado" se enviou de verdade
+  if (okVendedor === true) {
+    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+      notificado: true
+    });
+  } else {
+    console.warn("⚠️ Falhou enviar e-mail do vendedor. NÃO marquei notificado=true para tentar novamente depois.");
+  }
 }
                 console.log("Pedido " + docId + " confirmado!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
@@ -2576,71 +2583,47 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
     return false;
   }
 };
-    window.enviarNotificacaoVenda = async function(pedidoData, pedidoId) {
+   async function enviarNotificacaoVenda(pedido, pedidoId) {
   try {
-    // Busca os dados do cliente usando o UID salvo no pedido
-    const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
-    if (!userDoc.exists()) {
-      console.warn("Cliente não encontrado para notificação.");
-      return false;
-    }
+    // ✅ SEU FORM DO FORMSPREE DO VENDEDOR (crie um separado para vendas)
+    const FORMSPREE_URL = "https://formspree.io/f/xykznlnr";
 
-    const userData = userDoc.data();
+    const itensTxt = (pedido.items || [])
+      .map(i => `• ${i.quantity || 1}x ${i.name} — R$ ${(Number(i.price) || 0).toFixed(2).replace('.', ',')}`)
+      .join("\n");
 
-    const itensFormatados = (pedidoData.items || [])
-      .map(item => `${item.name} (Qtd: ${item.quantity || 1})`)
-      .join(" | ");
-
-    const totalSeguro = Number(pedidoData.total || 0);
-
-    const dados = {
-      // ✅ Campos comuns do Formspree (ajuda MUITO a entregar certinho)
-      _subject: `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0, 6).toUpperCase()}`,
-      _replyto: userData.email, // para você responder direto ao cliente
-      email: userData.email,    // formspree reconhece bem esse campo
-      nome: userData.fullName,
-
-      // ✅ Dados da compra
-      pedido: `#${String(pedidoId).slice(0, 6).toUpperCase()}`,
-      cpf: userData.cpf,
-      whatsapp: userData.phone,
-      endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
-      cidade: `${userData.city}/${userData.state}`,
-      cep: userData.cep,
-
-      produtos: itensFormatados,
-      frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
-      total: totalSeguro.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-
-      // ✅ Mensagem bonita no e-mail
-      mensagem: `Nova venda confirmada no site.\nPedido: #${String(pedidoId).slice(0, 6).toUpperCase()}\nCliente: ${userData.fullName}\nTotal: ${totalSeguro.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+    const payload = {
+      assunto: "✅ Nova venda aprovada no site!",
+      pedidoId: String(pedidoId).slice(0, 6).toUpperCase(),
+      total: `R$ ${(Number(pedido.total) || 0).toFixed(2).replace('.', ',')}`,
+      cliente: pedido.payer?.name || pedido.payer?.email || "Cliente não identificado",
+      emailCliente: pedido.payer?.email || "não informado",
+      frete: pedido.frete?.nome || "não informado",
+      endereco: pedido.endereco || "endereço não informado",
+      itens: itensTxt || "Sem itens"
     };
 
-    const resp = await fetch("https://formspree.io/f/xykznlnr", {
+    const response = await fetch(FORMSPREE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Accept": "application/json" // ✅ ISSO AQUI É O PULO DO GATO
+        "Accept": "application/json"
       },
-      body: JSON.stringify(dados)
+      body: JSON.stringify(payload)
     });
 
-    // ✅ Agora a gente garante que deu certo de verdade
-    const json = await resp.json().catch(() => ({}));
+    const data = await response.json().catch(() => ({}));
 
-    if (!resp.ok) {
-      console.error("Formspree falhou:", resp.status, json);
-      return false;
-    }
+    console.log("📩 Formspree vendedor status:", response.status, data);
 
-    console.log("✅ Notificação de venda enviada no Formspree:", json);
-    return true;
+    // ✅ TRUE se enviou
+    return response.ok === true;
 
-  } catch (e) {
-    console.error("❌ Erro no envio da notificação de venda:", e);
+  } catch (err) {
+    console.error("❌ Erro ao enviar notificação do vendedor:", err);
     return false;
   }
-};
+}
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
     
