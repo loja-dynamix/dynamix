@@ -2744,36 +2744,62 @@ window.enviarEmailVendedorPagamento = async function({ pedidoId, pedido = null }
   }
 };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
-    try {
-        // Busca os dados do cliente usando o ID salvo no pedido para segurança total
-        const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
-        if (!userDoc.exists()) return;
-        const userData = userDoc.data();
+  try {
+    // Busca os dados do cliente usando o ID salvo no pedido para segurança total
+    const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+    if (!userDoc.exists()) return;
+    const userData = userDoc.data();
 
-        const itensFormatados = pedidoData.items.map(item => 
-            `${item.name} (Qtd: ${item.quantity || 1})`
-        ).join(' | ');
+    const itensFormatados = (pedidoData.items || []).map(item =>
+      `${item.name || item.title || "Produto"} (Qtd: ${item.quantity || 1})`
+    ).join(' | ');
 
-        const dados = {
-            assunto: `✅ VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
-            cliente: userData.fullName,
-            email: userData.email,
-            cpf: userData.cpf,
-            whatsapp: userData.phone,
-            endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
-            cidade: `${userData.city}/${userData.state}`,
-            cep: userData.cep,
-            produtos: itensFormatados,
-            frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
-            total: `R$ ${pedidoData.total.toFixed(2)}`
-        };
+    // ✅ Cria um FORMULÁRIO real (FormData) -> é o jeito mais garantido no Formspree
+    const formData = new FormData();
 
-        await fetch("https://formspree.io/f/xykznlnr", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dados)
-        });
-    } catch (e) { console.error("Erro no envio do e-mail:", e); }
+    // ✅ Assunto do e-mail no Formspree
+    formData.append("_subject", `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0,6).toUpperCase()}`);
+
+    // ✅ Reply-to (para você responder direto pro cliente)
+    formData.append("_replyto", userData.email);
+
+    // ✅ Campos normais do formulário
+    formData.append("assunto", `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0,6).toUpperCase()}`);
+    formData.append("cliente", userData.fullName || "Não informado");
+    formData.append("email", userData.email || "Não informado");
+    formData.append("cpf", userData.cpf || "Não informado");
+    formData.append("whatsapp", userData.phone || "Não informado");
+
+    formData.append("endereco", `${userData.street || ""}, ${userData.number || ""} - ${userData.neighborhood || ""}`.trim());
+    formData.append("cidade", `${userData.city || ""}/${userData.state || ""}`.trim());
+    formData.append("cep", userData.cep || "Não informado");
+
+    formData.append("produtos", itensFormatados || "Não informado");
+    formData.append("frete", pedidoData.frete?.nome || "Padrão");
+
+    const totalNum = Number(pedidoData.total || 0);
+    formData.append("total", `R$ ${totalNum.toFixed(2).replace('.', ',')}`);
+
+    // ✅ ENVIO REAL PARA O FORMSPREE (SEM JSON!)
+    const resp = await fetch("https://formspree.io/f/xykznlnr", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      console.error("❌ Formspree falhou:", data);
+    } else {
+      console.log("✅ Formspree enviado com sucesso:", data);
+    }
+
+  } catch (e) {
+    console.error("❌ Erro no envio do e-mail (Formspree):", e);
+  }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
