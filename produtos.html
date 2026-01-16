@@ -1986,14 +1986,12 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     window.checkout = async () => {
     if (!auth.currentUser) { openModal(); return; }
     
-    // --- NOVA TRAVA DE VERIFICAÇÃO DE E-MAIL ---
     // Recarrega os dados do usuário para garantir que o status de verificação está atualizado
     await auth.currentUser.reload(); 
     if (!auth.currentUser.emailVerified) {
         window.showDialog('alert', 'E-mail não verificado', 'Você precisa verificar seu e-mail antes de finalizar compras.\n\nVerifique sua caixa de entrada ou use o botão no topo da página para reenviar o link.');
         return;
     }
-    // ------------------------------------------
 
     if (cart.length === 0) { alert("Carrinho vazio!"); return; }
     if (!freteSelecionado) { alert("Por favor, selecione uma opção de frete!"); return; }
@@ -2042,57 +2040,45 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
 
         const data = await response.json();
 
-// Pega o ID correto (Checkout Pro normalmente retorna preference_id)
-// Seu exemplo 274796026-f36e... é um "preference_id"
-const preferenceId =
-    data.preference_id ||
-    data.preferenceId ||
-    data.id ||                  // fallback (algumas APIs retornam id = preference_id)
-    null;
+        const preferenceId = data.preference_id || data.preferenceId || data.id || null;
+        const initPoint = data.init_point || data.initPoint || data.checkout_url || null;
 
-const initPoint =
-    data.init_point ||
-    data.initPoint ||
-    data.checkout_url ||
-    null;
+        if (!preferenceId || !initPoint) {
+            throw new Error("Erro na resposta do pagamento");
+        }
 
-if (!preferenceId || !initPoint) {
-    console.error("Resposta da API /api/pagamento:", data);
-    throw new Error("Erro na resposta do pagamento: preferenceId/initPoint ausentes");
-}
+        await setDoc(tempOrderRef, {
+            items: cart,
+            subtotal: subtotalGeral,
+            desconto: valorDesconto,
+            cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
+            total: totalFinalCalculado,
+            data: new Date(),
+            status: 'Aguardando Pagamento',
+            metodo: 'Mercado Pago',
+            frete: freteSelecionado,
+            id_pagamento: String(preferenceId),
+            payment_url: initPoint,
+            pedidoId: tempOrderRef.id,
+            cliente_uid: auth.currentUser.uid
+        });
 
-await setDoc(tempOrderRef, {
-    items: cart,
-    subtotal: subtotalGeral,
-    desconto: valorDesconto,
-    cupom_codigo: cupomAplicado ? cupomAplicado.codigo : null,
-    total: totalFinalCalculado,
-    data: new Date(),
-    status: 'Aguardando Pagamento',
-    metodo: 'Mercado Pago',
-    frete: freteSelecionado,
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
+        cart = [];
+        cupomAplicado = null;
+        updateCartUI();
 
-    // ✅ AQUI fica o ID do formato 274796026-f36e...
-    id_pagamento: String(preferenceId),
-
-    // (Opcional) guardar URL do pagamento
-    payment_url: initPoint,
-
-    pedidoId: tempOrderRef.id,
-    cliente_uid: auth.currentUser.uid
-});
-
-await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: [] });
-cart = [];
-cupomAplicado = null;
-updateCartUI();
-
-// Redireciona
-window.location.href = initPoint;
+        // --- ALTERAÇÃO SOLICITADA AQUI ---
+        // Abre o Mercado Pago em uma nova aba
+        window.open(initPoint, '_blank');
+        
+        // Redireciona a aba atual para a página inicial (index.html ou /)
+        window.location.href = '/'; 
+        // ---------------------------------
 
     } catch (error) {
         console.error("Erro no Checkout:", error);
-        alert("Erro ao processar desconto no Mercado Pago. Tente novamente.");
+        alert("Erro ao processar pagamento. Tente novamente.");
     } finally {
         btnCheckout.innerHTML = textoOriginal;
         btnCheckout.disabled = false;
