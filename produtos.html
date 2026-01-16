@@ -1537,57 +1537,53 @@ const statusURL =
 // Se existir qualquer ID de retorno, tentamos sincronizar
 if (preferenceIdFromUrl || paymentIdFromUrl) {
     try {
-        // Escolhe qual ID mandar pra sua API:
-        // Preferência: preferenceId (o que você quer salvar)
         const idParaVerificar = preferenceIdFromUrl || paymentIdFromUrl;
-
-        // 1) Verifica status real
         const checkResponse = await fetch(`/api/verificar?id=${idParaVerificar}`);
         const checkData = await checkResponse.json();
-
         const statusReal = checkData.status || statusURL;
 
         let statusFinal = 'Aguardando Pagamento';
         if (statusReal === 'approved') statusFinal = 'Pago';
-        if (statusReal === 'in_process') statusFinal = 'Em Análise';
         if (statusReal === 'rejected' || statusReal === 'cancelled') statusFinal = 'Cancelado';
 
-        // 2) Atualiza o pedido mais recente (mantive sua lógica, mas sem salvar null)
         const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
         const snap = await getDocs(q);
 
         if (!snap.empty) {
-  // ✅ tenta achar o pedido correto pelo id_pagamento
-  const idParaBater = String(preferenceIdFromUrl || paymentIdFromUrl || "");
-  let pedidoAlvo = snap.docs.find(d => String(d.data().id_pagamento || "") === idParaBater);
+            const idParaBater = String(idParaVerificar);
+            let pedidoAlvo = snap.docs.find(d => String(d.data().id_pagamento || "") === idParaBater);
+            if (!pedidoAlvo) pedidoAlvo = snap.docs[0];
 
-  // fallback: se não encontrar (ex.: retorno veio com payment_id diferente),
-  // usa o mais recente, mas só como último recurso
-  if (!pedidoAlvo) pedidoAlvo = snap.docs[0];
+            const pData = pedidoAlvo.data();
+            const updatePayload = { status: statusFinal };
+            if (preferenceIdFromUrl) updatePayload.id_pagamento = String(preferenceIdFromUrl);
 
-  const pData = pedidoAlvo.data();
+            await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), updatePayload);
 
-  const updatePayload = { status: statusFinal };
+            // ✅ DISPARA E-MAILS APENAS SE FOR PAGO E NÃO NOTIFICADO AINDA
+            if (statusFinal === 'Pago' && !pData.cliente_notificado) {
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu pagamento! Verifique seu e-mail para mais detalhes.');
+                
+                // Envia para o cliente
+                const ok = await window.enviarEmailClientePagamento({ 
+                    to: user.email, 
+                    pedidoId: pedidoAlvo.id,
+                    pedido: { ...pData, total: pData.total } 
+                });
 
-  // só atualiza id_pagamento se tiver algo útil
-  if (preferenceIdFromUrl) updatePayload.id_pagamento = String(preferenceIdFromUrl);
-
-  await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), updatePayload);
-
-  if (statusFinal === 'Pago' && !pData.notificado) {
-    window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu Pix. Seu pedido já está sendo processado!');
-    await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), { notificado: true });
-    if (typeof enviarNotificacaoVenda === "function") {
-      enviarNotificacaoVenda({ ...pData, ...updatePayload }, pedidoAlvo.id);
-    }
-  }
-}
-
-        // Limpa URL
+                // Se o e-mail do cliente foi aceito, marca no banco e avisa o vendedor
+                if (ok) {
+                    await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), {
+                        cliente_notificado: true,
+                        notificado: true
+                    });
+                    enviarNotificacaoVenda({ ...pData, total: pData.total }, pedidoAlvo.id);
+                }
+            }
+        }
         window.history.replaceState({}, document.title, window.location.pathname);
-
     } catch (e) {
-        console.error("Erro ao sincronizar pagamento:", e);
+        console.error("Erro na sincronização:", e);
     }
 }
         } else {
@@ -2101,6 +2097,79 @@ window.location.href = initPoint;
         btnCheckout.innerHTML = textoOriginal;
         btnCheckout.disabled = false;
     }
+};
+    window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = null }) {
+  try {
+    const pedidoCode = String(pedidoId).slice(0, 6).toUpperCase();
+    const siteUrl = "https://dynamixoficial.com.br";
+    const logoUrl = "https://i.imgur.com/PxWRD9i.png";
+    const totalTxt = pedido?.total != null ? Number(pedido.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : "Valor em processamento";
+
+    const html = `
+      <div style="margin:0;padding:0;background:#f6f7fb;font-family:Arial,sans-serif;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7fb;padding:24px 0;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="600" style="background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eef0f6;">
+                <tr>
+                  <td style="background:linear-gradient(90deg,#ffc30d,#ff8600);padding:20px;">
+                    <img src="${logoUrl}" alt="Dynamix" style="height:40px;">
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px;color:#111;">
+                    <h1 style="font-size:20px;color:#155d9a;">Seu pagamento foi confirmado! 🎉</h1>
+                    <p>O pedido <strong>#${pedidoCode}</strong> já entrou em separação.</p>
+                    <div style="background:#fafbff;padding:15px;border-radius:10px;margin:15px 0;">
+                      <p style="margin:5px 0;"><strong>Status:</strong> Pago ✅</p>
+                      <p style="margin:5px 0;"><strong>Total:</strong> ${totalTxt}</p>
+                    </div>
+                    <p>Você receberá o rastreio em breve por e-mail e WhatsApp.</p>
+                    <center><a href="${siteUrl}" style="background:#000;color:#fff;padding:12px 25px;text-decoration:none;border-radius:10px;font-weight:bold;display:inline-block;">Acompanhar no Site</a></center>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>`;
+
+    const resp = await fetch("/api/notificar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, subject: `Pagamento confirmado – Pedido #${pedidoCode}`, html })
+    });
+    const data = await resp.json().catch(() => ({}));
+    return resp.ok && data.ok === true;
+  } catch (e) {
+    console.error("Erro email cliente:", e);
+    return false;
+  }
+};
+
+const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
+  try {
+    const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+    if (!userDoc.exists()) return;
+    const userData = userDoc.data();
+    const itensFormatados = pedidoData.items.map(i => `${i.name} (x${i.quantity || 1})`).join(' | ');
+
+    const dados = {
+      assunto: `✅ NOVA VENDA: #${pedidoId.slice(0,6).toUpperCase()}`,
+      cliente: userData.fullName,
+      email: userData.email,
+      whatsapp: userData.phone,
+      endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}, ${userData.city}/${userData.state}`,
+      produtos: itensFormatados,
+      total: `R$ ${Number(pedidoData.total).toFixed(2)}`
+    };
+
+    await fetch("https://formspree.io/f/xykznlnr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dados)
+    });
+  } catch (e) { console.error("Erro email vendedor:", e); }
 };
     // --- DASHBOARD ---
     window.openDashboardModal = async (type) => {
