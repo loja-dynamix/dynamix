@@ -2578,51 +2578,42 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
 };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
-        // 1. Busca os dados atualizados do cliente
         const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
         if (!userDoc.exists()) return;
         const userData = userDoc.data();
 
-        // 2. Formata a lista de produtos de um jeito legível
         const itensFormatados = pedidoData.items.map(item => 
             `${item.name} (Qtd: ${item.quantity || 1})`
         ).join(' | ');
 
-        // 3. Monta o objeto exatamente como o Formspree espera
-        const dadosVenda = {
-            _subject: `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`,
-            cliente_nome: userData.fullName,
-            cliente_email: userData.email,
-            cliente_cpf: userData.cpf,
-            cliente_whatsapp: userData.phone,
-            endereco_completo: `${userData.street}, ${userData.number} - ${userData.neighborhood}, ${userData.city}/${userData.state}`,
-            cep: userData.cep,
-            lista_produtos: itensFormatados,
-            frete_escolhido: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
-            valor_total: `R$ ${pedidoData.total.toFixed(2).replace('.', ',')}`,
-            data_venda: new Date().toLocaleString('pt-BR')
-        };
+        // Criamos um "Formulário Invisível" para o Formspree não bloquear
+        const formData = new FormData();
+        formData.append('_subject', `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`);
+        formData.append('Cliente', userData.fullName);
+        formData.append('Email', userData.email);
+        formData.append('WhatsApp', userData.phone);
+        formData.append('Produtos', itensFormatados);
+        formData.append('Total', `R$ ${pedidoData.total.toFixed(2)}`);
+        formData.append('Endereco', `${userData.street}, ${userData.number} - ${userData.city}`);
+        
+        // Isso aqui ajuda a evitar bloqueios de segurança do Formspree
+        formData.append('_honey', ''); 
 
-        console.log("Tentando enviar e-mail para o vendedor...", dadosVenda);
+        console.log("Disparando notificações...");
 
-        // 4. Envio para o Formspree (Vendedor)
-        const responseVendedor = await fetch("https://formspree.io/f/xykznlnr", {
+        // 1. Envio para o Vendedor (Formspree) usando o modo 'no-cors' ou FormData puro
+        fetch("https://formspree.io/f/xykznlnr", {
             method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            body: JSON.stringify(dadosVenda)
-        });
+            body: formData,
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) console.log("✅ E-mail do vendedor enviado!");
+            else console.error("❌ Formspree recusou o envio.");
+        }).catch(err => console.error("Erro na rede ao enviar Formspree"));
 
-        if (responseVendedor.ok) {
-            console.log("✅ Sucesso: E-mail enviado ao vendedor.");
-        } else {
-            console.error("❌ Erro no Formspree:", await responseVendedor.text());
-        }
-
-        // 5. Envio para o Cliente (Independente do sucesso do vendedor, para garantir)
-        // Isso garante que SEMPRE que um for disparado, o outro também seja tentado
+        // 2. Envio para o Cliente (Sua API de e-mail personalizada)
         await window.enviarEmailClientePagamento({ 
             to: userData.email, 
             pedidoId: pedidoId, 
@@ -2630,7 +2621,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
         });
 
     } catch (e) { 
-        console.error("Erro crítico no fluxo de notificações:", e); 
+        console.error("Erro no processo de notificação:", e); 
     }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
