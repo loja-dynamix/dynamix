@@ -1603,19 +1603,9 @@ if (pedidoAtual && !pedidoAtual.cliente_notificado) {
 }
 
 // 2) Notificação interna (só 1 vez)
-if (pedidoAtual && !pedidoAtual.vendedor_notificado) {
-
-  // ✅ Envia e-mail pro vendedor com TODOS os dados
-  const okVendedor = await window.enviarEmailVendedorPagamento({
-    pedidoId: docId,
-    pedido: pedidoAtual
-  });
-
-  // ✅ Também manda via Formspree (backup / continua como antes)
+if (pedidoAtual && !pedidoAtual.notificado) {
   await enviarNotificacaoVenda(pedidoAtual, docId);
-
   await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-    vendedor_notificado: okVendedor === true,
     notificado: true
   });
 }
@@ -1693,14 +1683,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
   pedidoId: ultimoPedido.id,
   pedido: { ...pData, total: pData.total } 
 });
-const okVendedor = await window.enviarEmailVendedorPagamento({
-  pedidoId: ultimoPedido.id,
-  pedido: { 
-    ...pData, 
-    total: pData.total,
-    payer: { email: user.email, name: currentUserData?.fullName || "Cliente" }
-  }
-});
+
     // 3. Só marca como notificado se o e-mail realmente foi enviado
     if (ok) {
         await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
@@ -2461,39 +2444,17 @@ if (!pedido || !pedido.items || !pedido.status) return;
         }
     };
     
-function formatBRL(v) {
-  const n = Number(v || 0);
-  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function montarItensHTML(items = []) {
-  if (!Array.isArray(items) || items.length === 0) return "Itens não informados";
-
-  return items.map(i => {
-    const nome = i.name || i.title || "Produto";
-    const qtd = Number(i.quantity || 1);
-    const unit = Number(i.price || i.unit_price || 0);
-    const subtotal = unit * qtd;
-
-    return `
-      <tr>
-        <td style="padding:8px;border-bottom:1px solid #eee;font-size:13px;">${nome}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:center;font-size:13px;">${qtd}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;">${formatBRL(unit)}</td>
-        <td style="padding:8px;border-bottom:1px solid #eee;text-align:right;font-size:13px;"><strong>${formatBRL(subtotal)}</strong></td>
-      </tr>
-    `;
-  }).join("");
-}
-
-/* ✅ EMAIL DO CLIENTE (continua lindo como estava, só ficou confiável) */
 window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = null }) {
   try {
     const pedidoCode = String(pedidoId).slice(0, 6).toUpperCase();
     const siteUrl = "https://dynamixoficial.com.br";
-    const logoUrl = "https://i.imgur.com/PxWRD9i.png";
+    const logoUrl = "https://i.imgur.com/PxWRD9i.png"; // logo do topo do seu site (ajuste se quiser)
 
-    const totalTxt = pedido?.total != null ? formatBRL(pedido.total) : null;
+    // Se você tiver dados do pedido (total, frete, itens), dá pra usar aqui.
+    // Se não tiver, o e-mail ainda fica bonito e funcional.
+    const totalTxt = pedido?.total != null
+      ? Number(pedido.total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : null;
 
     const html = `
       <div style="margin:0;padding:0;background:#f6f7fb;">
@@ -2501,7 +2462,8 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
           <tr>
             <td align="center" style="padding:0 12px;">
               <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eef0f6;">
-
+                
+                <!-- Header -->
                 <tr>
                   <td style="background:linear-gradient(90deg,#ffc30d,#ff8600);padding:22px 24px;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
@@ -2519,6 +2481,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
                   </td>
                 </tr>
 
+                <!-- Body -->
                 <tr>
                   <td style="padding:26px 24px;font-family:Arial,Helvetica,sans-serif;color:#111;">
                     <h1 style="margin:0 0 10px 0;font-size:22px;line-height:1.25;color:#155d9a;">
@@ -2530,7 +2493,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
                       <strong>#${pedidoCode}</strong> foi pago com sucesso e já entrou na fila de separação.
                     </p>
 
-                    <div style="margin:18px 0;padding:14px;border:1px solid #eef0f6;border-radius:14px;background:#fafbff;">
+                    <div style="margin:18px 0;padding:14px 14px;border:1px solid #eef0f6;border-radius:14px;background:#fafbff;">
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:13px;color:#333;">
                         <tr>
                           <td style="padding:6px 0;"><strong>Status</strong></td>
@@ -2552,6 +2515,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
                       Assim que o pacote for postado, você receberá o <strong>código de rastreio</strong> por e-mail.
                     </p>
 
+                    <!-- CTA -->
                     <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 14px auto;">
                       <tr>
                         <td align="center" style="border-radius:12px;background:#000;">
@@ -2569,6 +2533,7 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
                   </td>
                 </tr>
 
+                <!-- Footer -->
                 <tr>
                   <td style="padding:18px 24px;background:#0b1220;color:#fff;font-family:Arial,Helvetica,sans-serif;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
@@ -2606,200 +2571,51 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
 
     const data = await resp.json().catch(() => ({}));
     return resp.ok && data.ok === true;
-
   } catch (e) {
     console.error("Falha ao enviar e-mail do cliente:", e);
     return false;
   }
 };
-
-
-/* ✅ EMAIL DO VENDEDOR (AGORA MANDA TUDO: CPF, ENDEREÇO, ITENS, QTD, TOTAL, FRETE…) */
-window.enviarEmailVendedorPagamento = async function({ pedidoId, pedido = null }) {
-  try {
-    const EMAIL_VENDEDOR = "contato@dynamixoficial.com.br"; // ✅ SEU EMAIL DO VENDEDOR
-    const pedidoCode = String(pedidoId).slice(0, 6).toUpperCase();
-
-    // ✅ Pega dados completos do cliente direto do Firestore
-    let userData = null;
-    const uid = pedido?.cliente_uid || null;
-
-    if (uid) {
-      const snap = await getDoc(doc(db, "users", uid));
-      if (snap.exists()) userData = snap.data();
-    }
-
-    const clienteNome  = userData?.fullName || pedido?.payer?.name || "Cliente";
-    const clienteEmail = userData?.email || pedido?.payer?.email || "Não informado";
-    const cpf          = userData?.cpf || "Não informado";
-    const whatsapp     = userData?.phone || "Não informado";
-
-    const cep  = userData?.cep || "Não informado";
-    const rua  = userData?.street || "Não informado";
-    const num  = userData?.number || "";
-    const bairro = userData?.neighborhood || "";
-    const cidade = userData?.city || "";
-    const uf     = userData?.state || "";
-    const comp   = userData?.complement || "";
-
-    const enderecoCompleto = `${rua}, ${num} - ${bairro} - ${cidade}/${uf} - CEP: ${cep}${comp ? " - " + comp : ""}`;
-
-    const freteNome  = pedido?.frete?.nome || "Não informado";
-    const fretePreco = Number(pedido?.frete?.preco || 0);
-    const fretePrazo = pedido?.frete?.prazo || "—";
-
-    const desconto = Number(pedido?.desconto || 0);
-    const cupom = pedido?.cupom_codigo || "";
-
-    const total = pedido?.total != null ? Number(pedido.total) : 0;
-
-    const itensHTML = montarItensHTML(pedido?.items || []);
-
-    const pagamentoId = pedido?.id_pagamento_real || pedido?.id_pagamento || "Não informado";
-
-    const html = `
-      <div style="margin:0;padding:0;background:#f6f7fb;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7fb;padding:24px 0;">
-          <tr>
-            <td align="center" style="padding:0 12px;">
-              <table role="presentation" width="760" cellspacing="0" cellpadding="0" style="width:100%;max-width:760px;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #eef0f6;">
-                
-                <tr>
-                  <td style="background:#0b1220;padding:18px 24px;font-family:Arial,Helvetica,sans-serif;color:#fff;">
-                    <h2 style="margin:0;font-size:18px;">✅ Nova venda confirmada</h2>
-                    <p style="margin:6px 0 0 0;font-size:12px;opacity:.9;">
-                      Pedido <strong>#${pedidoCode}</strong> foi pago com sucesso.
-                    </p>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="padding:22px 24px;font-family:Arial,Helvetica,sans-serif;color:#111;">
-                    
-                    <h3 style="margin:0 0 10px 0;font-size:14px;color:#155d9a;">Dados do Cliente</h3>
-                    <div style="padding:14px;border:1px solid #eef0f6;border-radius:14px;background:#fafbff;">
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>Nome:</strong> ${clienteNome}</p>
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>E-mail:</strong> ${clienteEmail}</p>
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>CPF:</strong> ${cpf}</p>
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>WhatsApp:</strong> ${whatsapp}</p>
-                      <p style="margin:0;font-size:13px;"><strong>Endereço:</strong> ${enderecoCompleto}</p>
-                    </div>
-
-                    <h3 style="margin:18px 0 10px 0;font-size:14px;color:#155d9a;">Produtos</h3>
-                    <div style="border:1px solid #eef0f6;border-radius:14px;overflow:hidden;">
-                      <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-                        <thead>
-                          <tr style="background:#f3f4f6;">
-                            <th style="padding:10px;text-align:left;font-size:12px;">Item</th>
-                            <th style="padding:10px;text-align:center;font-size:12px;">Qtd</th>
-                            <th style="padding:10px;text-align:right;font-size:12px;">Unit</th>
-                            <th style="padding:10px;text-align:right;font-size:12px;">Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          ${itensHTML}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <h3 style="margin:18px 0 10px 0;font-size:14px;color:#155d9a;">Resumo Financeiro</h3>
-                    <div style="padding:14px;border:1px solid #eef0f6;border-radius:14px;background:#fafbff;">
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>Frete escolhido:</strong> ${freteNome} (Prazo: ${fretePrazo} dias)</p>
-                      <p style="margin:0 0 6px 0;font-size:13px;"><strong>Valor do frete:</strong> ${formatBRL(fretePreco)}</p>
-                      ${desconto > 0 ? `<p style="margin:0 0 6px 0;font-size:13px;color:#0f7a2a;"><strong>Desconto${cupom ? ` (${cupom})` : ""}:</strong> - ${formatBRL(desconto)}</p>` : ""}
-                      <p style="margin:0;font-size:14px;"><strong>Total pago:</strong> ${formatBRL(total)}</p>
-                    </div>
-
-                    <p style="margin:18px 0 0 0;font-size:12px;color:#6b7280;text-align:center;">
-                      <strong>ID Pagamento:</strong> ${pagamentoId}<br>
-                      Este e-mail foi enviado automaticamente pelo site Dynamix.
-                    </p>
-
-                  </td>
-                </tr>
-
-              </table>
-            </td>
-          </tr>
-        </table>
-      </div>
-    `;
-
-    const resp = await fetch("/api/notificar", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: EMAIL_VENDEDOR,
-        subject: `✅ NOVA VENDA CONFIRMADA – Pedido #${pedidoCode} (Dynamix)`,
-        html
-      })
-    });
-
-    const data = await resp.json().catch(() => ({}));
-    return resp.ok && data.ok === true;
-
-  } catch (e) {
-    console.error("Falha ao enviar e-mail do vendedor:", e);
-    return false;
-  }
-};
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
-  try {
-    // Busca os dados do cliente usando o ID salvo no pedido para segurança total
-    const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
-    if (!userDoc.exists()) return;
-    const userData = userDoc.data();
+    try {
+        const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+        if (!userDoc.exists()) return;
+        const userData = userDoc.data();
 
-    const itensFormatados = (pedidoData.items || []).map(item =>
-      `${item.name || item.title || "Produto"} (Qtd: ${item.quantity || 1})`
-    ).join(' | ');
+        const itensFormatados = pedidoData.items.map(item => 
+            `${item.name} (Qtd: ${item.quantity || 1})`
+        ).join(' | ');
 
-    // ✅ Cria um FORMULÁRIO real (FormData) -> é o jeito mais garantido no Formspree
-    const formData = new FormData();
+        const dadosVendedor = {
+            assunto: `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`,
+            cliente: userData.fullName,
+            email_cliente: userData.email,
+            whatsapp: userData.phone,
+            produtos: itensFormatados,
+            total: `R$ ${pedidoData.total.toFixed(2)}`,
+            endereco: `${userData.street}, ${userData.number} - ${userData.city}/${userData.state}`
+        };
 
-    // ✅ Assunto do e-mail no Formspree
-    formData.append("_subject", `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0,6).toUpperCase()}`);
+        // 1. Envia para o Vendedor (Formspree)
+        const respVendedor = await fetch("https://formspree.io/f/xykznlnr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dadosVendedor)
+        });
 
-    // ✅ Reply-to (para você responder direto pro cliente)
-    formData.append("_replyto", userData.email);
+        // 2. DISPARA AUTOMATICAMENTE o e-mail do Cliente
+        if (respVendedor.ok) {
+            console.log("Notificação ao vendedor enviada. Disparando e-mail do cliente...");
+            await window.enviarEmailClientePagamento({ 
+                to: userData.email, 
+                pedidoId: pedidoId, 
+                pedido: pedidoData 
+            });
+        }
 
-    // ✅ Campos normais do formulário
-    formData.append("assunto", `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0,6).toUpperCase()}`);
-    formData.append("cliente", userData.fullName || "Não informado");
-    formData.append("email", userData.email || "Não informado");
-    formData.append("cpf", userData.cpf || "Não informado");
-    formData.append("whatsapp", userData.phone || "Não informado");
-
-    formData.append("endereco", `${userData.street || ""}, ${userData.number || ""} - ${userData.neighborhood || ""}`.trim());
-    formData.append("cidade", `${userData.city || ""}/${userData.state || ""}`.trim());
-    formData.append("cep", userData.cep || "Não informado");
-
-    formData.append("produtos", itensFormatados || "Não informado");
-    formData.append("frete", pedidoData.frete?.nome || "Padrão");
-
-    const totalNum = Number(pedidoData.total || 0);
-    formData.append("total", `R$ ${totalNum.toFixed(2).replace('.', ',')}`);
-
-    // ✅ ENVIO REAL PARA O FORMSPREE (SEM JSON!)
-    const resp = await fetch("https://formspree.io/f/xykznlnr", {
-      method: "POST",
-      body: formData,
-      headers: {
-        "Accept": "application/json"
-      }
-    });
-
-    const data = await resp.json().catch(() => ({}));
-
-    if (!resp.ok) {
-      console.error("❌ Formspree falhou:", data);
-    } else {
-      console.log("✅ Formspree enviado com sucesso:", data);
+    } catch (e) { 
+        console.error("Erro no fluxo de notificações:", e); 
     }
-
-  } catch (e) {
-    console.error("❌ Erro no envio do e-mail (Formspree):", e);
-  }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
