@@ -704,7 +704,7 @@
             <li class="flex items-start gap-3"><i class="fas fa-phone text-[var(--primary-color)] mt-1"></i><span class="text-gray-300 text-sm">(11) 91665-8264</span></li>
           </ul>
           <p class="text-sm text-gray-300 mb-3">Receba ofertas exclusivas</p>
-          <form id="newsletter-form" action="https://formspree.io/f/xpwrwpzo" method="POST" class="flex flex-col gap-2">
+          <form id="newsletter-form" action="https://formspree.io/f/xykznlnr" method="POST" class="flex flex-col gap-2">
     <div class="flex gap-2">
         <input type="email" name="email" id="newsletter-email" placeholder="Seu e-mail" required class="flex-1 px-4 py-2 rounded-lg bg-white bg-opacity-10 border border-white border-opacity-20 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] text-sm">
         <button type="submit" id="btn-newsletter" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-[var(--dark-text-color)] px-6 py-2 rounded-lg font-bold hover:shadow-lg transition-all">
@@ -899,7 +899,7 @@
             </button>
         </div>
         
-        <form id="contact-support-form" action="https://formspree.io/f/xpwrwpzo" method="POST" class="p-6 space-y-4">
+        <form id="contact-support-form" action="https://formspree.io/f/xykznlnr" method="POST" class="p-6 space-y-4">
             <div>
                 <label class="block text-xs font-bold text-gray-700 mb-1">Nome Completo</label>
                 <input type="text" name="nome" id="sup-name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--primary-color)] outline-none text-sm">
@@ -2576,46 +2576,70 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
     return false;
   }
 };
-    const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
-    try {
-        const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
-        if (!userDoc.exists()) return;
-        const userData = userDoc.data();
-
-        const itensFormatados = pedidoData.items.map(item => 
-            `${item.name} (Qtd: ${item.quantity || 1})`
-        ).join(' | ');
-
-        // 1. O NAVEGADOR envia direto para o Formspree (Vendedor)
-        // Isso pula o bloqueio de servidor que está causando o erro
-        const dadosFormspree = {
-            _subject: `✅ NOVA VENDA Dynamix: #${pedidoId.slice(0,6).toUpperCase()}`,
-            cliente: userData.fullName,
-            email_cliente: userData.email,
-            whatsapp: userData.phone,
-            produtos: itensFormatados,
-            total: `R$ ${pedidoData.total.toFixed(2)}`,
-            endereco: `${userData.street}, ${userData.number} - ${userData.city}`
-        };
-
-        fetch("https://formspree.io/f/xpwrwpzo", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify(dadosFormspree)
-        }).then(r => console.log("Formspree (Vendedor) ok!"))
-          .catch(e => console.error("Erro no Formspree:", e));
-
-        // 2. A SUA API envia o e-mail bonitão para o Cliente
-        // Note que aqui chamamos /api/notificar apenas para o cliente
-        await window.enviarEmailClientePagamento({ 
-            to: userData.email, 
-            pedidoId: pedidoId, 
-            pedido: pedidoData 
-        });
-
-    } catch (e) { 
-        console.error("Erro geral na notificação:", e); 
+    window.enviarNotificacaoVenda = async function(pedidoData, pedidoId) {
+  try {
+    // Busca os dados do cliente usando o UID salvo no pedido
+    const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+    if (!userDoc.exists()) {
+      console.warn("Cliente não encontrado para notificação.");
+      return false;
     }
+
+    const userData = userDoc.data();
+
+    const itensFormatados = (pedidoData.items || [])
+      .map(item => `${item.name} (Qtd: ${item.quantity || 1})`)
+      .join(" | ");
+
+    const totalSeguro = Number(pedidoData.total || 0);
+
+    const dados = {
+      // ✅ Campos comuns do Formspree (ajuda MUITO a entregar certinho)
+      _subject: `✅ VENDA CONFIRMADA: #${String(pedidoId).slice(0, 6).toUpperCase()}`,
+      _replyto: userData.email, // para você responder direto ao cliente
+      email: userData.email,    // formspree reconhece bem esse campo
+      nome: userData.fullName,
+
+      // ✅ Dados da compra
+      pedido: `#${String(pedidoId).slice(0, 6).toUpperCase()}`,
+      cpf: userData.cpf,
+      whatsapp: userData.phone,
+      endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
+      cidade: `${userData.city}/${userData.state}`,
+      cep: userData.cep,
+
+      produtos: itensFormatados,
+      frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
+      total: totalSeguro.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
+
+      // ✅ Mensagem bonita no e-mail
+      mensagem: `Nova venda confirmada no site.\nPedido: #${String(pedidoId).slice(0, 6).toUpperCase()}\nCliente: ${userData.fullName}\nTotal: ${totalSeguro.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+    };
+
+    const resp = await fetch("https://formspree.io/f/xykznlnr", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json" // ✅ ISSO AQUI É O PULO DO GATO
+      },
+      body: JSON.stringify(dados)
+    });
+
+    // ✅ Agora a gente garante que deu certo de verdade
+    const json = await resp.json().catch(() => ({}));
+
+    if (!resp.ok) {
+      console.error("Formspree falhou:", resp.status, json);
+      return false;
+    }
+
+    console.log("✅ Notificação de venda enviada no Formspree:", json);
+    return true;
+
+  } catch (e) {
+    console.error("❌ Erro no envio da notificação de venda:", e);
+    return false;
+  }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
