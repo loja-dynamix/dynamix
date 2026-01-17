@@ -1054,7 +1054,7 @@
             <button type="submit" id="btn-envio-suporte" class="w-full bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black font-bold py-3 rounded-lg hover:shadow-lg transition-transform">
                 Enviar Mensagem
             </button>
-            <p id="sup-status" class="text-center text-xs font-bold hidden"></p>
+            <p id="sup-status" class="text-center text-xs font-bold mt-4 hidden"></p>
         </form>
     </div>
 </div>
@@ -1323,43 +1323,49 @@ window.abrirModalSuporte = (assunto = "") => {
 
 // Lógica de envio via AJAX para não recarregar a página
 const supForm = document.getElementById('contact-support-form');
-supForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btn-envio-suporte');
-    const status = document.getElementById('sup-status');
-    
-    btn.disabled = true;
-    btn.innerText = "Enviando...";
-    
-    try {
-        const formData = new FormData(supForm);
-        const response = await fetch(supForm.action, {
-            method: 'POST',
-            body: formData,
-            headers: { 'Accept': 'application/json' }
-        });
+if (supForm) {
+    supForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('btn-envio-suporte');
+        const status = document.getElementById('sup-status');
         
-        if (response.ok) {
-            status.innerText = "Mensagem enviada com sucesso! Responderemos em breve.";
-            status.classList.remove('hidden', 'text-red-600');
-            status.classList.add('text-green-600');
-            supForm.reset();
-            setTimeout(() => {
-                document.getElementById('support-form-modal').classList.replace('flex', 'hidden');
-                status.classList.add('hidden');
-            }, 3000);
-        } else {
-            throw new Error();
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...';
+        
+        try {
+            const formData = new FormData(supForm);
+            const response = await fetch(supForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (response.ok) {
+                // Mensagem de Sucesso
+                status.innerText = "✅ Mensagem enviada com sucesso! Responderemos em breve.";
+                status.classList.remove('hidden', 'text-red-600');
+                status.classList.add('text-green-600', 'block');
+                supForm.reset(); // Limpa os campos
+                
+                // Fecha o modal automaticamente após 3 segundos
+                setTimeout(() => {
+                    document.getElementById('support-form-modal').classList.replace('flex', 'hidden');
+                    status.classList.add('hidden');
+                }, 3000);
+            } else {
+                throw new Error();
+            }
+        } catch (err) {
+            // Mensagem de Erro
+            status.innerText = "❌ Erro ao enviar. Tente novamente mais tarde.";
+            status.classList.remove('hidden', 'text-green-600');
+            status.classList.add('text-red-600', 'block');
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "Enviar Mensagem";
         }
-    } catch (err) {
-        status.innerText = "Erro ao enviar. Tente novamente mais tarde.";
-        status.classList.remove('hidden', 'text-green-600');
-        status.classList.add('text-red-600');
-    } finally {
-        btn.disabled = false;
-        btn.innerText = "Enviar Mensagem";
-    }
-};
+    };
+}
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
