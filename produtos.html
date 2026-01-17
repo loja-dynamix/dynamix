@@ -526,7 +526,33 @@
                           <p id="profile-status" class="text-sm font-bold text-green-600"></p>
                           <button type="submit" class="bg-gradient-to-r from-[var(--primary-color)] to-[var(--accent2-color)] text-black px-8 py-3 rounded-lg font-bold hover:shadow-lg transition-all">Salvar Alterações</button>
                       </div>
+<div class="mt-8 pt-6 border-t border-gray-100">
+  <p class="text-xs font-bold text-gray-500 uppercase mb-2">Segurança</p>
 
+  <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+    
+    <div class="text-sm text-gray-800">
+      <strong id="senha-title">Alterar Senha:</strong> atualize sua senha com segurança usando sua senha atual.
+      <p class="text-[11px] text-gray-500 mt-1" id="senha-sub">
+        Recomendado usar no mínimo <strong>6 caracteres</strong>.
+      </p>
+
+      <!-- Mensagem exclusiva pra quem entrou com Google -->
+      <p id="senha-google-msg" class="text-[11px] text-red-600 font-bold mt-2 hidden">
+        Você entrou com <strong>Google</strong>, então não é possível alterar a senha por aqui.
+      </p>
+    </div>
+
+    <button
+      id="btn-alterar-senha"
+      type="button"
+      onclick="window.abrirModalAlterarSenha()"
+      class="bg-black text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-800 transition-colors shadow-md w-full sm:w-auto"
+    >
+      <i class="fas fa-key mr-2"></i> Alterar Senha
+    </button>
+  </div>
+</div>
                       <div class="mt-10 pt-6 border-t border-red-100">
                           <p class="text-xs font-bold text-red-500 uppercase mb-2">Zona de Perigo</p>
                           <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1551,6 +1577,7 @@ document.getElementById('next-page').onclick = () => {
             // Preenche perfil
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
+          window.atualizarUIAlterarSenha(user);
           const btnEditName = document.getElementById('btn-edit-name');
 const msgLimit = document.getElementById('msg-name-limit');
 const inputName = document.getElementById('profile-name');
@@ -1794,7 +1821,154 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             newCancel.addEventListener('click', () => { dialog.classList.replace('flex', 'hidden'); resolve(false); });
         });
     };
+window.atualizarUIAlterarSenha = (user) => {
+  const btn = document.getElementById("btn-alterar-senha");
+  const msgGoogle = document.getElementById("senha-google-msg");
 
+  if (!btn || !msgGoogle) return;
+
+  const providers = user?.providerData?.map((p) => p.providerId) || [];
+  const temSenha = providers.includes("password"); // ✅ se tiver password, pode alterar senha
+
+  if (temSenha) {
+    // ✅ Conta com Email/Senha (habilita normal)
+    btn.disabled = false;
+    btn.classList.remove("opacity-50", "cursor-not-allowed");
+    msgGoogle.classList.add("hidden");
+    btn.innerHTML = '<i class="fas fa-key mr-2"></i> Alterar Senha';
+    btn.onclick = () => window.abrirModalAlterarSenha();
+  } else {
+    // 🚫 Conta Google (não permite alterar senha aqui)
+    btn.disabled = true;
+    btn.classList.add("opacity-50", "cursor-not-allowed");
+    msgGoogle.classList.remove("hidden");
+    btn.innerHTML = '<i class="fab fa-google mr-2"></i> Login via Google';
+
+    // Se clicar mesmo assim, explica
+    btn.onclick = () => {
+      window.showDialog(
+        "alert",
+        "Senha indisponível",
+        "Sua conta foi criada com <strong>Google</strong>. Por isso, não existe senha para alterar aqui.<br><br>" +
+        "Se quiser criar uma senha, use <strong>Esqueceu a senha?</strong> na tela de login e defina uma senha pelo e-mail."
+      );
+    };
+  }
+};
+    window.abrirModalAlterarSenha = () => {
+  const modal = document.getElementById("change-password-modal");
+  if (modal) modal.classList.replace("hidden", "flex");
+
+  // limpa campos
+  const cur = document.getElementById("cp-current");
+  const nw = document.getElementById("cp-new");
+  const cf = document.getElementById("cp-confirm");
+  if (cur) cur.value = "";
+  if (nw) nw.value = "";
+  if (cf) cf.value = "";
+
+  const status = document.getElementById("cp-status");
+  if (status) status.classList.add("hidden");
+};
+
+window.fecharModalAlterarSenha = () => {
+  const modal = document.getElementById("change-password-modal");
+  if (modal) modal.classList.replace("flex", "hidden");
+};
+
+const cpForm = document.getElementById("change-password-form");
+if (cpForm) {
+  cpForm.onsubmit = async (e) => {
+    e.preventDefault();
+
+    const user = auth.currentUser;
+    if (!user) {
+      window.showDialog("alert", "Você precisa estar logado", "Faça login para alterar sua senha.");
+      return;
+    }
+
+    // 🚫 Se o usuário entrou com Google, não tem "senha atual" para validar
+    const providers = user.providerData?.map((p) => p.providerId) || [];
+const temSenha = providers.includes("password");
+
+if (!temSenha) {
+  window.showDialog(
+    "alert",
+    "Conta Google detectada",
+    "Você entrou com <strong>Google</strong>. Por isso, não é possível alterar senha aqui.<br><br>" +
+    "Se quiser criar uma senha, clique em <strong>Esqueceu a senha?</strong> no login e defina uma senha pelo e-mail."
+  );
+  return;
+}
+
+    const currentPass = document.getElementById("cp-current").value.trim();
+    const newPass = document.getElementById("cp-new").value.trim();
+    const confirmPass = document.getElementById("cp-confirm").value.trim();
+
+    const status = document.getElementById("cp-status");
+    const btn = document.getElementById("cp-submit");
+
+    const mostrarStatus = (texto, ok = false) => {
+      status.innerHTML = texto;
+      status.classList.remove("hidden");
+
+      // Reset classes
+      status.classList.remove("text-green-700", "bg-green-50", "border-green-200");
+      status.classList.remove("text-red-700", "bg-red-50", "border-red-200");
+
+      if (ok) {
+        status.classList.add("text-green-700", "bg-green-50", "border", "border-green-200");
+      } else {
+        status.classList.add("text-red-700", "bg-red-50", "border", "border-red-200");
+      }
+    };
+
+    // ✅ validações
+    if (newPass.length < 6) {
+      mostrarStatus("A nova senha precisa ter no mínimo <strong>6 caracteres</strong>.");
+      return;
+    }
+    if (newPass !== confirmPass) {
+      mostrarStatus("As senhas <strong>não coincidem</strong>.");
+      return;
+    }
+    if (newPass === currentPass) {
+      mostrarStatus("A nova senha precisa ser <strong>diferente</strong> da senha atual.");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Salvando...';
+
+    try {
+      // ✅ 1) Reautentica com a senha atual (segurança do Firebase)
+      const cred = EmailAuthProvider.credential(user.email, currentPass);
+      await reauthenticateWithCredential(user, cred);
+
+      // ✅ 2) Atualiza a senha
+      await updatePassword(user, newPass);
+
+      mostrarStatus("Senha alterada com sucesso ✅", true);
+
+      setTimeout(() => {
+        window.fecharModalAlterarSenha();
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+
+      let msg = "Não foi possível alterar sua senha.";
+      if (err.code === "auth/wrong-password") msg = "Senha atual incorreta.";
+      if (err.code === "auth/too-many-requests") msg = "Muitas tentativas. Aguarde e tente novamente.";
+      if (err.code === "auth/weak-password") msg = "Senha fraca. Use pelo menos 6 caracteres.";
+      if (err.code === "auth/requires-recent-login") msg = "Por segurança, faça login novamente e tente de novo.";
+
+      mostrarStatus(msg);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-save mr-2"></i> Salvar Nova Senha';
+    }
+  };
+}
     const deleteBtn = document.getElementById('delete-account-btn');
     if(deleteBtn) deleteBtn.onclick = async () => {
         const user = auth.currentUser; if(!user) return;
