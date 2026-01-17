@@ -1577,47 +1577,45 @@ const checkPendingOrders = async () => {
             const pStatus = await res.json();
             
             if (pStatus.status === 'approved') {
-                // Atualiza o banco com a trava 'notificado'
+                // 1. ATUALIZA O STATUS NO BANCO DE DADOS
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
-  status: 'Pago',
-  id_pagamento_real: pStatus.id_real || p.id_pagamento,
-  data_confirmacao: new Date()
-});
+                    status: 'Pago',
+                    id_pagamento_real: pStatus.id_real || p.id_pagamento,
+                    data_confirmacao: new Date()
+                });
 
-// Recarrega o pedido atualizado do banco (pra garantir flags certas)
-const pedidoSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
-const pedidoAtual = pedidoSnap.exists() ? pedidoSnap.data() : null;
+                // RECARREGA OS DADOS ATUALIZADOS
+                const pedidoSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
+                const pedidoAtual = pedidoSnap.data();
 
-// 1) Email do cliente (se ainda não enviou)
-let okCliente = false;
-if (pedidoAtual && !pedidoAtual.cliente_notificado) {
-  okCliente = await enviarEmailClientePagamento({
-  to: auth.currentUser.email,
-  pedidoId: docId,
-  pedido: pedidoAtual
-});
+                // 2. ENVIA E-MAIL PARA O CLIENTE (PELO ZOHO/NOTIFICAR)
+                if (pedidoAtual && !pedidoAtual.cliente_notificado) {
+                    const okCliente = await enviarEmailClientePagamento({
+                        to: auth.currentUser.email,
+                        pedidoId: docId,
+                        pedido: pedidoAtual
+                    });
+                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+                        cliente_notificado: okCliente === true
+                    });
+                }
 
-  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-    cliente_notificado: okCliente === true
-  });
-}
-
-// 2) Notificação interna (só 1 vez)
-if (pedidoAtual && !pedidoAtual.notificado) {
-  await enviarNotificacaoVenda(pedidoAtual, docId);
-  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-    notificado: true
-  });
-}
-                console.log("Pedido " + docId + " confirmado!");
+                // 3. ENVIA E-MAIL PARA O VENDEDOR (ZOHO VIA FORMSPREE) COM TODOS OS DADOS
+                if (pedidoAtual && !pedidoAtual.notificado) {
+                    await enviarNotificacaoVenda(pedidoAtual, docId);
+                    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+                        notificado: true
+                    });
+                }
+                console.log("Pedido " + docId + " confirmado e e-mails enviados!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
                 await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
             }
         } catch (e) {
             console.log("Erro na verificação automática");
         }
-    }); // Chave de fechamento do forEach
-}; // Chave de fechamento da função
+    }); 
+};
         checkPendingOrders();
             // --- Verificação de Pagamento (Mantida) ---
             const urlParams = new URLSearchParams(window.location.search);
@@ -2578,44 +2576,50 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
 };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
-        // Busca os dados atualizados do cliente no banco de dados
         const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
         if (!userDoc.exists()) return;
         const userData = userDoc.data();
 
-        // Organiza a lista de produtos, quantidades e valores individuais
-        const detalhesProdutos = pedidoData.items.map(item => 
-            `${item.name} | Qtd: ${item.quantity || 1} | Unitário: R$ ${Number(item.price).toFixed(2)}`
+        // Organiza os produtos em uma lista legível
+        const itensFormatados = pedidoData.items.map(item => 
+            `${item.name} (Qtd: ${item.quantity || 1}) - R$ ${item.price.toFixed(2)}`
         ).join('\n');
 
-        // Prepara os dados organizados para o Formspree
         const dadosParaVendedor = {
-            _subject: `NOVA VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
-            NOME_DO_CLIENTE: userData.fullName,
-            EMAIL_DO_CLIENTE: userData.email,
-            TELEFONE_WHATSAPP: userData.phone,
-            CPF_CLIENTE: userData.cpf,
-            ENDERECO_ENTREGA: `${userData.street}, ${userData.number}`,
-            COMPLEMENTO: userData.complement || "Nenhum",
-            BAIRRO: userData.neighborhood,
-            CIDADE_ESTADO: `${userData.city}/${userData.state}`,
-            CEP: userData.cep,
-            PRODUTOS_COMPRADOS: detalhesProdutos,
-            VALOR_FRETE: pedidoData.frete ? `R$ ${pedidoData.frete.preco.toFixed(2)} (${pedidoData.frete.nome})` : "Grátis",
-            VALOR_TOTAL_PAGO: `R$ ${pedidoData.total.toFixed(2)}`
+            assunto: `🛍️ NOVA VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
+            _replyto: userData.email, // Permite responder o e-mail direto para o cliente
+            vendedor_email: "contato@dynamixoficial.com.br", // Identificador
+            
+            // DADOS DO CLIENTE
+            cliente_nome: userData.fullName,
+            cliente_email: userData.email,
+            cliente_cpf: userData.cpf,
+            cliente_whatsapp: userData.phone,
+            
+            // ENDEREÇO DE ENTREGA
+            endereco_completo: `${userData.street}, ${userData.number}`,
+            bairro: userData.neighborhood,
+            cidade_estado: `${userData.city}/${userData.state}`,
+            cep: userData.cep,
+            complemento: userData.complement || "N/A",
+            
+            // DADOS DO PEDIDO
+            lista_produtos: itensFormatados,
+            metodo_frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
+            valor_frete: pedidoData.frete ? `R$ ${pedidoData.frete.preco.toFixed(2)}` : "R$ 0,00",
+            valor_desconto: `R$ ${pedidoData.desconto.toFixed(2)}`,
+            total_pago: `R$ ${pedidoData.total.toFixed(2)}`,
+            id_transacao_mp: pedidoData.id_pagamento_real || pedidoData.id_pagamento
         };
 
-        // Envia para o seu e-mail via Formspree
+        // Envia para o Formspree que você já configurou
         await fetch("https://formspree.io/f/xykznlnr", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(dadosParaVendedor)
         });
 
-        console.log("Notificação de venda enviada ao vendedor.");
-    } catch (e) { 
-        console.error("Erro ao enviar notificação para o vendedor:", e); 
-    }
+    } catch (e) { console.error("Erro ao notificar vendedor:", e); }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
