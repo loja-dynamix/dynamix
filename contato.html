@@ -1195,9 +1195,22 @@ if (supForm) {
                 }
                 
                 // SALVA NO BANCO DE DADOS
-                await setDoc(doc(db, "users", user.uid), {
-                    fullName: name, email: user.email, cpf: cpf, phone: phone, ...addressData, cart: []
-                }, { merge: true });
+                const fotoPerfilPadrao = "https://i.imgur.com/IXYKJ5E.png"; // Ex: Logo Dynamix redonda
+const bannerPadrao = "https://i.imgur.com/dqiweBl.png"; // Ex: Banner abstrato laranja
+
+// SALVA NO BANCO DE DADOS
+await setDoc(doc(db, "users", user.uid), {
+    fullName: name, 
+    email: user.email, 
+    cpf: cpf, 
+    phone: phone, 
+    ...addressData, 
+    cart: [],
+    nameChanges: 0,
+    // Aqui definimos o padrão inicial:
+    avatar: fotoPerfilPadrao,
+    banner: bannerPadrao
+}, { merge: true });
                 
                 modal.classList.replace('flex','hidden');
                 if(isGoogleCompletion) window.location.reload();
