@@ -1382,7 +1382,93 @@ if (supForm) {
 
     let currentUserData = null;
     let cart = [];
-    
+    function montarClienteDoPedido(pedido = {}) {
+  const u = currentUserData || {};
+  const authEmail = auth?.currentUser?.email || "";
+
+  const cliente = pedido.cliente || {};
+
+  return {
+    nome:
+      cliente.nome ||
+      pedido.fullName ||
+      pedido.nome ||
+      u.fullName ||
+      "",
+
+    email:
+      cliente.email ||
+      pedido.email ||
+      authEmail ||
+      u.email ||
+      "",
+
+    cpf:
+      cliente.cpf ||
+      pedido.cpf ||
+      u.cpf ||
+      "",
+
+    telefone:
+      cliente.telefone ||
+      pedido.phone ||
+      u.phone ||
+      "",
+
+    cep:
+      cliente.cep ||
+      pedido.cep ||
+      u.cep ||
+      "",
+
+    rua:
+      cliente.rua ||
+      pedido.street ||
+      u.street ||
+      "",
+
+    numero:
+      cliente.numero ||
+      pedido.number ||
+      u.number ||
+      "",
+
+    bairro:
+      cliente.bairro ||
+      pedido.neighborhood ||
+      u.neighborhood ||
+      "",
+
+    cidade:
+      cliente.cidade ||
+      pedido.city ||
+      u.city ||
+      "",
+
+    estado:
+      cliente.estado ||
+      pedido.state ||
+      u.state ||
+      "",
+
+    complemento:
+      cliente.complemento ||
+      pedido.complement ||
+      u.complement ||
+      ""
+  };
+}
+
+function montarItensDoPedido(pedido = {}) {
+  // pega itens do pedido em QUALQUER formato que existir
+  return (
+    pedido.itens ||
+    pedido.items ||
+    pedido.produtos ||
+    pedido.cart ||
+    []
+  );
+}
     // --- VARIÁVEIS DO FRETE AUTOMÁTICO ---
     let freteSelecionado = null; 
     let opcoesFreteCache = null; 
@@ -1897,7 +1983,7 @@ const checkPendingOrders = async () => {
                 }
 
                 if (pedidoAtual && !pedidoAtual.notificado) {
-                    await enviarNotificacaoVenda(pedidoAtual, docId);
+                    await enviarNotificacaoVenda({ ...pedidoAtual, cliente: montarClienteDoPedido(pedidoAtual), itens: montarItensDoPedido(pedidoAtual) }, docId);
                     await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
                         notificado: true
                     });
@@ -1992,7 +2078,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
                         notificado: true
                     });
                 }
-                enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
+                enviarNotificacaoVenda({ ...pData, cliente: montarClienteDoPedido(pData), itens: montarItensDoPedido(pData) }, ultimoPedido.id);
             } 
             else if (statusFinal === 'Recusado') {
                 // CONFIGURA ÍCONE DE ERRO
