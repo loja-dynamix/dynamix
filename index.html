@@ -1867,7 +1867,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
                 <img src="${item.image}" class="w-14 h-14 object-cover rounded-md">
                 <div class="flex-grow">
                     <h4 class="font-bold text-xs text-gray-800 line-clamp-1">${item.name}</h4>
-                    <p class="text-xs font-bold text-[var(--accent2-color)]">${item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                    <p class="text-xs font-bold text-[var(--accent2-color)]">${Number(item.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
                     <div class="flex items-center gap-2 mt-2">
                         <button onclick="window.changeQty(${index}, -1)" class="w-6 h-6 flex items-center justify-center border border-gray-300 rounded bg-gray-50 hover:bg-gray-100">-</button>
                         <span class="text-xs font-bold w-4 text-center">${item.quantity || 1}</span>
@@ -1981,43 +1981,46 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
 
     // --- FUNÇÕES GLOBAIS ---
     window.safeAddToCart = async (name, price, image) => {
-    if(!auth.currentUser) { openModal(); return; }
+        if(!auth.currentUser) { openModal(); return; }
 
-    // ✅ Converte price para número SEMPRE
-    let priceNumber = 0;
-    if (typeof price === 'string') {
-        // remove milhares e troca vírgula por ponto (seguro para pt-BR)
-        const limpo = price.replace(/\./g, '').replace(',', '.');
-        priceNumber = Number(limpo);
-    } else {
-        priceNumber = Number(price);
-    }
-    if (isNaN(priceNumber)) priceNumber = 0;
+        // ✅ CORREÇÃO DE PREÇO: Transforma "39,90" em 39.90 de forma segura
+        let priceNumber = 0;
+        if (typeof price === 'string') {
+            // Remove pontos de milhar e troca a vírgula decimal por ponto
+            let limpo = price.replace(/\./g, '').replace(',', '.');
+            priceNumber = parseFloat(limpo);
+        } else {
+            priceNumber = Number(price);
+        }
 
-    // Verifica se o produto já está no carrinho
-    const itemIndex = cart.findIndex(item => item.name === name);
+        // Se o preço for inválido, interrompe para não salvar errado
+        if (isNaN(priceNumber) || priceNumber <= 0) {
+            console.error("Preço inválido detectado:", price);
+            return;
+        }
 
-    if (itemIndex > -1) {
-        cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
-        // (Opcional) garante que o preço do item existente esteja numérico também
-        cart[itemIndex].price = Number(cart[itemIndex].price) || priceNumber;
-    } else {
-        cart.push({ name, price: priceNumber, image, quantity: 1 });
-    }
+        const itemIndex = cart.findIndex(item => item.name === name);
 
-    updateCartUI();
-    toggleCart();
+        if (itemIndex > -1) {
+            cart[itemIndex].quantity = (cart[itemIndex].quantity || 1) + 1;
+            cart[itemIndex].price = priceNumber; // Garante o preço corrigido
+        } else {
+            cart.push({ name, price: priceNumber, image, quantity: 1 });
+        }
 
-    try {
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
-    } catch(e) {
-        console.error("Erro ao salvar carrinho:", e);
-    }
-};
+        updateCartUI();
+        toggleCart();
+
+        try {
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { cart: cart });
+        } catch(e) {
+            console.error("Erro ao salvar carrinho:", e);
+        }
+    };
 
     window.openProductModal = (nome, preco, imagem, categoria, descricao, precoAntigo, rating, parcelas) => {
-    // Converte o preço para número garantindo que pontos de milhar não atrapalhem
-    const precoTratado = typeof preco === 'string' ? parseFloat(preco.replace(',', '.')) : preco;
+    // ✅ CORREÇÃO: Lê o preço da planilha tratando a vírgula decimal
+    const precoTratado = typeof preco === 'string' ? parseFloat(preco.replace(/\./g, '').replace(',', '.')) : preco;
 
     // Histórico de vistos recentemente
     try {
