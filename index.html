@@ -1604,17 +1604,10 @@ if (pedidoAtual && !pedidoAtual.cliente_notificado) {
 
 // 2) Notificação interna (só 1 vez)
 if (pedidoAtual && !pedidoAtual.notificado) {
-
-  const okVendedor = await enviarNotificacaoVenda(pedidoAtual, docId);
-
-  // ✅ Só marca como "notificado" se enviou de verdade
-  if (okVendedor === true) {
-    await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
-      notificado: true
-    });
-  } else {
-    console.warn("⚠️ Falhou enviar e-mail do vendedor. NÃO marquei notificado=true para tentar novamente depois.");
-  }
+  await enviarNotificacaoVenda(pedidoAtual, docId);
+  await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
+    notificado: true
+  });
 }
                 console.log("Pedido " + docId + " confirmado!");
             } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
@@ -1700,7 +1693,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     }
 
     // 4. Sua notificação interna (Formspree)
-    await enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
+    enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
 }
         }
 
@@ -2583,45 +2576,38 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
     return false;
   }
 };
-   async function enviarNotificacaoVenda(pedido, pedidoId) {
-  console.log("Iniciando notificação ao vendedor...");
-  try {
-    const itensTxt = (pedido.items || [])
-      .map(i => `${i.quantity || 1}x ${i.name}`)
-      .join(" | ");
+    const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
+    try {
+        // Busca os dados do cliente usando o ID salvo no pedido para segurança total
+        const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
+        if (!userDoc.exists()) return;
+        const userData = userDoc.data();
 
-    // Montando os dados simplificados para o Formspree não rejeitar
-    const dadosParaVendedor = {
-      _subject: `✅ VENDA Dynamix: #${String(pedidoId).slice(0, 6).toUpperCase()}`,
-      PedidoID: String(pedidoId).slice(0, 6).toUpperCase(),
-      ValorTotal: `R$ ${Number(pedido.total || 0).toFixed(2)}`,
-      Produtos: itensTxt,
-      Status: pedido.status || "Pago",
-      Data: new Date().toLocaleString('pt-BR')
-    };
+        const itensFormatados = pedidoData.items.map(item => 
+            `${item.name} (Qtd: ${item.quantity || 1})`
+        ).join(' | ');
 
-    const response = await fetch("https://formspree.io/f/xykznlnr", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify(dadosParaVendedor)
-    });
+        const dados = {
+            assunto: `✅ VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
+            cliente: userData.fullName,
+            email: userData.email,
+            cpf: userData.cpf,
+            whatsapp: userData.phone,
+            endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
+            cidade: `${userData.city}/${userData.state}`,
+            cep: userData.cep,
+            produtos: itensFormatados,
+            frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
+            total: `R$ ${pedidoData.total.toFixed(2)}`
+        };
 
-    if (response.ok) {
-        console.log("✅ E-mail enviado ao vendedor com sucesso!");
-        return true;
-    } else {
-        const erroTxt = await response.text();
-        console.error("❌ Formspree rejeitou:", erroTxt);
-        return false;
-    }
-  } catch (err) {
-    console.error("❌ Erro fatal no envio ao vendedor:", err);
-    return false;
-  }
-}
+        await fetch("https://formspree.io/f/xykznlnr", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dados)
+        });
+    } catch (e) { console.error("Erro no envio do e-mail:", e); }
+};
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
     
