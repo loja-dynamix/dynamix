@@ -2578,35 +2578,44 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
 };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
-        // Busca os dados do cliente usando o ID salvo no pedido para segurança total
+        // Busca os dados atualizados do cliente no banco de dados
         const userDoc = await getDoc(doc(db, "users", pedidoData.cliente_uid));
         if (!userDoc.exists()) return;
         const userData = userDoc.data();
 
-        const itensFormatados = pedidoData.items.map(item => 
-            `${item.name} (Qtd: ${item.quantity || 1})`
-        ).join(' | ');
+        // Organiza a lista de produtos, quantidades e valores individuais
+        const detalhesProdutos = pedidoData.items.map(item => 
+            `${item.name} | Qtd: ${item.quantity || 1} | Unitário: R$ ${Number(item.price).toFixed(2)}`
+        ).join('\n');
 
-        const dados = {
-            assunto: `✅ VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
-            cliente: userData.fullName,
-            email: userData.email,
-            cpf: userData.cpf,
-            whatsapp: userData.phone,
-            endereco: `${userData.street}, ${userData.number} - ${userData.neighborhood}`,
-            cidade: `${userData.city}/${userData.state}`,
-            cep: userData.cep,
-            produtos: itensFormatados,
-            frete: pedidoData.frete ? pedidoData.frete.nome : "Padrão",
-            total: `R$ ${pedidoData.total.toFixed(2)}`
+        // Prepara os dados organizados para o Formspree
+        const dadosParaVendedor = {
+            _subject: `NOVA VENDA CONFIRMADA: #${pedidoId.slice(0,6).toUpperCase()}`,
+            NOME_DO_CLIENTE: userData.fullName,
+            EMAIL_DO_CLIENTE: userData.email,
+            TELEFONE_WHATSAPP: userData.phone,
+            CPF_CLIENTE: userData.cpf,
+            ENDERECO_ENTREGA: `${userData.street}, ${userData.number}`,
+            COMPLEMENTO: userData.complement || "Nenhum",
+            BAIRRO: userData.neighborhood,
+            CIDADE_ESTADO: `${userData.city}/${userData.state}`,
+            CEP: userData.cep,
+            PRODUTOS_COMPRADOS: detalhesProdutos,
+            VALOR_FRETE: pedidoData.frete ? `R$ ${pedidoData.frete.preco.toFixed(2)} (${pedidoData.frete.nome})` : "Grátis",
+            VALOR_TOTAL_PAGO: `R$ ${pedidoData.total.toFixed(2)}`
         };
 
+        // Envia para o seu e-mail via Formspree
         await fetch("https://formspree.io/f/xykznlnr", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dados)
+            body: JSON.stringify(dadosParaVendedor)
         });
-    } catch (e) { console.error("Erro no envio do e-mail:", e); }
+
+        console.log("Notificação de venda enviada ao vendedor.");
+    } catch (e) { 
+        console.error("Erro ao enviar notificação para o vendedor:", e); 
+    }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
     if(!docId) return;
