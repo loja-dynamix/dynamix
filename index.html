@@ -1577,18 +1577,16 @@ const checkPendingOrders = async () => {
             const pStatus = await res.json();
             
             if (pStatus.status === 'approved') {
-                // 1. ATUALIZA O STATUS PARA PAGO
+                // SE FOR APROVADO
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Pago',
                     id_pagamento_real: pStatus.id_real || p.id_pagamento,
                     data_confirmacao: new Date()
                 });
 
-                // RECARREGA OS DADOS ATUALIZADOS
                 const pedidoSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
                 const pedidoAtual = pedidoSnap.data();
 
-                // 2. ENVIA E-MAIL PARA O CLIENTE
                 if (pedidoAtual && !pedidoAtual.cliente_notificado) {
                     const okCliente = await enviarEmailClientePagamento({
                         to: auth.currentUser.email,
@@ -1600,15 +1598,21 @@ const checkPendingOrders = async () => {
                     });
                 }
 
-                // 3. ENVIA E-MAIL PARA O VENDEDOR
                 if (pedidoAtual && !pedidoAtual.notificado) {
                     await enviarNotificacaoVenda(pedidoAtual, docId);
                     await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
                         notificado: true
                     });
                 }
-            } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled' || pStatus.status === 'refunded') {
-                // SE O STATUS FOR REJEITADO, CANCELADO OU DEVOLVIDO, ATUALIZA NO SITE
+            } 
+            else if (pStatus.status === 'rejected') {
+                // SE FOR RECUSADO (CARTÃO NEGADO, FALTA DE SALDO)
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
+                    status: 'Recusado' 
+                });
+            } 
+            else if (pStatus.status === 'cancelled' || pStatus.status === 'refunded') {
+                // SE FOR CANCELADO PELO USUÁRIO OU ESTORNADO
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Cancelado' 
                 });
@@ -2266,7 +2270,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
                     let corStatus = 'bg-gray-100 text-gray-700';
                     if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
                     if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
-                    if (pedido.status === 'Cancelado') corStatus = 'bg-red-100 text-red-700';
+                    if (pedido.status === 'Cancelado' || pedido.status === 'Recusado') corStatus = 'bg-red-100 text-red-700';
                     // --- 1. LISTA DE PRODUTOS ---
                     let produtosHTML = '';
                     let subtotalProdutos = 0;
