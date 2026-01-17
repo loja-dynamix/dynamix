@@ -689,7 +689,7 @@
       </div>
   </div>
 
-  <div id="custom-dialog" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
+  <div id="custom-dialog" class="fixed inset-0 z-[300] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative m-4 transform transition-all scale-100 border border-gray-100">
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4" id="dialog-icon-bg">
             <i class="fas fa-exclamation-triangle text-red-600 text-xl" id="dialog-icon"></i>
@@ -1620,29 +1620,41 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), updatePayload);
 
             // ✅ DISPARA E-MAILS APENAS SE FOR PAGO E NÃO NOTIFICADO AINDA
-            if (statusFinal === 'Pago' && !pData.cliente_notificado) {
-                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu pagamento! Verifique seu e-mail para mais detalhes.');
+           if (statusFinal === 'Pago' && !pData.cliente_notificado) {
+                // CONFIGURA ÍCONE DE SUCESSO
+                document.getElementById('dialog-icon').className = "fas fa-check-circle text-green-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
                 
-                // Envia para o cliente
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu pagamento! Seu pedido já está sendo processado.');
+
                 const ok = await window.enviarEmailClientePagamento({ 
                     to: user.email, 
-                    pedidoId: pedidoAlvo.id,
+                    pedidoId: ultimoPedido.id,
                     pedido: { ...pData, total: pData.total } 
                 });
 
-                // Se o e-mail do cliente foi aceito, marca no banco e avisa o vendedor
                 if (ok) {
-                    await updateDoc(doc(db, "users", user.uid, "orders", pedidoAlvo.id), {
+                    await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
                         cliente_notificado: true,
                         notificado: true
                     });
-                    enviarNotificacaoVenda({ ...pData, total: pData.total }, pedidoAlvo.id);
                 }
+                enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
+            } 
+            else if (statusFinal === 'Recusado') {
+                // CONFIGURA ÍCONE DE ERRO
+                document.getElementById('dialog-icon').className = "fas fa-times-circle text-red-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
+                
+                window.showDialog('alert', 'Pagamento Recusado', 'O pagamento não foi autorizado. Tente outro cartão ou fale com seu banco.');
             }
         }
+
+        // Limpa URL
         window.history.replaceState({}, document.title, window.location.pathname);
+
     } catch (e) {
-        console.error("Erro na sincronização:", e);
+        console.error("Erro ao sincronizar pagamento:", e);
     }
 }
         } else {
@@ -2438,22 +2450,51 @@ const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
         }
     };
     window.verificarStatusManual = async (paymentId, docId) => {
-        if(!paymentId || paymentId === 'MP') { alert("Pagamento manual ou antigo."); return; }
+        if(!docId) return;
+        const btn = event.target;
+        const originalHTML = btn.innerHTML;
+        
         try {
-            const btn = event.target;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
-            const response = await fetch(`/api/verificar?id=${paymentId}`);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
+            
+            const response = await fetch(`/api/verificar?id=${paymentId}&pedidoId=${docId}`);
             const data = await response.json();
-            if(data.status === 'approved') {
-                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { status: 'Pago' });
-                alert("Pagamento confirmado! O status foi atualizado.");
-                openDashboardModal('orders');
+            
+            // FECHA O MODAL DE PEDIDOS E O PERFIL PARA O POPUP APARECER LIVRE
+            document.getElementById('dashboard-modal').classList.replace('flex', 'hidden');
+
+            if(data.status === 'approved' || data.status === 'pago') {
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
+                    status: 'Pago',
+                    data_confirmacao: new Date()
+                });
+                
+                // ÍCONE DE SUCESSO (VERDE)
+                document.getElementById('dialog-icon').className = "fas fa-check-circle text-green-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+                
+                await window.showDialog('alert', 'Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
             } else {
-                alert(`O banco informou: ${data.status_detail || 'Ainda pendente'}. Tente novamente em instantes.`);
+                // ÍCONE DE AGUARDANDO (LARANJA)
+                document.getElementById('dialog-icon').className = "fas fa-clock text-orange-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4";
+
+                let msg = "Ainda não identificamos o recebimento.";
+                if(data.status === 'rejected') {
+                    msg = "O pagamento foi recusado pelo banco.";
+                    document.getElementById('dialog-icon').className = "fas fa-times-circle text-red-600 text-xl";
+                    document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
+                }
+                await window.showDialog('alert', 'Status do Pagamento', msg + '\n\nNota: O Pix pode levar até 2 minutos.');
             }
-            btn.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Pagamento';
+            // REABRE O MODAL DE PEDIDOS ATUALIZADO
+            openDashboardModal('orders');
         } catch(e) {
-            alert("Erro ao verificar.");
+            alert("Erro ao conectar com o servidor.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
         }
     };
     let cupomAplicado = null;
