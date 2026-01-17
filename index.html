@@ -1215,9 +1215,9 @@ supForm.onsubmit = async (e) => {
                 tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm">${produto.tag}</span>`;
             }
 
-            const precoLimpo = produto.preco_por.replace(/\./g, '').replace(',', '.');
-const precoNumerico = parseFloat(precoLimpo);
-const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+           const precoLimpo = produto.preco_por.toString().replace(/\s/g, '').replace('.', '').replace(',', '.');
+            const precoNumerico = parseFloat(precoLimpo);
+            const precoFormatado = isNaN(precoNumerico) ? "0,00" : precoNumerico.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             
             const numParcelas = parseInt(produto.parcelas) || 1;
             let parcelamentoHTML = '';
@@ -1233,7 +1233,7 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
             const safePrecoAntigo = produto.preco_de || '';
 
             const htmlDoCard = `
-            <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
+            <div onclick="window.openProductModal('${safeNome}', ${precoNumerico}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
                  class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col cursor-pointer relative">
                 
                 <div class="relative overflow-hidden shrink-0 bg-white">
@@ -1846,7 +1846,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         const valorFrete = freteSelecionado ? freteSelecionado.preco : 0;
         
         let valorDesconto = cupomAplicado ? cupomAplicado.valor : 0;
-        const totalFinal = Math.max(0, (subtotal + valorFrete) - valorDesconto);
+        const totalFinal = Math.max(0, Number((subtotal + valorFrete - valorDesconto).toFixed(2)));
         totalEl.innerText = totalFinal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         
         if (cupomAplicado) {
