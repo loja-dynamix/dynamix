@@ -1676,8 +1676,11 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
 
             if (statusFinal === 'Pago' && !pData.cliente_notificado) {
-                // Mensagem personalizada para Sucesso
-                window.showDialog('alert', '✅ Pagamento Confirmado!', 'Recebemos seu pagamento com sucesso. Já estamos preparando seu pedido para envio!');
+                // CONFIGURA ÍCONE DE SUCESSO
+                document.getElementById('dialog-icon').className = "fas fa-check-circle text-green-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+                
+                window.showDialog('alert', 'Pagamento Confirmado!', 'Recebemos seu pagamento! Seu pedido já está sendo processado.');
 
                 const ok = await window.enviarEmailClientePagamento({ 
                     to: user.email, 
@@ -1692,9 +1695,13 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
                     });
                 }
                 enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
-            } else if (statusFinal === 'Recusado') {
-                // Mensagem personalizada para Recusado
-                window.showDialog('alert', '❌ Pagamento Recusado', 'O pagamento não foi autorizado pela operadora. Por favor, tente outro cartão ou entre em contato com o seu banco.');
+            } 
+            else if (statusFinal === 'Recusado') {
+                // CONFIGURA ÍCONE DE ERRO
+                document.getElementById('dialog-icon').className = "fas fa-times-circle text-red-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
+                
+                window.showDialog('alert', 'Pagamento Recusado', 'O pagamento não foi autorizado. Tente outro cartão ou fale com seu banco.');
             }
         }
 
@@ -2627,10 +2634,8 @@ window.enviarNotificacaoVenda = enviarNotificacaoVenda;
     
     try {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando Banco Central...';
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando...';
         
-        // Chamamos a sua API passando tanto o ID do pagamento quanto o ID do pedido
-        // Isso garante que se um falhar, o outro encontra
         const response = await fetch(`/api/verificar?id=${paymentId}&pedidoId=${docId}`);
         const data = await response.json();
         
@@ -2642,24 +2647,32 @@ window.enviarNotificacaoVenda = enviarNotificacaoVenda;
             const snapParaEmail = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
             if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
             
-            // Mensagem de sucesso
-            await window.showDialog('alert', '✅ Tudo Pronto!', 'Seu pagamento foi identificado! O status do seu pedido já foi atualizado.');
+            // ÍCONE DE SUCESSO (VERDE)
+            document.getElementById('dialog-icon').className = "fas fa-check-circle text-green-600 text-xl";
+            document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
+            
+            await window.showDialog('alert', 'Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
             openDashboardModal('orders');
         } else {
             let msg = "Ainda não identificamos o recebimento.";
-            let icon = "fa-clock";
             
+            // ÍCONE DE ALERTA (AMARELO/LARANJA)
+            document.getElementById('dialog-icon').className = "fas fa-clock text-orange-600 text-xl";
+            document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4";
+
             if(data.status === 'in_process') msg = "Seu pagamento está em análise pelo Mercado Pago.";
+            
             if(data.status === 'rejected') {
                 msg = "O pagamento foi recusado pelo seu banco ou operadora.";
-                icon = "fa-times-circle";
+                // ÍCONE DE ERRO (VERMELHO)
+                document.getElementById('dialog-icon').className = "fas fa-times-circle text-red-600 text-xl";
+                document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
             }
             
-            // Mensagem personalizada para status pendente/erro
-            window.showDialog('alert', 'Aguardando Aprovação', msg + '\n\nNota: Pagamentos via Pix podem levar até 2 minutos para processar.');
+            window.showDialog('alert', 'Status do Pagamento', msg + '\n\nNota: O Pix pode levar até 2 minutos para processar.');
         }
     } catch(e) {
-        alert("Erro ao conectar com o Mercado Pago. Tente novamente em instantes.");
+        alert("Erro ao conectar com o servidor. Tente novamente.");
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
