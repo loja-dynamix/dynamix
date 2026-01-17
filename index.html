@@ -822,7 +822,7 @@
       </div>
   </div>
 
-  <div id="custom-dialog" class="fixed inset-0 z-[100] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
+  <div id="custom-dialog" class="fixed inset-0 z-[300] hidden items-center justify-center modal-backdrop transition-opacity duration-300">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative m-4 transform transition-all scale-100 border border-gray-100">
         <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4" id="dialog-icon-bg">
             <i class="fas fa-exclamation-triangle text-red-600 text-xl" id="dialog-icon"></i>
@@ -2647,29 +2647,36 @@ window.enviarNotificacaoVenda = enviarNotificacaoVenda;
             const snapParaEmail = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
             if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
             
-            // ÍCONE DE SUCESSO (VERDE)
+            // FECHA O MODAL DE PEDIDOS PRIMEIRO
+            document.getElementById('dashboard-modal').classList.replace('flex', 'hidden');
+
+            // CONFIGURA E MOSTRA O AVISO
             document.getElementById('dialog-icon').className = "fas fa-check-circle text-green-600 text-xl";
             document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4";
-            
             await window.showDialog('alert', 'Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
+            
+            // REABRE OS PEDIDOS ATUALIZADOS APÓS O USUÁRIO CLICAR EM OK
             openDashboardModal('orders');
         } else {
             let msg = "Ainda não identificamos o recebimento.";
             
-            // ÍCONE DE ALERTA (AMARELO/LARANJA)
+            // FECHA O MODAL DE PEDIDOS PARA O AVISO APARECER LIVRE
+            document.getElementById('dashboard-modal').classList.replace('flex', 'hidden');
+
             document.getElementById('dialog-icon').className = "fas fa-clock text-orange-600 text-xl";
             document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4";
 
             if(data.status === 'in_process') msg = "Seu pagamento está em análise pelo Mercado Pago.";
-            
             if(data.status === 'rejected') {
                 msg = "O pagamento foi recusado pelo seu banco ou operadora.";
-                // ÍCONE DE ERRO (VERMELHO)
                 document.getElementById('dialog-icon').className = "fas fa-times-circle text-red-600 text-xl";
                 document.getElementById('dialog-icon-bg').className = "mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4";
             }
             
-            window.showDialog('alert', 'Status do Pagamento', msg + '\n\nNota: O Pix pode levar até 2 minutos para processar.');
+            await window.showDialog('alert', 'Status do Pagamento', msg + '\n\nNota: O Pix pode levar até 2 minutos para processar.');
+            
+            // REABRE O MODAL PARA O CLIENTE NÃO SE PERDER
+            openDashboardModal('orders');
         }
     } catch(e) {
         alert("Erro ao conectar com o servidor. Tente novamente.");
