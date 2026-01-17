@@ -279,6 +279,11 @@
         background-position: 200% center;
     }
 }
+    #frete-auto-container {
+    min-height: 50px;
+    display: block !important;
+    visibility: visible !important;
+}
   </style>
 </head>
 <body class="min-h-screen bg-white [font-family:var(--font-family-body)] flex flex-col relative overflow-x-hidden">
@@ -1892,7 +1897,9 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
                     <div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i></div>
                 </div>
             </div>`;
-        setTimeout(() => window.calcularFreteAutomatico(currentUserData.cep), 100);
+        if (currentUserData.cep && cart.length > 0) {
+        window.calcularFreteAutomatico(currentUserData.cep);
+    }
     } else {
          addressBlock = `<div class="mt-4 pt-4 border-t border-gray-200 text-center bg-red-50 p-3 rounded-lg">
             <p class="text-[10px] text-red-600 mb-1 font-bold">Endereço não encontrado.</p>
@@ -1928,7 +1935,7 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     };
 
     function renderizarOpcoesFrete(container) {
-        if (!opcoesFreteCache) return;
+        if (!opcoesFreteCache || !container) return;
         
         const subtotalAtual = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
         const atingiuFreteGratis = window.valorFreteGratisPlanilha > 0 && subtotalAtual >= window.valorFreteGratisPlanilha;
@@ -1937,9 +1944,10 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         
         opcoesFreteCache.forEach((op) => {
             const precoExibido = atingiuFreteGratis ? 0 : op.preco;
-            const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
+            // Se não tiver frete selecionado ainda, seleciona o primeiro por padrão para não sumir
+            if (!freteSelecionado) freteSelecionado = { ...op, preco: precoExibido };
             
-            // Ícone dinâmico: se for dos correios usa ícone de caixa, se for transportadora usa caminhão
+            const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
             const iconeFrete = op.origem === 'melhorenvio' ? 'fa-truck-fast' : 'fa-box';
             const corIcone = op.origem === 'melhorenvio' ? 'text-blue-500' : 'text-[var(--accent-color)]';
 
