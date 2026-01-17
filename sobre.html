@@ -522,7 +522,16 @@
                   
                   <form id="profile-form" class="space-y-6">
                       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div><label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Nome Completo</label><input type="text" id="profile-name" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
+                          <div>
+    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Nome Completo</label>
+    <div class="relative">
+        <input type="text" id="profile-name" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500">
+        <button type="button" id="btn-edit-name" onclick="window.habilitarEdicaoNome()" class="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--accent2-color)] text-xs font-bold hover:underline hidden">
+            <i class="fas fa-edit"></i> Alterar
+        </button>
+    </div>
+    <p id="msg-name-limit" class="text-[10px] text-red-500 mt-1 hidden font-bold">Limite de 1 alteração atingido.</p>
+</div>
                           <div><label class="block text-xs font-bold text-gray-500 mb-1 uppercase">CPF (Fixo)</label><input type="text" id="profile-cpf" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
                       </div>
                       <div><label class="block text-xs font-bold text-gray-500 mb-1 uppercase">E-mail (Fixo)</label><input type="email" id="profile-email" disabled class="w-full px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-500 cursor-not-allowed"></div>
@@ -1373,6 +1382,31 @@ supForm.onsubmit = async (e) => {
 
             document.getElementById('profile-email').value = user.email;
             document.getElementById('profile-name').value = currentUserData.fullName || "";
+          const btnEditName = document.getElementById('btn-edit-name');
+const msgLimit = document.getElementById('msg-name-limit');
+const inputName = document.getElementById('profile-name');
+
+// Verifica se já alterou alguma vez no passado
+if (currentUserData.nameChanges >= 1) {
+    btnEditName.classList.add('hidden');
+    msgLimit.classList.remove('hidden');
+    inputName.classList.add('bg-gray-100', 'cursor-not-allowed');
+    inputName.disabled = true;
+} else {
+    btnEditName.classList.remove('hidden');
+    msgLimit.classList.add('hidden');
+}
+
+window.habilitarEdicaoNome = async () => {
+    const confirmar = await window.showDialog('confirm', 'Atenção!', 'Você só pode alterar seu nome UMA ÚNICA VEZ.\n\nApós clicar em salvar, este campo será bloqueado permanentemente. Deseja continuar?');
+    if (confirmar) {
+        inputName.disabled = false;
+        inputName.classList.remove('bg-gray-100', 'text-gray-500', 'cursor-not-allowed');
+        inputName.classList.add('bg-white', 'border-[var(--primary-color)]', 'ring-2', 'ring-orange-100', 'text-black');
+        inputName.focus();
+        btnEditName.classList.add('hidden');
+    }
+};
             document.getElementById('profile-cpf').value = currentUserData.cpf || "";
             document.getElementById('profile-phone').value = currentUserData.phone || "";
             document.getElementById('profile-cep').value = currentUserData.cep || "";
@@ -1524,6 +1558,10 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         if (!auth.currentUser) return;
         statusMsg.innerText = "Salvando...";
         try {
+            const inputName = document.getElementById('profile-name');
+            const btnEditName = document.getElementById('btn-edit-name');
+            const msgLimit = document.getElementById('msg-name-limit');
+
             const newData = {
                 phone: document.getElementById('profile-phone').value.trim(),
                 cep: document.getElementById('profile-cep').value.trim(),
@@ -1534,13 +1572,28 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
                 state: document.getElementById('profile-state').value.trim(),
                 complement: document.getElementById('profile-complement').value.trim()
             };
+
+            // SE O NOME ESTÁ SENDO ALTERADO NESTE MOMENTO:
+            if (!inputName.disabled && (!currentUserData.nameChanges || currentUserData.nameChanges < 1)) {
+                newData.fullName = inputName.value.trim();
+                newData.nameChanges = 1; // Registra a alteração
+                
+                // --- ATUALIZAÇÃO IMEDIATA DA INTERFACE (ELIMINA O BOTÃO) ---
+                inputName.disabled = true;
+                inputName.classList.add('bg-gray-100', 'cursor-not-allowed', 'text-gray-500');
+                inputName.classList.remove('bg-white', 'ring-2');
+                if(btnEditName) btnEditName.classList.add('hidden');
+                if(msgLimit) msgLimit.classList.remove('hidden');
+                // Atualiza o nome no topo do perfil também
+                document.getElementById('display-full-name').innerText = newData.fullName;
+            }
+
             await updateDoc(doc(db, "users", auth.currentUser.uid), newData);
             
-            // Se houver alteração, atualiza o usuário local e o carrinho para recalcular frete
             Object.assign(currentUserData, newData);
             updateCartUI();
 
-            statusMsg.innerText = "Atualizado!";
+            statusMsg.innerText = "Dados Salvos com Sucesso!";
             setTimeout(() => { statusMsg.innerText = ""; }, 3000);
         } catch (error) { statusMsg.innerText = "Erro ao salvar."; }
     };
