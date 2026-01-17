@@ -1606,13 +1606,11 @@ const checkPendingOrders = async () => {
                 }
             } 
             else if (pStatus.status === 'rejected') {
-                // SE FOR RECUSADO (CARTÃO NEGADO, FALTA DE SALDO)
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Recusado' 
                 });
             } 
             else if (pStatus.status === 'cancelled' || pStatus.status === 'refunded') {
-                // SE FOR CANCELADO PELO USUÁRIO OU ESTORNADO
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Cancelado' 
                 });
@@ -1659,8 +1657,8 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         let statusFinal = 'Aguardando Pagamento';
         if (statusReal === 'approved') statusFinal = 'Pago';
         if (statusReal === 'in_process') statusFinal = 'Em Análise';
-        if (statusReal === 'rejected' || statusReal === 'cancelled') statusFinal = 'Cancelado';
-
+        if (statusReal === 'rejected') statusFinal = 'Recusado';
+        if (statusReal === 'cancelled') statusFinal = 'Cancelado';
         // 2) Atualiza o pedido mais recente (mantive sua lógica, mas sem salvar null)
         const q = query(collection(db, "users", user.uid, "orders"), orderBy("data", "desc"));
         const snap = await getDocs(q);
@@ -2270,7 +2268,8 @@ if (!pedido || !pedido.items || !pedido.status) return;
                     let corStatus = 'bg-gray-100 text-gray-700';
                     if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
                     if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
-                    if (pedido.status === 'Cancelado' || pedido.status === 'Recusado') corStatus = 'bg-red-100 text-red-700';
+                    if (pedido.status === 'Recusado') corStatus = 'bg-red-100 text-red-700';
+                    if (pedido.status === 'Cancelado') corStatus = 'bg-red-50 text-red-500';
                     // --- 1. LISTA DE PRODUTOS ---
                     let produtosHTML = '';
                     let subtotalProdutos = 0;
