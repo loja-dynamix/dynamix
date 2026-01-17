@@ -44,7 +44,7 @@ ITENS: ${
       `.trim();
 
       try {
-        const r = await fetch("https://formspree.io/f/xykznlnr", {
+        const r = await fetch("https://formspree.io/f/mreeewrl", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -205,3 +205,4 @@ ITENS: ${
     });
   }
 }
+
