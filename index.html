@@ -1269,6 +1269,21 @@ supForm.onsubmit = async (e) => {
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
+    window.enviarEmailBoasVindas = async ({ to, nome }) => {
+  try {
+    const resp = await fetch("/api/bemvindo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ to, nome }),
+    });
+
+    const data = await resp.json().catch(() => ({}));
+    return resp.ok && data.ok === true;
+  } catch (e) {
+    console.error("Erro ao chamar /api/bemvindo:", e);
+    return false;
+  }
+};
 
     let currentUserData = null;
     let cart = [];
@@ -1561,7 +1576,23 @@ supForm.onsubmit = async (e) => {
                 await setDoc(doc(db, "users", user.uid), {
                     fullName: name, email: user.email, cpf: cpf, phone: phone, ...addressData, cart: []
                 }, { merge: true });
-                
+                try {
+  const userRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userRef);
+
+  const jaEnviado = snap.exists() && snap.data().welcome_sent === true;
+
+  if (!jaEnviado) {
+    const okWelcome = await window.enviarEmailBoasVindas({
+      to: user.email,
+      nome: name
+    });
+
+    await setDoc(userRef, { welcome_sent: okWelcome === true }, { merge: true });
+  }
+} catch (e) {
+  console.error("Falha ao enviar boas-vindas:", e);
+}
                 modal.classList.replace('flex','hidden');
                 if(isGoogleCompletion) window.location.reload();
             }
