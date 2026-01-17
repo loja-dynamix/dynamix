@@ -1920,33 +1920,34 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
     function renderizarOpcoesFrete(container) {
         if (!opcoesFreteCache) return;
         
-        // Calcula o subtotal atual do carrinho
         const subtotalAtual = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-        
-        // Verifica se atingiu o valor para Frete Grátis
         const atingiuFreteGratis = window.valorFreteGratisPlanilha > 0 && subtotalAtual >= window.valorFreteGratisPlanilha;
 
         let html = '';
         
         opcoesFreteCache.forEach((op) => {
-            // Se atingiu o valor, o preço da opção vira 0
             const precoExibido = atingiuFreteGratis ? 0 : op.preco;
             const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
             
-            // Cria um objeto modificado caso seja grátis para passar para a função de seleção
+            // Ícone dinâmico: se for dos correios usa ícone de caixa, se for transportadora usa caminhão
+            const iconeFrete = op.origem === 'melhorenvio' ? 'fa-truck-fast' : 'fa-box';
+            const corIcone = op.origem === 'melhorenvio' ? 'text-blue-500' : 'text-[var(--accent-color)]';
+
             const opcaoModificada = { ...op, preco: precoExibido };
 
             html += `
-                <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50">
+                <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50 mb-2">
                     <div class="flex items-center gap-3">
                         <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(opcaoModificada)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)] h-4 w-4">
                         <div class="flex flex-col">
-                            <span class="text-xs text-gray-800 font-bold">${op.nome}</span>
-                            <span class="text-[10px] text-gray-500">Prazo: ${op.prazo} dias</span>
+                            <span class="text-[11px] font-bold text-gray-800 flex items-center gap-1">
+                                <i class="fas ${iconeFrete} ${corIcone} text-[10px]"></i> ${op.nome}
+                            </span>
+                            <span class="text-[9px] text-gray-500">Chega em até ${op.prazo} dias úteis</span>
                         </div>
                     </div>
-                    <span class="text-sm font-bold ${atingiuFreteGratis ? 'text-green-600' : 'text-[var(--accent2-color)]'}">
-                        ${precoExibido === 0 ? 'FRETE GRÁTIS' : 'R$ ' + precoExibido.toFixed(2).replace('.',',')}
+                    <span class="text-xs font-bold ${atingiuFreteGratis ? 'text-green-600' : 'text-[var(--accent2-color)]'}">
+                        ${precoExibido === 0 ? 'GRÁTIS' : 'R$ ' + precoExibido.toFixed(2).replace('.',',')}
                     </span>
                 </label>
             `;
