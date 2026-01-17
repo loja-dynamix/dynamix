@@ -1676,27 +1676,26 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), updatePayload);
 
             if (statusFinal === 'Pago' && !pData.cliente_notificado) {
-    // 1. Mostra aviso na tela
-    window.showDialog('alert', 'Pagamento Confirmado!', 'Seu pagamento foi aprovado! Enviamos um e-mail com os detalhes.');
+                // Mensagem personalizada para Sucesso
+                window.showDialog('alert', '✅ Pagamento Confirmado!', 'Recebemos seu pagamento com sucesso. Já estamos preparando seu pedido para envio!');
 
-    // 2. Chama a função que agora é global
-    const ok = await window.enviarEmailClientePagamento({ 
-  to: user.email, 
-  pedidoId: ultimoPedido.id,
-  pedido: { ...pData, total: pData.total } 
-});
+                const ok = await window.enviarEmailClientePagamento({ 
+                    to: user.email, 
+                    pedidoId: ultimoPedido.id,
+                    pedido: { ...pData, total: pData.total } 
+                });
 
-    // 3. Só marca como notificado se o e-mail realmente foi enviado
-    if (ok) {
-        await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
-            cliente_notificado: true,
-            notificado: true
-        });
-    }
-
-    // 4. Sua notificação interna (Formspree)
-    enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
-}
+                if (ok) {
+                    await updateDoc(doc(db, "users", user.uid, "orders", ultimoPedido.id), {
+                        cliente_notificado: true,
+                        notificado: true
+                    });
+                }
+                enviarNotificacaoVenda({ ...pData }, ultimoPedido.id);
+            } else if (statusFinal === 'Recusado') {
+                // Mensagem personalizada para Recusado
+                window.showDialog('alert', '❌ Pagamento Recusado', 'O pagamento não foi autorizado pela operadora. Por favor, tente outro cartão ou entre em contato com o seu banco.');
+            }
         }
 
         // Limpa URL
@@ -2640,16 +2639,24 @@ window.enviarNotificacaoVenda = enviarNotificacaoVenda;
                 status: 'Pago',
                 data_confirmacao: new Date()
             });
-          const snapParaEmail = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
-if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
-            window.showDialog('alert', '✅ Pagamento Confirmado!', 'Seu Pix foi identificado com sucesso. Já estamos preparando seu envio!');
+            const snapParaEmail = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
+            if(snapParaEmail.exists()) enviarNotificacaoVenda(snapParaEmail.data(), docId);
+            
+            // Mensagem de sucesso
+            await window.showDialog('alert', '✅ Tudo Pronto!', 'Seu pagamento foi identificado! O status do seu pedido já foi atualizado.');
             openDashboardModal('orders');
         } else {
             let msg = "Ainda não identificamos o recebimento.";
-            if(data.status === 'in_process') msg = "Seu pagamento está em análise pelo Mercado Pago.";
-            if(data.status === 'rejected') msg = "O pagamento foi recusado pelo seu banco.";
+            let icon = "fa-clock";
             
-            alert(`Status: ${msg}\n\nNota: Pix pode levar até 2 minutos para processar.`);
+            if(data.status === 'in_process') msg = "Seu pagamento está em análise pelo Mercado Pago.";
+            if(data.status === 'rejected') {
+                msg = "O pagamento foi recusado pelo seu banco ou operadora.";
+                icon = "fa-times-circle";
+            }
+            
+            // Mensagem personalizada para status pendente/erro
+            window.showDialog('alert', 'Aguardando Aprovação', msg + '\n\nNota: Pagamentos via Pix podem levar até 2 minutos para processar.');
         }
     } catch(e) {
         alert("Erro ao conectar com o Mercado Pago. Tente novamente em instantes.");
