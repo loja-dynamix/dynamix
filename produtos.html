@@ -671,9 +671,9 @@
       <div class="p-6 border-t bg-gray-50">
         <div class="mb-4 pt-4 border-t border-gray-200">
     <label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase">Possui um cupom?</label>
-    <div class="flex gap-2">
+    <div class="flex gap-2" id="coupon-area">
         <input type="text" id="coupon-input" placeholder="Digite o código" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[var(--accent-color)]">
-        <button onclick="window.aplicarCupom()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all">Aplicar</button>
+        <button id="coupon-btn" onclick="window.gerenciarCupom()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all">Aplicar</button>
     </div>
     <p id="coupon-msg" class="text-[9px] mt-1 font-bold hidden"></p>
 </div>
@@ -1828,16 +1828,23 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
         freteSelecionado = null;
     }
     container.innerHTML = html + addressBlock;
+      window.calcularFreteAutomatico(currentUserData.cep);
 }
 
     window.calcularFreteAutomatico = async (cep) => {
         const container = document.getElementById('frete-auto-container');
-        if(!container || (cep === cepCache && opcoesFreteCache)) {
-            if(container && opcoesFreteCache) renderizarOpcoesFrete(container);
+        if(!container) return;
+
+        const subtotalParaCache = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+        const identificadorCache = cep + "_" + subtotalParaCache;
+
+        if(identificadorCache === cepCache && opcoesFreteCache) {
+            renderizarOpcoesFrete(container);
             return;
         }
 
         try {
+            container.innerHTML = '<div class="text-center py-2 text-xs text-gray-400"><i class="fas fa-spinner fa-spin"></i> Calculando frete...</div>';
             const response = await fetch('/api/frete', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cepDestino: cep.replace(/\D/g, '') })
@@ -1845,47 +1852,45 @@ if (preferenceIdFromUrl || paymentIdFromUrl) {
             const dados = await response.json();
             if (dados.error || !response.ok) throw new Error();
 
-            cepCache = cep;
+            cepCache = identificadorCache;
             opcoesFreteCache = dados;
             renderizarOpcoesFrete(container);
         } catch (e) {
-            if(container) container.innerHTML = `<p class="text-[10px] text-red-500 text-center font-bold">Erro ao calcular frete.</p>`;
+            container.innerHTML = `<p class="text-[10px] text-red-500 text-center font-bold">Erro ao calcular frete.</p>`;
         }
     };
 
     function renderizarOpcoesFrete(container) {
-        if (!opcoesFreteCache) return;
-        
-        // Calcula o subtotal atual do carrinho
+        if (!opcoesFreteCache || !container) return;
         const subtotalAtual = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
-        
-        // Verifica se atingiu o valor para Frete Grátis
         const atingiuFreteGratis = window.valorFreteGratisPlanilha > 0 && subtotalAtual >= window.valorFreteGratisPlanilha;
 
         let html = '';
-        
         opcoesFreteCache.forEach((op) => {
-            // Se atingiu o valor, o preço da opção vira 0
             const precoExibido = atingiuFreteGratis ? 0 : op.preco;
+            if (!freteSelecionado) freteSelecionado = { ...op, preco: precoExibido };
             const isChecked = freteSelecionado && freteSelecionado.nome === op.nome ? 'checked' : '';
             
-            // Cria um objeto modificado caso seja grátis para passar para a função de seleção
-            const opcaoModificada = { ...op, preco: precoExibido };
+            // Ícones dinâmicos (Loggi/Melhor Envio)
+            const iconeFrete = op.origem === 'melhorenvio' ? 'fa-truck-fast' : 'fa-box';
+            const corIcone = op.origem === 'melhorenvio' ? 'text-blue-500' : 'text-[var(--accent-color)]';
 
+            const opcaoModificada = { ...op, preco: precoExibido };
             html += `
-                <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50">
+                <label class="flex items-center justify-between border ${isChecked ? 'border-[var(--accent-color)] bg-orange-50' : 'border-gray-200'} p-3 rounded-lg cursor-pointer transition-all hover:bg-gray-50 mb-2">
                     <div class="flex items-center gap-3">
-                        <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(opcaoModificada)})' class="text-[var(--accent2-color)] focus:ring-[var(--accent-color)] h-4 w-4">
+                        <input type="radio" name="frete" ${isChecked} onchange='window.selecionarFrete(${JSON.stringify(opcaoModificada)})' class="text-[var(--accent2-color)]">
                         <div class="flex flex-col">
-                            <span class="text-xs text-gray-800 font-bold">${op.nome}</span>
-                            <span class="text-[10px] text-gray-500">Prazo: ${op.prazo} dias</span>
+                            <span class="text-[11px] font-bold text-gray-800 flex items-center gap-1">
+                                <i class="fas ${iconeFrete} ${corIcone} text-[10px]"></i> ${op.nome}
+                            </span>
+                            <span class="text-[9px] text-gray-500">Até ${op.prazo} dias úteis</span>
                         </div>
                     </div>
-                    <span class="text-sm font-bold ${atingiuFreteGratis ? 'text-green-600' : 'text-[var(--accent2-color)]'}">
-                        ${precoExibido === 0 ? 'FRETE GRÁTIS' : 'R$ ' + precoExibido.toFixed(2).replace('.',',')}
+                    <span class="text-xs font-bold ${atingiuFreteGratis ? 'text-green-600' : 'text-[var(--accent2-color)]'}">
+                        ${precoExibido === 0 ? 'GRÁTIS' : 'R$ ' + precoExibido.toFixed(2).replace('.',',')}
                     </span>
-                </label>
-            `;
+                </label>`;
         });
         container.innerHTML = html;
     }
@@ -2453,20 +2458,30 @@ const nomeFrete = pedido.frete ? pedido.frete.nome : 'Frete';
     };
     let cupomAplicado = null;
 
-window.aplicarCupom = () => {
+window.gerenciarCupom = () => {
     const input = document.getElementById('coupon-input');
+    const btn = document.getElementById('coupon-btn');
     const msg = document.getElementById('coupon-msg');
-    const codigo = input.value.trim().toUpperCase();
 
+    if (btn.innerText === "Remover") {
+        cupomAplicado = null;
+        input.value = "";
+        input.disabled = false;
+        btn.innerText = "Aplicar";
+        btn.className = "bg-gray-800 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-all";
+        msg.classList.add('hidden');
+        updateCartUI();
+        return;
+    }
+
+    const codigo = input.value.trim().toUpperCase();
     if (!codigo) return;
 
-    // Busca os dados da planilha que já estão carregados na primeira linha (conforme sua lógica de frete_gratis)
     Papa.parse(LINK_DA_PLANILHA, {
         download: true,
         header: true,
         complete: function(results) {
             const planilha = results.data;
-            // Procura o cupom em qualquer linha da planilha nas colunas cupom_codigo e cupom_valor
             const cupomEncontrado = planilha.find(linha => linha.cupom_codigo && linha.cupom_codigo.toUpperCase() === codigo);
 
             if (cupomEncontrado) {
@@ -2474,10 +2489,13 @@ window.aplicarCupom = () => {
                     codigo: cupomEncontrado.cupom_codigo,
                     valor: parseFloat(cupomEncontrado.cupom_valor.replace(',', '.'))
                 };
-                msg.innerText = "Cupom aplicado com sucesso!";
+                btn.innerText = "Remover";
+                btn.className = "bg-red-600 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-red-700 transition-all";
+                input.disabled = true;
+                msg.innerText = "Cupom aplicado!";
                 msg.className = "text-[9px] mt-1 font-bold text-green-600";
                 msg.classList.remove('hidden');
-                updateCartUI(); // Atualiza o preço na tela
+                updateCartUI();
             } else {
                 cupomAplicado = null;
                 msg.innerText = "Cupom inválido ou expirado.";
