@@ -1577,7 +1577,7 @@ const checkPendingOrders = async () => {
             const pStatus = await res.json();
             
             if (pStatus.status === 'approved') {
-                // 1. ATUALIZA O STATUS NO BANCO DE DADOS
+                // 1. ATUALIZA O STATUS PARA PAGO
                 await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
                     status: 'Pago',
                     id_pagamento_real: pStatus.id_real || p.id_pagamento,
@@ -1588,7 +1588,7 @@ const checkPendingOrders = async () => {
                 const pedidoSnap = await getDoc(doc(db, "users", auth.currentUser.uid, "orders", docId));
                 const pedidoAtual = pedidoSnap.data();
 
-                // 2. ENVIA E-MAIL PARA O CLIENTE (PELO ZOHO/NOTIFICAR)
+                // 2. ENVIA E-MAIL PARA O CLIENTE
                 if (pedidoAtual && !pedidoAtual.cliente_notificado) {
                     const okCliente = await enviarEmailClientePagamento({
                         to: auth.currentUser.email,
@@ -1600,16 +1600,18 @@ const checkPendingOrders = async () => {
                     });
                 }
 
-                // 3. ENVIA E-MAIL PARA O VENDEDOR (ZOHO VIA FORMSPREE) COM TODOS OS DADOS
+                // 3. ENVIA E-MAIL PARA O VENDEDOR
                 if (pedidoAtual && !pedidoAtual.notificado) {
                     await enviarNotificacaoVenda(pedidoAtual, docId);
                     await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), {
                         notificado: true
                     });
                 }
-                console.log("Pedido " + docId + " confirmado e e-mails enviados!");
-            } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled') {
-                await updateDoc(doc(db, "users", user.uid, "orders", docId), { status: 'Cancelado' });
+            } else if (pStatus.status === 'rejected' || pStatus.status === 'cancelled' || pStatus.status === 'refunded') {
+                // SE O STATUS FOR REJEITADO, CANCELADO OU DEVOLVIDO, ATUALIZA NO SITE
+                await updateDoc(doc(db, "users", auth.currentUser.uid, "orders", docId), { 
+                    status: 'Cancelado' 
+                });
             }
         } catch (e) {
             console.log("Erro na verificação automática");
@@ -2264,7 +2266,7 @@ if (!pedido || !pedido.items || !pedido.status) return;
                     let corStatus = 'bg-gray-100 text-gray-700';
                     if (pedido.status === 'Pago') corStatus = 'bg-green-100 text-green-700';
                     if (pedido.status === 'Aguardando Pagamento') corStatus = 'bg-orange-100 text-orange-700';
-
+                    if (pedido.status === 'Cancelado') corStatus = 'bg-red-100 text-red-700';
                     // --- 1. LISTA DE PRODUTOS ---
                     let produtosHTML = '';
                     let subtotalProdutos = 0;
