@@ -1169,16 +1169,16 @@ function renderizarGridComPaginacao() {
             let corTag = produto.tag.includes('%') ? 'bg-red-500' : 'bg-green-500';
             tagHTML = `<span class="absolute top-3 left-3 ${corTag} text-white px-2 py-1 rounded text-xs font-bold shadow-sm z-10">${produto.tag}</span>`;
         }
-        const precoLimpo = produto.preco_por.replace(/\./g, '').replace(',', '.');
-const precoNumerico = parseFloat(precoLimpo);
-const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const precoLimpoStr = produto.preco_por.toString().replace(/\s/g, '').replace('.', '').replace(',', '.');
+        const precoNumericoCard = parseFloat(precoLimpoStr);
+        const precoFormatado = isNaN(precoNumericoCard) ? "0,00" : precoNumericoCard.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             
-            const numParcelas = parseInt(produto.parcelas) || 1;
-            let parcelamentoHTML = '';
-            if(numParcelas > 1) {
-                const valorParcela = (precoNumerico / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
-            }
+        const numParcelas = parseInt(produto.parcelas) || 1;
+        let parcelamentoHTML = '';
+        if(numParcelas > 1) {
+            const valorParcela = (precoNumericoCard / numParcelas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            parcelamentoHTML = `<p class="text-[10px] text-green-600 font-bold mt-1">até ${numParcelas}x de ${valorParcela} sem juros</p>`;
+        }
         const safeNome = String(produto.nome).replace(/'/g, "\\'").replace(/"/g, '&quot;');
             const safeImg = produto.imagem;
             const safeCat = (produto.categoria || '').replace(/'/g, "\\'");
@@ -1188,7 +1188,7 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
             const safePrecoAntigo = (produto.preco_de || '').replace(/\./g, '');
 
         container.innerHTML += `
-            <div onclick="window.openProductModal('${safeNome}', '${precoLimpo}', '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
+            <div onclick="window.openProductModal('${safeNome}', ${precoNumericoCard}, '${safeImg}', '${safeCat}', '${safeDesc}', '${safePrecoAntigo}', ${rating}, ${numParcelas})"
                  class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden group hover:shadow-xl transition-all duration-300 h-full flex flex-col relative cursor-pointer">
                 <div class="relative overflow-hidden shrink-0 bg-white">
                     <img src="${produto.imagem}" alt="${produto.nome}" class="w-full h-40 sm:h-56 object-contain p-2 group-hover:scale-105 transition-transform duration-500">
@@ -1207,10 +1207,10 @@ const precoFormatado = precoNumerico.toLocaleString('pt-BR', { style: 'currency'
                                 <span class="text-base md:text-xl font-bold text-[var(--accent2-color)]">R$ ${precoFormatado}</span>
                                 ${parcelamentoHTML}
                             </div>
-                            <button onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${produto.precoNumerico}, '${safeImg}')" 
-                                    class="bg-black text-white w-full sm:w-10 h-10 rounded-lg flex items-center justify-center hover:bg-[var(--accent2-color)] transition-colors">
-                                <i class="fas fa-shopping-cart text-sm"></i>
-                            </button>
+                            <button id="btn-add-${produto.id}" onclick="event.stopPropagation(); window.safeAddToCart('${safeNome}', ${precoNumericoCard}, '${safeImg}')" 
+        class="bg-black text-white w-full sm:w-10 h-10 rounded-lg flex items-center justify-center hover:bg-[var(--accent2-color)] transition-colors">
+    <i class="fas fa-shopping-cart text-sm"></i>
+</button>
                         </div>
                     </div>
                 </div>
