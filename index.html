@@ -1385,77 +1385,25 @@ if (supForm) {
     function montarClienteDoPedido(pedido = {}) {
   const u = currentUserData || {};
   const authEmail = auth?.currentUser?.email || "";
-
   const cliente = pedido.cliente || {};
 
+  // Função auxiliar para pegar o valor de várias fontes possíveis
+  const getV = (campo, pedidoField, userField) => {
+    return cliente[campo] || pedido[pedidoField] || pedido[campo] || u[userField] || u[campo] || "";
+  };
+
   return {
-    nome:
-      cliente.nome ||
-      pedido.fullName ||
-      pedido.nome ||
-      u.fullName ||
-      "",
-
-    email:
-      cliente.email ||
-      pedido.email ||
-      authEmail ||
-      u.email ||
-      "",
-
-    cpf:
-      cliente.cpf ||
-      pedido.cpf ||
-      u.cpf ||
-      "",
-
-    telefone:
-      cliente.telefone ||
-      pedido.phone ||
-      u.phone ||
-      "",
-
-    cep:
-      cliente.cep ||
-      pedido.cep ||
-      u.cep ||
-      "",
-
-    rua:
-      cliente.rua ||
-      pedido.street ||
-      u.street ||
-      "",
-
-    numero:
-      cliente.numero ||
-      pedido.number ||
-      u.number ||
-      "",
-
-    bairro:
-      cliente.bairro ||
-      pedido.neighborhood ||
-      u.neighborhood ||
-      "",
-
-    cidade:
-      cliente.cidade ||
-      pedido.city ||
-      u.city ||
-      "",
-
-    estado:
-      cliente.estado ||
-      pedido.state ||
-      u.state ||
-      "",
-
-    complemento:
-      cliente.complemento ||
-      pedido.complement ||
-      u.complement ||
-      ""
+    nome: getV('nome', 'fullName', 'fullName'),
+    email: getV('email', 'email', 'email') || authEmail,
+    cpf: getV('cpf', 'cpf', 'cpf'),
+    telefone: getV('telefone', 'phone', 'phone'),
+    cep: getV('cep', 'cep', 'cep'),
+    rua: getV('rua', 'street', 'street'),
+    numero: getV('numero', 'number', 'number'),
+    bairro: getV('bairro', 'neighborhood', 'neighborhood'),
+    cidade: getV('cidade', 'city', 'city'),
+    estado: getV('estado', 'state', 'state'),
+    complemento: getV('complemento', 'complement', 'complement')
   };
 }
 
@@ -3152,42 +3100,36 @@ window.enviarEmailClientePagamento = async function({ to, pedidoId, pedido = nul
 };
     const enviarNotificacaoVenda = async (pedidoData, pedidoId) => {
     try {
-        // 1. Busca os dados detalhados do cliente no Firebase
-        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        const perfil = userDoc.exists() ? userDoc.data() : {};
+        // Usa a função blindada para garantir que nenhum campo venha undefined
+        const c = montarClienteDoPedido(pedidoData);
 
-        // 2. Monta o relatório completo para o vendedor
         const relatorioVenda = {
             assunto: `🔥 NOVA VENDA: Pedido #${pedidoId}`,
-            // Dados do Cliente
-            cliente_nome: perfil.nome || "Não informado",
-            cliente_email: auth.currentUser.email,
-            cliente_cpf: perfil.cpf || "Não informado",
-            cliente_whatsapp: perfil.whatsapp || "Não informado",
+            cliente_nome: c.nome || "Não informado",
+            cliente_email: c.email || "Não informado",
+            cliente_cpf: c.cpf || "Não informado",
+            cliente_whatsapp: c.telefone || "Não informado",
             
-            // Dados de Entrega
-            endereco: `${perfil.rua}, ${perfil.numero} - ${perfil.bairro}`,
-            cidade_estado: `${perfil.cidade} / ${perfil.estado}`,
-            cep: perfil.cep,
+            endereco: `${c.rua}, ${c.numero} - ${c.bairro}`,
+            cidade_estado: `${c.cidade} / ${c.estado}`,
+            cep: c.cep,
             frete_escolhido: pedidoData.frete?.nome || "Padrão",
             
-            // Detalhes do Pedido
-            produtos: pedidoData.items.map(item => `${item.quantity}x ${item.name} (R$ ${item.price})`).join(" | "),
+            produtos: (pedidoData.items || pedidoData.itens || []).map(item => `${item.quantity}x ${item.name} (R$ ${item.price})`).join(" | "),
             valor_total: `R$ ${pedidoData.total}`,
             metodo_pagamento: "Mercado Pago",
-            link_pedido: `https://asthro.com.br/admin/pedidos/${pedidoId}` // Ajuste para sua URL
+            link_pedido: `https://asthro.com.br/admin/pedidos/${pedidoId}`
         };
-window.enviarNotificacaoVenda = enviarNotificacaoVenda;
-        // 3. Envia para o Formspree (Zoho recebe)
+
         await fetch("https://formspree.io/f/mreeewrl", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(relatorioVenda)
         });
 
-        console.log("Notificação completa enviada ao vendedor!");
+        console.log("Notificação enviada com sucesso!");
     } catch (error) {
-        console.error("Erro ao coletar dados para o vendedor:", error);
+        console.error("Erro ao enviar notificação:", error);
     }
 };
     window.verificarStatusManual = async (paymentId, docId) => {
