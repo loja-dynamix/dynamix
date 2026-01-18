@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamix | Conexões Premium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://kit.fontawesome.com/8e98006f77.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ffc30d;
+            --accent: #ff8600;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: #050505;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* Fundo de Luxo: Gradiente suave com luzes orbitais */
+        .bg-glow {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 10% 20%, rgba(21, 93, 154, 0.15) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(255, 134, 0, 0.1) 0%, transparent 40%);
+            z-index: -1;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        /* Avatar com Anel de Progresso/Brilho */
+        .profile-container {
+            position: relative;
+            margin-bottom: 2rem;
+            animation: fadeInDown 1s ease;
+        }
+
+        .avatar-glow {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(45deg, var(--primary), var(--accent), #fff);
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 0 30px rgba(255, 195, 13, 0.3);
+        }
+
+        .avatar-glow img {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            border-radius: 50%;
+            object-fit: contain;
+            padding: 10px;
+        }
+
+        /* Botões Estilo "Liquid Glass" */
+        .link-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 1.2rem;
+            padding: 20px;
+            border-radius: 1.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s forwards;
+        }
+
+        .link-card:nth-child(1) { animation-delay: 0.2s; }
+        .link-card:nth-child(2) { animation-delay: 0.4s; }
+        .link-card:nth-child(3) { animation-delay: 0.6s; }
+        .link-card:nth-child(4) { animation-delay: 0.8s; }
+
+        .link-card::before {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            transition: 0.5s;
+        }
+
+        .link-card:hover {
+            transform: scale(1.05) translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .link-card:hover::before {
+            left: 100%;
+        }
+
+        .icon-box {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 18px;
+            font-size: 1.4rem;
+            transition: 0.3s;
+        }
+
+        .link-card:hover .icon-box {
+            background: var(--primary);
+            color: black;
+            transform: rotate(-10deg);
+        }
+
+        /* Rodapé Asthro em Destaque */
+        .footer-asthro {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+            animation-delay: 1.2s;
+        }
+
+        .asthro-logo {
+            height: 65px; /* Aumentado conforme solicitado */
+            margin: 15px auto;
+            filter: brightness(0) invert(1);
+            transition: 0.3s;
+            display: block;
+        }
+
+        .asthro-logo:hover {
+            transform: scale(1.1);
+            filter: brightness(1) drop-shadow(0 0 10px var(--accent));
+        }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .address-text {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div class="container">
+        <div class="profile-container">
+            <div class="avatar-glow">
+                <img src="https://i.imgur.com/PxWRD9i.png" alt="Dynamix">
+            </div>
+            <h1 class="text-3xl font-extrabold mt-6 tracking-tight">DYNAMIX</h1>
+            <div class="flex items-center justify-center gap-2 mt-2">
+                <span class="h-[1px] w-8 bg-orange-500"></span>
+                <p class="text-orange-500 font-bold text-sm uppercase tracking-widest">Premium Life</p>
+                <span class="h-[1px] w-8 bg-orange-500"></span>
+            </div>
+        </div>
+
+        <div class="links-wrapper">
+            <a href="https://dynamixoficial.com.br" target="_blank" class="link-card">
+                <div class="icon-box"><i class="fas fa-shopping-bag"></i></div>
+                <div class="text-left">
+                    <span class="block font-bold text-lg">Site Oficial</span>
+                    <span class="block text-xs text-gray-400">Produtos a pronta entrega</span>
+                </div>
+                <i class="fas fa-external-link-alt ml-auto text-gray-600"></i>
+            </a>
+
+            <a href="https://wa.me/5511916658264" target="_blank" class="link-card">
+                <div class="icon-box"><i class="fab fa-whatsapp"></i></div>
+                <div class="text-left">
+                    <span class="block font-bold text-lg">Suporte Especializado</span>
+                    <span class="block text-xs text-gray-400">Fale com nossos consultores</span>
+                </div>
+                <i class="fas fa-external-link-alt ml-auto text-gray-600"></i>
+            </a>
+
+            <a href="https://www.instagram.com/dynamix_0ficial/" target="_blank" class="link-card">
+                <div class="icon-box"><i class="fab fa-instagram"></i></div>
+                <div class="text-left">
+                    <span class="block font-bold text-lg">Nosso Instagram</span>
+                    <span class="block text-xs text-gray-400">Dicas de saúde e promoções</span>
+                </div>
+                <i class="fas fa-external-link-alt ml-auto text-gray-600"></i>
+            </a>
+
+            <a href="https://www.google.com/maps?q=Av.+Dr.+Gastão+Vidigal,+1946+–+Vila+Leopoldina+–+São+Paulo+–+SP" target="_blank" class="link-card">
+                <div class="icon-box"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="text-left">
+                    <span class="block font-bold text-lg">Loja Física</span>
+                    <span class="address-text">Av. Dr. Gastão Vidigal, 1946 - Vila Leopoldina, SP</span>
+                </div>
+                <i class="fas fa-directions ml-auto text-gray-600"></i>
+            </a>
+        </div>
+
+        <div class="footer-asthro">
+            <p class="text-[11px] font-bold text-gray-500 uppercase tracking-[0.3em]">Criado com excelência por</p>
+            <a href="https://asthro.com.br" target="_blank">
+                <img src="https://raw.githubusercontent.com/MateusZito2024/Cria-o-de-Sites/refs/heads/main/LOGO%20PNG.png" alt="Asthro Agência" class="asthro-logo">
+            </a>
+            <p class="text-[10px] text-gray-600 mt-4">&copy; 2026 Dynamix Oficial | Todos os direitos reservados</p>
+        </div>
+    </div>
+
+</body>
+</html>
