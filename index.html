@@ -1406,7 +1406,7 @@ if (supForm) {
     complemento: getV('complemento', 'complement', 'complement')
   };
 }
-
+window.montarClienteDoPedido = montarClienteDoPedido; // ADICIONE ESTA LINHA EXATAMENTE AQUI
 function montarItensDoPedido(pedido = {}) {
   // pega itens do pedido em QUALQUER formato que existir
   return (
